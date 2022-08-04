@@ -1,0 +1,9 @@
+services:
+  dynamodb-local:
+    image: amazon/dynamodb-local
+    command: -jar DynamoDBLocal.jar -sharedDb
+    restart: always
+    ports:
+      - '8000:8000'
+    expose:
+      - '8000'

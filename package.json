@@ -1,0 +1,92 @@
+{
+  "name": "entities-monorepo",
+  "version": "0.0.1",
+  "main": "index.js",
+  "repository": "https://github.com/workduck-io/entities-monorepo.git",
+  "author": "rpPanda <ruddhi@workduck.io>",
+  "license": "MIT",
+  "scripts": {
+    "nx": "nx",
+    "build": "nx build",
+    "test": "nx test",
+    "lint": "nx workspace-lint && nx lint",
+    "e2e": "nx e2e",
+    "affected:stacks": "nx affected:apps",
+    "affected:libs": "nx affected:libs",
+    "affected:build": "nx affected:build",
+    "affected:e2e": "nx affected:e2e",
+    "affected:test": "nx affected:test",
+    "affected:lint": "nx affected:lint",
+    "affected:dep-graph": "nx affected:dep-graph",
+    "affected": "nx affected",
+    "format": "nx format:write",
+    "format:write": "nx format:write",
+    "format:check": "nx format:check",
+    "update": "nx migrate latest",
+    "workspace-generator": "nx workspace-generator",
+    "dep-graph": "nx dep-graph",
+    "help": "nx help",
+    "prepare": "husky install",
+    "container-up": "cd ./scripts && docker-compose up",
+    "nxall": "nx run-many --target=serve --all --maxParallel=10",
+    "nxa": "npm-run-all -p nxall container-up"
+  },
+  "devDependencies": {
+    "@aws-sdk/types": "3.47.0",
+    "@jest/transform": "27.4.6",
+    "@nrwl/cli": "13.4.6",
+    "@nrwl/devkit": "13.4.6",
+    "@nrwl/eslint-plugin-nx": "13.4.6",
+    "@nrwl/jest": "13.4.6",
+    "@nrwl/linter": "13.4.6",
+    "@nrwl/node": "13.4.6",
+    "@nrwl/nx-cloud": "13.1.2",
+    "@nrwl/tao": "13.4.6",
+    "@nrwl/workspace": "13.4.6",
+    "@types/aws-lambda": "8.10.90",
+    "@types/deep-diff": "^1.0.1",
+    "@types/jest": "27.4.0",
+    "@types/node": "15.12.4",
+    "@types/serverless": "1.78.42",
+    "@typescript-eslint/eslint-plugin": "5.10.0",
+    "@typescript-eslint/parser": "5.10.0",
+    "esbuild": "^0.14.11",
+    "eslint": "8.7.0",
+    "eslint-config-prettier": "8.3.0",
+    "husky": "7.0.4",
+    "jest": "27.4.7",
+    "lint-staged": "12.2.1",
+    "npm-run-all": "^4.1.5",
+    "pino-pretty": "^7.5.3",
+    "prettier": "2.5.1",
+    "serverless": "^3.15.1",
+    "serverless-domain-manager": "^6.0.3",
+    "serverless-dynamodb-local": "^0.2.40",
+    "serverless-esbuild": "^1.23.3",
+    "serverless-jest-plugin": "0.4.0",
+    "serverless-offline": "^8.3.1",
+    "serverless-offline-sqs": "^6.0.0",
+    "serverless-prune-plugin": "^2.0.1",
+    "serverless-s3-deploy": "^0.10.1",
+    "ts-jest": "27.1.3",
+    "typescript": "~4.6.0"
+  },
+  "engines": {
+    "node": ">=14 <15"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{md,json,yml,yaml,html}": [
+      "prettier --write"
+    ]
+  },
+  "dependencies": {
+    "@workduck-io/serverless-auto-swagger": "^2.8.3",
+    "deepmerge": "^4.2.2",
+    "dynamodb-toolbox": "^0.4.3",
+    "tslib": "^2.0.0"
+  }
+}

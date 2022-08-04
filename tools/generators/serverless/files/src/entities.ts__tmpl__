@@ -1,0 +1,12 @@
+import { Entity } from 'dynamodb-toolbox';
+import { <%= name %>Table } from '../service/DynamoDB';
+import { <%= name %> } from './interface';
+
+export const <%= name %>Entity = new Entity({
+  name: '<%= name %>',
+  attributes: {
+    name: { partitionKey: true },
+    id: { sortKey: true, default: () => `${Math.random()}` },
+  },
+  table: <%= name %>Table,
+} as const);
