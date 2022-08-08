@@ -15,7 +15,9 @@
     "skipDefaultLibCheck": true,
     "esModuleInterop": true,
     "baseUrl": ".",
-    "paths": {}
+    "paths": {
+      "@mex/entity-utils": ["libs/entity-utils/src/index.ts"]
+    }
   },
   "exclude": ["node_modules", "tmp"]
 }

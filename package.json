@@ -87,6 +87,7 @@
     "@workduck-io/serverless-auto-swagger": "^2.8.3",
     "deepmerge": "^4.2.2",
     "dynamodb-toolbox": "^0.4.3",
+    "nanoid": "^4.0.0",
     "tslib": "^2.0.0"
   }
 }

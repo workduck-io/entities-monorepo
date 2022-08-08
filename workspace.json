@@ -1,6 +1,7 @@
 {
   "version": 2,
   "projects": {
+    "entity-utils": "libs/entity-utils",
     "task": "stacks/task"
   }
 }

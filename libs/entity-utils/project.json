@@ -1,0 +1,23 @@
+{
+  "root": "libs/entity-utils",
+  "sourceRoot": "libs/entity-utils/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/entity-utils/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/libs/entity-utils"],
+      "options": {
+        "jestConfig": "libs/entity-utils/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": ["lib"]
+}
