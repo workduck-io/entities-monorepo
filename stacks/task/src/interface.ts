@@ -1,9 +1,5 @@
-import type { EntityItem } from 'dynamodb-toolbox';
-import { TaskEntity } from './entities';
+import { BaseEntityParameters } from '@mex/entity-utils';
 
-export interface Task {
-  name: string;
-  id: string;
+export interface Task extends BaseEntityParameters {
+  status: string
 }
-
-export type TaskEntityType = EntityItem<typeof TaskEntity>;

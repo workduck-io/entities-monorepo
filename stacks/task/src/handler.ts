@@ -1,9 +1,10 @@
+import { createBatchRequest } from '@mex/entity-utils';
 import { APIGatewayProxyHandlerV2 } from 'aws-lambda';
 import { taskTable } from '../service/DynamoDB';
 import { extractWorkspaceId } from '../utils/helpers';
 import { TaskEntity } from './entities';
 
-export const hello: APIGatewayProxyHandlerV2 = async (event, _context) => {
+export const hello: APIGatewayProxyHandlerV2 = async (event) => {
   return {
     statusCode: 200,
     body: JSON.stringify(
@@ -110,18 +111,15 @@ export const batchUpdate: APIGatewayProxyHandlerV2 = async (event) => {
   const workspaceId = extractWorkspaceId(event);
   const req = JSON.parse(event.body);
   try {
-    const batchReq = req.map((r) => {
-      if (r.type === 'UPDATE') {
-        return TaskEntity.putBatch({
-          ...r.data,
-          workspaceId,
-        });
-      }
-      if (r.type === 'DELETE') {
-        return TaskEntity.deleteBatch({ ...r.data, workspaceId });
-      }
+    const batchRequest = createBatchRequest({
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore
+      associatedEntity: TaskEntity,
+      workspaceId,
+      request: req,
     });
-    const result = await taskTable.batchWrite(batchReq);
+
+    const result = await taskTable.batchWrite(batchRequest);
     return {
       statusCode: 200,
       body: JSON.stringify(result),
