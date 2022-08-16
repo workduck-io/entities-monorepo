@@ -48,13 +48,13 @@ const getAllEntitiesOfWorkspace = {
   ],
 };
 
-const getAllEntitiesOfNote = {
-  handler: `${handlerPath(__dirname)}/handler.getAllEntitiesOfNote`,
+const getAllEntitiesOfNode = {
+  handler: `${handlerPath(__dirname)}/handler.getAllEntitiesOfNode`,
   events: [
     {
       httpApi: {
         method: 'GET',
-        path: '/all/note/{noteId}',
+        path: '/all/node/{nodeId}',
       },
     },
   ],
@@ -65,5 +65,5 @@ export default {
   batchUpdate,
   get,
   getAllEntitiesOfWorkspace,
-  getAllEntitiesOfNote,
+  getAllEntitiesOfNode,
 };

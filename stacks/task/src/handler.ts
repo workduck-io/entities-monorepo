@@ -1,28 +1,15 @@
-import { createBatchRequest } from '@mex/entity-utils';
+import { BatchRequest, createBatchRequest } from '@mex/entity-utils';
 import { APIGatewayProxyHandlerV2 } from 'aws-lambda';
 import { taskTable } from '../service/DynamoDB';
+import { ValidatedAPIGatewayProxyHandler } from '../utils/apiGateway';
 import { extractWorkspaceId } from '../utils/helpers';
+import { middyfy } from '../utils/middleware';
 import { TaskEntity } from './entities';
-
-export const hello: APIGatewayProxyHandlerV2 = async (event) => {
-  return {
-    statusCode: 200,
-    body: JSON.stringify(
-      {
-        message:
-          'Go Serverless (Typescript) v1.0! Your function executed successfully!',
-        input: event,
-      },
-      null,
-      2
-    ),
-  };
-};
-
-export const create: APIGatewayProxyHandlerV2 = async (event) => {
-  const task = JSON.parse(event.body);
-  const workspaceId = extractWorkspaceId(event);
+import { Task } from './interface';
+const createHandler: ValidatedAPIGatewayProxyHandler<Task> = async (event) => {
   try {
+    const workspaceId = extractWorkspaceId(event);
+    const task = event.body;
     const res = (
       await TaskEntity.update(
         { ...task, workspaceId },
@@ -43,10 +30,12 @@ export const create: APIGatewayProxyHandlerV2 = async (event) => {
   }
 };
 
-export const get: APIGatewayProxyHandlerV2 = async (event) => {
-  const workspaceId = extractWorkspaceId(event);
-  const entityId = event.pathParameters.entityId;
+export const get: ValidatedAPIGatewayProxyHandler<undefined> = async (
+  event
+) => {
   try {
+    const workspaceId = extractWorkspaceId(event);
+    const entityId = event.pathParameters.entityId;
     const res = (
       await TaskEntity.get({
         workspaceId,
@@ -68,8 +57,8 @@ export const get: APIGatewayProxyHandlerV2 = async (event) => {
 export const getAllEntitiesOfWorkspace: APIGatewayProxyHandlerV2 = async (
   event
 ) => {
-  const workspaceId = extractWorkspaceId(event);
   try {
+    const workspaceId = extractWorkspaceId(event);
     const res = (await TaskEntity.query(workspaceId)).Items;
     return {
       statusCode: 200,
@@ -83,12 +72,12 @@ export const getAllEntitiesOfWorkspace: APIGatewayProxyHandlerV2 = async (
   }
 };
 
-export const getAllEntitiesOfNote: APIGatewayProxyHandlerV2 = async (event) => {
-  const noteId = event.pathParameters.noteId;
-  const workspaceId = extractWorkspaceId(event);
+export const getAllEntitiesOfNode: APIGatewayProxyHandlerV2 = async (event) => {
   try {
+    const nodeId = event.pathParameters.nodeId;
+    const workspaceId = extractWorkspaceId(event);
     const res = (
-      await TaskEntity.query(noteId, {
+      await TaskEntity.query(nodeId, {
         index: 'ak-pk-index',
         eq: workspaceId,
       })
@@ -98,8 +87,6 @@ export const getAllEntitiesOfNote: APIGatewayProxyHandlerV2 = async (event) => {
       body: JSON.stringify(res),
     };
   } catch (e) {
-    console.log(e);
-
     return {
       statusCode: 400,
       body: JSON.stringify(e),
@@ -107,10 +94,12 @@ export const getAllEntitiesOfNote: APIGatewayProxyHandlerV2 = async (event) => {
   }
 };
 
-export const batchUpdate: APIGatewayProxyHandlerV2 = async (event) => {
-  const workspaceId = extractWorkspaceId(event);
-  const req = JSON.parse(event.body);
+const batchUpdateHandler: ValidatedAPIGatewayProxyHandler<
+  BatchRequest<Task>
+> = async (event) => {
   try {
+    const workspaceId = extractWorkspaceId(event);
+    const req = event.body;
     const batchRequest = createBatchRequest({
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-ignore
@@ -118,7 +107,6 @@ export const batchUpdate: APIGatewayProxyHandlerV2 = async (event) => {
       workspaceId,
       request: req,
     });
-
     const result = await taskTable.batchWrite(batchRequest);
     return {
       statusCode: 200,
@@ -131,3 +119,7 @@ export const batchUpdate: APIGatewayProxyHandlerV2 = async (event) => {
     };
   }
 };
+
+export const create = middyfy(createHandler);
+
+export const batchUpdate = middyfy(batchUpdateHandler);
