@@ -110,7 +110,20 @@ export const baseServerlessConfiguration: Partial<Serverless> = {
 
     region: 'us-east-1',
     httpApi: {
-      cors: true,
+      cors: {
+        allowedOrigins: ['*'],
+        allowedHeaders: [
+          'Content-Type',
+          'X-Amz-Date',
+          'Authorization',
+          'X-Api-Key',
+          'X-Amz-Security-Token',
+          'X-Amz-User-Agent',
+          'X-Amzn-Trace-Id',
+          'mex-workspace-id',
+          'wd-request-id',
+        ],
+      },
       //@ts-ignore
       disableDefaultEndpoint: true,
       authorizers: {

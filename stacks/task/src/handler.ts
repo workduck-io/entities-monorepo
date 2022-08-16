@@ -1,5 +1,5 @@
 import { BatchRequest, createBatchRequest } from '@mex/entity-utils';
-import { APIGatewayProxyHandlerV2 } from 'aws-lambda';
+import { createError } from '@middy/util';
 import { taskTable } from '../service/DynamoDB';
 import { ValidatedAPIGatewayProxyHandler } from '../utils/apiGateway';
 import { extractWorkspaceId } from '../utils/helpers';
@@ -23,14 +23,11 @@ const createHandler: ValidatedAPIGatewayProxyHandler<Task> = async (event) => {
       body: JSON.stringify(res),
     };
   } catch (e) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify(e),
-    };
+    throw createError(400, JSON.stringify(e.message));
   }
 };
 
-export const get: ValidatedAPIGatewayProxyHandler<undefined> = async (
+export const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   event
 ) => {
   try {
@@ -47,16 +44,13 @@ export const get: ValidatedAPIGatewayProxyHandler<undefined> = async (
       body: JSON.stringify(res),
     };
   } catch (e) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify(e),
-    };
+    throw createError(400, JSON.stringify(e.message));
   }
 };
 
-export const getAllEntitiesOfWorkspace: APIGatewayProxyHandlerV2 = async (
-  event
-) => {
+export const getAllEntitiesOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
+  undefined
+> = async (event) => {
   try {
     const workspaceId = extractWorkspaceId(event);
     const res = (await TaskEntity.query(workspaceId)).Items;
@@ -65,14 +59,13 @@ export const getAllEntitiesOfWorkspace: APIGatewayProxyHandlerV2 = async (
       body: JSON.stringify(res),
     };
   } catch (e) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify(e),
-    };
+    throw createError(400, JSON.stringify(e.message));
   }
 };
 
-export const getAllEntitiesOfNode: APIGatewayProxyHandlerV2 = async (event) => {
+export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
+  undefined
+> = async (event) => {
   try {
     const nodeId = event.pathParameters.nodeId;
     const workspaceId = extractWorkspaceId(event);
@@ -87,10 +80,7 @@ export const getAllEntitiesOfNode: APIGatewayProxyHandlerV2 = async (event) => {
       body: JSON.stringify(res),
     };
   } catch (e) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify(e),
-    };
+    throw createError(400, JSON.stringify(e.message));
   }
 };
 
@@ -113,13 +103,14 @@ const batchUpdateHandler: ValidatedAPIGatewayProxyHandler<
       body: JSON.stringify(result),
     };
   } catch (e) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify(e),
-    };
+    throw createError(400, JSON.stringify(e.message));
   }
 };
 
 export const create = middyfy(createHandler);
-
+export const get = middyfy(getHandler);
+export const getAllEntitiesOfWorkspace = middyfy(
+  getAllEntitiesOfWorkspaceHandler
+);
+export const getAllEntitiesOfNode = middyfy(getAllEntitiesOfNodeHandler);
 export const batchUpdate = middyfy(batchUpdateHandler);

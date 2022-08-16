@@ -3,7 +3,7 @@ export interface BaseEntityParameters {
   nodeId: string;
   entityId: string;
   blockId?: string;
-  properties: Record<string, any>;
+  properties?: Record<string, any>;
 }
 export interface BatchRequestUnit<T extends BaseEntityParameters> {
   type: 'UPDATE' | 'CREATE' | 'DELETE';
