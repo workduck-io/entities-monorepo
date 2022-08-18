@@ -1,5 +1,9 @@
 import merge from 'deepmerge';
 
+export const extractWorkspaceId = (event) => {
+  return event.headers['mex-workspace-id'];
+};
+
 export const combineMerge = (target, source, options) => {
   const destination = target.slice();
 
