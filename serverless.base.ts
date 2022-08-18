@@ -52,7 +52,8 @@ export const baseServerlessConfiguration: Partial<Serverless> = {
     },
     autoswagger: {
       typefiles: ['./src/interface.ts'],
-      useStage: false,
+      useStage: true,
+      deploySwagger: false,
       includeStages: ['local'],
       swaggerPath: 'swagger',
       apiKeyHeaders: ['Authorization', 'mex-workspace-id', 'wd-request-id'],

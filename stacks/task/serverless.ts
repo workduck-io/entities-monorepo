@@ -3,6 +3,7 @@ import type { Serverless } from 'serverless/aws';
 import { baseServerlessConfiguration } from '../../serverless.base';
 import Table from './infra/dynamodb/single-table';
 import functions from './src';
+import { combineMerge } from './utils/helpers';
 
 const taskServerlessConfig = {
   service: 'task',
@@ -23,9 +24,11 @@ const taskServerlessConfig = {
       typefiles: ['./src/interface.ts'],
     },
     assets: {
-      target: {
-        prefix: 'task-service',
-      },
+      targets: [
+        {
+          prefix: 'public/task-service',
+        },
+      ],
     },
   },
   functions,
@@ -35,7 +38,9 @@ const taskServerlessConfig = {
 };
 
 const serverlessConfiguration = <Serverless>(
-  merge(baseServerlessConfiguration, taskServerlessConfig)
+  merge(baseServerlessConfiguration, taskServerlessConfig, {
+    arrayMerge: combineMerge,
+  })
 );
 
 module.exports = serverlessConfiguration;

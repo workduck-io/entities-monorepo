@@ -109,6 +109,7 @@ const batchUpdateHandler: ValidatedAPIGatewayProxyHandler<
 
 export const create = middyfy(createHandler);
 export const get = middyfy(getHandler);
+
 export const getAllEntitiesOfWorkspace = middyfy(
   getAllEntitiesOfWorkspaceHandler
 );

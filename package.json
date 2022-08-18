@@ -65,7 +65,6 @@
     "serverless-esbuild": "^1.23.3",
     "serverless-jest-plugin": "0.4.0",
     "serverless-offline": "^8.3.1",
-    "serverless-offline-sqs": "^6.0.0",
     "serverless-prune-plugin": "^2.0.1",
     "serverless-s3-deploy": "^0.10.1",
     "ts-jest": "27.1.3",
