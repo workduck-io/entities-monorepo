@@ -12,8 +12,8 @@ const taskServerlessConfig = {
     'serverless-offline': {
       httpPort: 4000, //set different port for each service
       lambdaPort: 4002,
-      ignoreJWTSignature: true,
-      noAuth: true,
+      // ignoreJWTSignature: true,
+      // noAuth: true,
     },
     customDomain: {
       http: {

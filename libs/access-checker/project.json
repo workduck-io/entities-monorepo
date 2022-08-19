@@ -1,0 +1,23 @@
+{
+  "root": "libs/access-checker",
+  "sourceRoot": "libs/access-checker/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/access-checker/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/libs/access-checker"],
+      "options": {
+        "jestConfig": "libs/access-checker/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": ["lib"]
+}

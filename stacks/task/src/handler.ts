@@ -1,15 +1,20 @@
 import { BatchRequest, createBatchRequest } from '@mex/entity-utils';
 import { createError } from '@middy/util';
+import { checkAccess } from '@mex/access-checker';
 import { taskTable } from '../service/DynamoDB';
 import { ValidatedAPIGatewayProxyHandler } from '../utils/apiGateway';
 import { extractWorkspaceId } from '../utils/helpers';
 import { middyfy } from '../utils/middleware';
 import { TaskEntity } from './entities';
 import { Task } from './interface';
+
 const createHandler: ValidatedAPIGatewayProxyHandler<Task> = async (event) => {
+  const workspaceId = extractWorkspaceId(event);
+  const task = event.body;
+  if (task.workspaceId && workspaceId != task.workspaceId) {
+    await checkAccess(workspaceId, task.nodeId, event);
+  }
   try {
-    const workspaceId = extractWorkspaceId(event);
-    const task = event.body;
     const res = (
       await TaskEntity.update(
         { ...task, workspaceId },

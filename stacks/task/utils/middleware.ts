@@ -11,9 +11,11 @@ import { validate } from '@workduck-io/workspace-validator';
 
 const workduckWorkspaceValidatorMiddleware = () => {
   const workduckWorkspaceValidatorMiddlewareBefore = async (request) => {
+    request.event.headers.Authorization = request.event.headers.authorization;
     try {
-      if (process.env.SLS_STAGE !== 'local' && !validate(request.event))
+      if (process.env.SLS_STAGE !== 'local' && !validate(request.event)) {
         throw new Error('Workspace dont match');
+      }
     } catch (cause) {
       const error = createError(401, 'Not authorized to the resource');
       error.cause = cause;

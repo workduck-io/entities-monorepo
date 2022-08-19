@@ -1,6 +1,7 @@
 {
   "version": 2,
   "projects": {
+    "access-checker": "libs/access-checker",
     "entity-utils": "libs/entity-utils",
     "task": "stacks/task"
   }
