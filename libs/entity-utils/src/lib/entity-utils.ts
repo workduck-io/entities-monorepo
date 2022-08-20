@@ -76,17 +76,18 @@ export const createBatchRequest = <
 }) => {
   const { request, associatedEntity } = batchrequestParams;
   const workspaceId = batchrequestParams.workspaceId;
-  return request.map((req) => {
-    const wsId = workspaceId ?? req.data.workspaceId;
-    switch (req.type) {
+  return request.map((r) => {
+    const { type, ...req } = r;
+    const wsId = workspaceId ?? req.workspaceId;
+    switch (type) {
       case 'CREATE':
       case 'UPDATE':
         return associatedEntity.putBatch({
-          ...req.data,
+          ...req,
           workspaceId: wsId,
         });
       case 'DELETE':
-        return associatedEntity.deleteBatch({ ...req.data, workspaceId: wsId });
+        return associatedEntity.deleteBatch({ ...req, workspaceId: wsId });
     }
   });
 };

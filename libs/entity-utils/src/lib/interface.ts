@@ -5,10 +5,11 @@ export interface BaseEntityParameters {
   blockId?: string;
   properties?: Record<string, any>;
 }
-export interface BatchRequestUnit<T extends BaseEntityParameters> {
+export type BatchRequestUnit<T extends BaseEntityParameters> = {
+  [key in keyof T]: unknown;
+} & {
   type: 'UPDATE' | 'CREATE' | 'DELETE';
-  data: T;
-}
+};
 
 export type BatchRequest<T extends BaseEntityParameters> =
   BatchRequestUnit<T>[];

@@ -1,6 +1,6 @@
+import { checkAccess } from '@mex/access-checker';
 import { BatchRequest, createBatchRequest } from '@mex/entity-utils';
 import { createError } from '@middy/util';
-import { checkAccess } from '@mex/access-checker';
 import { taskTable } from '../service/DynamoDB';
 import { ValidatedAPIGatewayProxyHandler } from '../utils/apiGateway';
 import { extractWorkspaceId } from '../utils/helpers';
@@ -74,6 +74,7 @@ export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
   try {
     const nodeId = event.pathParameters.nodeId;
     const workspaceId = extractWorkspaceId(event);
+    await checkAccess(workspaceId, nodeId, event);
     const res = (
       await TaskEntity.query(nodeId, {
         index: 'ak-pk-index',
