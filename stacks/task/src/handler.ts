@@ -96,6 +96,11 @@ const batchUpdateHandler: ValidatedAPIGatewayProxyHandler<
   try {
     const workspaceId = extractWorkspaceId(event);
     const req = event.body;
+    await Promise.all(
+      [...new Set(req.map((r) => r.nodeId))].map(
+        async (nodeId) => await checkAccess(workspaceId, nodeId, event)
+      )
+    );
     const batchRequest = createBatchRequest({
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-ignore

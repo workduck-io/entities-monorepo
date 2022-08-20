@@ -5,9 +5,7 @@ export interface BaseEntityParameters {
   blockId?: string;
   properties?: Record<string, any>;
 }
-export type BatchRequestUnit<T extends BaseEntityParameters> = {
-  [key in keyof T]: unknown;
-} & {
+export type BatchRequestUnit<T extends BaseEntityParameters> = T & {
   type: 'UPDATE' | 'CREATE' | 'DELETE';
 };
 
