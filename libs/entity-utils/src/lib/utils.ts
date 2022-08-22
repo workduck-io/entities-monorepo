@@ -20,4 +20,13 @@ export const getRegion = () => {
   }
 };
 
+export const chunkify = <T>(array: T[], chunkSize = 25) => {
+  const chunkifiedArr: T[][] = [];
+  for (let i = 0; i < array.length; i += chunkSize) {
+    const chunk = array.slice(i, i + chunkSize);
+    chunkifiedArr.push(chunk);
+  }
+  return chunkifiedArr;
+};
+
 export default () => process.env.DATA_STORE_ARN.split('/').slice(-1)[0];

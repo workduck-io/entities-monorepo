@@ -1,3 +1,5 @@
+import { DocumentClient } from 'aws-sdk/clients/dynamodb';
+
 export interface BaseEntityParameters {
   workspaceId: string;
   nodeId: string;
@@ -11,3 +13,7 @@ export type BatchRequestUnit<T extends BaseEntityParameters> = T & {
 
 export type BatchRequest<T extends BaseEntityParameters> =
   BatchRequestUnit<T>[];
+
+export type DynamoBatchRequest = {
+  [key: string]: DocumentClient.WriteRequest;
+};

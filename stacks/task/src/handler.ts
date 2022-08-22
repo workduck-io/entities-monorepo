@@ -108,7 +108,9 @@ const batchUpdateHandler: ValidatedAPIGatewayProxyHandler<
       workspaceId,
       request: req,
     });
-    const result = await taskTable.batchWrite(batchRequest);
+    const result = await Promise.all(
+      batchRequest.map(async (chunk) => await taskTable.batchWrite(chunk))
+    );
     return {
       statusCode: 200,
       body: JSON.stringify(result),

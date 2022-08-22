@@ -2,8 +2,12 @@ import DynamoDB from 'aws-sdk/clients/dynamodb';
 import { Entity, Table } from 'dynamodb-toolbox';
 import { AttributeDefinitions } from 'dynamodb-toolbox/dist/classes/Entity';
 import { TableDef, TableIndexes } from 'dynamodb-toolbox/dist/classes/Table';
-import { BaseEntityParameters, BatchRequest } from './interface';
-import { getEndpoint, getRegion } from './utils';
+import {
+  BaseEntityParameters,
+  BatchRequest,
+  DynamoBatchRequest,
+} from './interface';
+import { chunkify, getEndpoint, getRegion } from './utils';
 
 export function entityUtils(): string {
   return 'entity-utils';
@@ -76,18 +80,20 @@ export const createBatchRequest = <
 }) => {
   const { request, associatedEntity } = batchrequestParams;
   const workspaceId = batchrequestParams.workspaceId;
-  return request.map((r) => {
-    const { type, ...req } = r;
-    const wsId = workspaceId ?? req.workspaceId;
-    switch (type) {
-      case 'CREATE':
-      case 'UPDATE':
-        return associatedEntity.putBatch({
-          ...req,
-          workspaceId: wsId,
-        });
-      case 'DELETE':
-        return associatedEntity.deleteBatch({ ...req, workspaceId: wsId });
-    }
-  });
+  return chunkify<DynamoBatchRequest>(
+    request.map((r) => {
+      const { type, ...req } = r;
+      const wsId = workspaceId ?? req.workspaceId;
+      switch (type) {
+        case 'CREATE':
+        case 'UPDATE':
+          return associatedEntity.putBatch({
+            ...req,
+            workspaceId: wsId,
+          });
+        case 'DELETE':
+          return associatedEntity.deleteBatch({ ...req, workspaceId: wsId });
+      }
+    })
+  );
 };
