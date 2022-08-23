@@ -7,6 +7,7 @@ const post = {
       httpApi: {
         method: 'POST',
         path: '/',
+        authorizer: 'workduckAuthorizer',
       },
     },
   ],
@@ -19,6 +20,7 @@ const batchUpdate = {
       httpApi: {
         method: 'POST',
         path: '/batch',
+        authorizer: 'workduckAuthorizer',
       },
     },
   ],
@@ -31,6 +33,7 @@ const get = {
       httpApi: {
         method: 'GET',
         path: '/{entityId}',
+        authorizer: 'workduckAuthorizer',
       },
     },
   ],
@@ -43,6 +46,7 @@ const getAllEntitiesOfWorkspace = {
       httpApi: {
         method: 'GET',
         path: '/all/workspace',
+        authorizer: 'workduckAuthorizer',
       },
     },
   ],
@@ -55,6 +59,7 @@ const getAllEntitiesOfNode = {
       httpApi: {
         method: 'GET',
         path: '/all/node/{nodeId}',
+        authorizer: 'workduckAuthorizer',
       },
     },
   ],
@@ -67,6 +72,7 @@ const postView = {
       httpApi: {
         method: 'POST',
         path: '/view',
+        authorizer: 'workduckAuthorizer',
       },
     },
   ],
@@ -79,6 +85,7 @@ const getView = {
       httpApi: {
         method: 'GET',
         path: '/view/{entityId}',
+        authorizer: 'workduckAuthorizer',
       },
     },
   ],
@@ -91,6 +98,7 @@ const getAllViewsOfWorkspace = {
       httpApi: {
         method: 'GET',
         path: '/view/all/workspace',
+        authorizer: 'workduckAuthorizer',
       },
     },
   ],
