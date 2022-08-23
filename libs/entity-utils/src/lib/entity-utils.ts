@@ -70,7 +70,6 @@ export const initializeEntity = (entityConfig: {
       _ttl: { type: 'number', hidden: true },
       userId: { type: 'string', required: true },
       properties: { type: 'map' },
-      content: { type: 'list' },
       ...additionalAttributes,
     },
     table: table,
