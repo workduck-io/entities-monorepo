@@ -60,10 +60,49 @@ const getAllEntitiesOfNode = {
   ],
 };
 
+const postView = {
+  handler: `${handlerPath(__dirname)}/handler.createView`,
+  events: [
+    {
+      httpApi: {
+        method: 'POST',
+        path: '/view',
+      },
+    },
+  ],
+};
+
+const getView = {
+  handler: `${handlerPath(__dirname)}/handler.getView`,
+  events: [
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/view/{entityId}',
+      },
+    },
+  ],
+};
+
+const getAllViewsOfWorkspace = {
+  handler: `${handlerPath(__dirname)}/handler.getAllViewsOfWorkspace`,
+  events: [
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/view/all/workspace',
+      },
+    },
+  ],
+};
+
 export default {
   post,
   batchUpdate,
   get,
   getAllEntitiesOfWorkspace,
   getAllEntitiesOfNode,
+  postView,
+  getView,
+  getAllViewsOfWorkspace,
 };

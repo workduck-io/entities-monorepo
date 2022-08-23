@@ -8,5 +8,16 @@ export const TaskEntity = initializeEntity({
     status: {
       type: 'string',
     },
+    content: { type: 'list' },
+  },
+});
+
+export const ViewEntity = initializeEntity({
+  name: 'view',
+  table: taskTable,
+  additionalAttributes: {
+    filters: {
+      type: 'map',
+    },
   },
 });

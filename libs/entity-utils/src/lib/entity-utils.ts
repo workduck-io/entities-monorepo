@@ -64,7 +64,6 @@ export const initializeEntity = (entityConfig: {
       },
       nodeId: { type: 'string', required: true, map: 'ak' },
       properties: { type: 'map' },
-      content: { type: 'list' },
       ...additionalAttributes,
     },
     table: table,
