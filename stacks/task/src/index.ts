@@ -118,6 +118,7 @@ const postView = {
       httpApi: {
         method: 'POST',
         path: '/view',
+        authorizer: 'workduckAuthorizer',
       },
     },
   ],
@@ -130,6 +131,7 @@ const getView = {
       httpApi: {
         method: 'GET',
         path: '/view/{entityId}',
+        authorizer: 'workduckAuthorizer',
       },
     },
   ],
@@ -142,6 +144,7 @@ const getAllViewsOfWorkspace = {
       httpApi: {
         method: 'GET',
         path: '/view/all/workspace',
+        authorizer: 'workduckAuthorizer',
       },
     },
   ],
