@@ -53,6 +53,25 @@ export const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   }
 };
 
+export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
+  event
+) => {
+  try {
+    const workspaceId = extractWorkspaceId(event);
+    const entityId = event.pathParameters.entityId;
+    const res = await TaskEntity.delete({
+      workspaceId,
+      entityId,
+    });
+    return {
+      statusCode: 200,
+      body: JSON.stringify(res),
+    };
+  } catch (e) {
+    throw createError(400, JSON.stringify(e.message));
+  }
+};
+
 export const getAllEntitiesOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
   undefined
 > = async (event) => {
@@ -153,11 +172,30 @@ export const getViewHandler: ValidatedAPIGatewayProxyHandler<
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
     const res = (
-      await TaskEntity.get({
+      await ViewEntity.get({
         workspaceId,
         entityId,
       })
     ).Item;
+    return {
+      statusCode: 200,
+      body: JSON.stringify(res),
+    };
+  } catch (e) {
+    throw createError(400, JSON.stringify(e.message));
+  }
+};
+
+export const deleteViewHandler: ValidatedAPIGatewayProxyHandler<
+  undefined
+> = async (event) => {
+  try {
+    const workspaceId = extractWorkspaceId(event);
+    const entityId = event.pathParameters.entityId;
+    const res = await ViewEntity.delete({
+      workspaceId,
+      entityId,
+    });
     return {
       statusCode: 200,
       body: JSON.stringify(res),
@@ -184,6 +222,7 @@ export const getAllViewsOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
 
 export const create = middyfy(createHandler);
 export const get = middyfy(getHandler);
+export const del = middyfy(deleteHandler);
 export const getAllEntitiesOfWorkspace = middyfy(
   getAllEntitiesOfWorkspaceHandler
 );
@@ -192,4 +231,6 @@ export const batchUpdate = middyfy(batchUpdateHandler);
 
 export const createView = middyfy(createViewHandler);
 export const getView = middyfy(getViewHandler);
+export const delView = middyfy(deleteViewHandler);
+
 export const getAllViewsOfWorkspace = middyfy(getAllViewsOfWorkspaceHandler);

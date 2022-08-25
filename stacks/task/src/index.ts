@@ -39,6 +39,19 @@ const get = {
   ],
 };
 
+const del = {
+  handler: `${handlerPath(__dirname)}/handler.del`,
+  events: [
+    {
+      httpApi: {
+        method: 'DELETE',
+        path: '/{entityId}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+  ],
+};
+
 const getAllEntitiesOfWorkspace = {
   handler: `${handlerPath(__dirname)}/handler.getAllEntitiesOfWorkspace`,
   events: [
@@ -91,6 +104,19 @@ const getView = {
   ],
 };
 
+const delView = {
+  handler: `${handlerPath(__dirname)}/handler.delView`,
+  events: [
+    {
+      httpApi: {
+        method: 'DELETE',
+        path: '/view/{entityId}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+  ],
+};
+
 const getAllViewsOfWorkspace = {
   handler: `${handlerPath(__dirname)}/handler.getAllViewsOfWorkspace`,
   events: [
@@ -108,9 +134,11 @@ export default {
   post,
   batchUpdate,
   get,
+  del,
   getAllEntitiesOfWorkspace,
   getAllEntitiesOfNode,
   postView,
   getView,
+  delView,
   getAllViewsOfWorkspace,
 };
