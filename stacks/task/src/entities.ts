@@ -32,7 +32,7 @@ export const ViewEntity = initializeEntity({
   table: taskTable,
   additionalAttributes: {
     filters: {
-      type: 'map',
+      type: 'list',
     },
   },
 });
