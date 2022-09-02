@@ -2,7 +2,7 @@ import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 
 export interface BaseEntityParameters {
   workspaceId: string;
-  nodeId: string;
+  nodeId?: string;
   entityId: string;
   blockId?: string;
   properties?: Record<string, any>;
