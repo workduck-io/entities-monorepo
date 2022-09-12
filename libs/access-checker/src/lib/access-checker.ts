@@ -1,9 +1,8 @@
-import { createError } from '@middy/util';
 import { ValidatedAPIGatewayProxyEvent } from './apiGateway';
 import { NodeLambdaFunctionName } from './consts';
 import { lambda } from './invokeLambda';
 
-export const checkAccess = async (
+export const getAccess = async (
   workspaceId: string,
   nodeId: string,
   event: ValidatedAPIGatewayProxyEvent<any>
@@ -21,6 +20,5 @@ export const checkAccess = async (
       pathParameters: { id: nodeId },
     }
   );
-  if (response === 'NO_ACCESS' || response === 'READ')
-    throw createError(401, 'User access denied');
+  return response;
 };

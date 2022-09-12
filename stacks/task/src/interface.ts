@@ -1,10 +1,10 @@
-import { BaseEntityParameters } from '@mex/entity-utils';
+import { BaseEntityParameters, GenericObject } from '@mex/entity-utils';
 
 export interface Task extends BaseEntityParameters {
   status: string;
-  content: any[];
+  content: GenericObject[];
 }
 
 export interface View extends BaseEntityParameters {
-  filters: Record<string, any>;
+  filters: Record<string, GenericObject>;
 }

@@ -1,4 +1,4 @@
-import { checkAccess } from '@mex/access-checker';
+import { getAccess } from '@mex/access-checker';
 import { BatchRequest, createBatchRequest } from '@mex/entity-utils';
 import { createError } from '@middy/util';
 import { taskTable } from '../service/DynamoDB';
@@ -12,7 +12,9 @@ const createHandler: ValidatedAPIGatewayProxyHandler<Task> = async (event) => {
   const workspaceId = extractWorkspaceId(event);
   const task = event.body;
   if (task.workspaceId && workspaceId != task.workspaceId) {
-    await checkAccess(workspaceId, task.nodeId, event);
+    const access = await getAccess(workspaceId, task.nodeId, event);
+    if (access === 'NO_ACCESS' || access === 'READ')
+      throw createError(401, 'User access denied');
   }
   try {
     const res = (
@@ -93,7 +95,9 @@ export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
   try {
     const nodeId = event.pathParameters.nodeId;
     const workspaceId = extractWorkspaceId(event);
-    await checkAccess(workspaceId, nodeId, event);
+    const access = await getAccess(workspaceId, nodeId, event);
+    if (access === 'NO_ACCESS' || access === 'READ')
+      throw createError(401, 'User access denied');
     const res = (
       await TaskEntity.query(nodeId, {
         index: 'ak-pk-index',
@@ -116,9 +120,11 @@ const batchUpdateHandler: ValidatedAPIGatewayProxyHandler<
     const workspaceId = extractWorkspaceId(event);
     const req = event.body;
     await Promise.all(
-      [...new Set(req.map((r) => r.nodeId))].map(
-        async (nodeId) => await checkAccess(workspaceId, nodeId, event)
-      )
+      [...new Set(req.map((r) => r.nodeId))].map(async (nodeId) => {
+        const access = await getAccess(workspaceId, nodeId, event);
+        if (access === 'NO_ACCESS' || access === 'READ')
+          throw createError(401, 'User access denied');
+      })
     );
     const batchRequest = createBatchRequest({
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -144,9 +150,6 @@ const createViewHandler: ValidatedAPIGatewayProxyHandler<View> = async (
 ) => {
   const workspaceId = extractWorkspaceId(event);
   const view = event.body;
-  if (view.workspaceId && workspaceId != view.workspaceId) {
-    await checkAccess(workspaceId, view.nodeId, event);
-  }
   try {
     const res = (
       await ViewEntity.update(
