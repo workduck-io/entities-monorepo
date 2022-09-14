@@ -1,0 +1,1 @@
+export const MAX_DYNAMO_BATCH_REQUEST = 25;
