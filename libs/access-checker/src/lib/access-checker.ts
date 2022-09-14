@@ -7,7 +7,7 @@ export const getAccess = async (
   nodeId: string,
   event: ValidatedAPIGatewayProxyEvent<any>
 ) => {
-  if (process.env.SLS_STAGE === 'local') return;
+  if (process.env.SLS_STAGE === 'local') return 'MANAGE';
   const response = await lambda.invokeAndCheck(
     NodeLambdaFunctionName,
     'RequestResponse',

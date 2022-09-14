@@ -39,6 +39,19 @@ const get = {
   ],
 };
 
+const getEntityOfMultipleNodes = {
+  handler: `${handlerPath(__dirname)}/handler.getEntityOfMultipleNodes`,
+  events: [
+    {
+      httpApi: {
+        method: 'POST',
+        path: '/getBatch',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+  ],
+};
+
 const del = {
   handler: `${handlerPath(__dirname)}/handler.del`,
   events: [
@@ -134,6 +147,7 @@ export default {
   post,
   batchUpdate,
   get,
+  getEntityOfMultipleNodes,
   del,
   getAllEntitiesOfWorkspace,
   getAllEntitiesOfNode,

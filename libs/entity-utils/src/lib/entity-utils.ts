@@ -4,8 +4,9 @@ import { AttributeDefinitions } from 'dynamodb-toolbox/dist/classes/Entity';
 import { TableDef, TableIndexes } from 'dynamodb-toolbox/dist/classes/Table';
 import {
   BaseEntityParameters,
-  BatchRequest,
-  DynamoBatchRequest,
+  BatchUpdateRequest,
+  DynamoBatchUpdateRequest,
+  UpdateSource,
 } from './interface';
 import { chunkify, getEndpoint, getRegion } from './utils';
 
@@ -63,6 +64,7 @@ export const initializeEntity = (entityConfig: {
         type: 'string',
       },
       nodeId: { type: 'string', required: true, map: 'ak' },
+      source: { type: 'string', default: () => 'NOTE' },
       properties: { type: 'map' },
       ...additionalAttributes,
     },
@@ -73,13 +75,14 @@ export const initializeEntity = (entityConfig: {
 export const createBatchRequest = <
   T extends BaseEntityParameters
 >(batchrequestParams: {
-  request: BatchRequest<T>;
+  request: BatchUpdateRequest<T>;
   associatedEntity: Entity;
   workspaceId?: string;
+  source?: UpdateSource;
 }) => {
-  const { request, associatedEntity } = batchrequestParams;
+  const { request, associatedEntity, source } = batchrequestParams;
   const workspaceId = batchrequestParams.workspaceId;
-  return chunkify<DynamoBatchRequest>(
+  return chunkify<DynamoBatchUpdateRequest>(
     request.map((r) => {
       const { type, ...req } = r;
       const wsId = workspaceId ?? req.workspaceId;
@@ -89,6 +92,7 @@ export const createBatchRequest = <
           return associatedEntity.putBatch({
             ...req,
             workspaceId: wsId,
+            source: source ?? 'NOTE',
           });
         case 'DELETE':
           return associatedEntity.deleteBatch({ ...req, workspaceId: wsId });

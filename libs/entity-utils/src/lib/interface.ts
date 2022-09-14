@@ -21,14 +21,18 @@ export interface BaseEntityParameters {
   entityId: string;
   blockId?: string;
   properties?: GenericObject;
+  source: UpdateSource;
 }
-export type BatchRequestUnit<T extends BaseEntityParameters> = T & {
+
+export type UpdateSource = 'NOTE' | 'EXTERNAL';
+
+export type BatchUpdateRequestUnit<T extends BaseEntityParameters> = T & {
   type: 'UPDATE' | 'CREATE' | 'DELETE';
 };
 
-export type BatchRequest<T extends BaseEntityParameters> =
-  BatchRequestUnit<T>[];
+export type BatchUpdateRequest<T extends BaseEntityParameters> =
+  BatchUpdateRequestUnit<T>[];
 
-export type DynamoBatchRequest = {
+export type DynamoBatchUpdateRequest = {
   [key: string]: DocumentClient.WriteRequest;
 };

@@ -1,8 +1,9 @@
 import { getAccess } from '@mex/access-checker';
-import { BatchRequest, createBatchRequest } from '@mex/entity-utils';
+import { BatchUpdateRequest, createBatchRequest } from '@mex/entity-utils';
 import { createError } from '@middy/util';
 import { taskTable } from '../service/DynamoDB';
 import { ValidatedAPIGatewayProxyHandler } from '../utils/apiGateway';
+import { MAX_DYNAMO_BATCH_REQUEST } from '../utils/consts';
 import { extractWorkspaceId } from '../utils/helpers';
 import { middyfy } from '../utils/middleware';
 import { TaskEntity, ViewEntity } from './entities';
@@ -19,7 +20,7 @@ const createHandler: ValidatedAPIGatewayProxyHandler<Task> = async (event) => {
   try {
     const res = (
       await TaskEntity.update(
-        { ...task, workspaceId },
+        { ...task, workspaceId, source: 'EXTERNAL' },
         {
           returnValues: 'ALL_NEW',
         }
@@ -77,12 +78,21 @@ export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
 export const getAllEntitiesOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
   undefined
 > = async (event) => {
+  const lastKey = event.queryStringParameters.lastKey;
   try {
     const workspaceId = extractWorkspaceId(event);
-    const res = (await TaskEntity.query(workspaceId)).Items;
+    const res = await TaskEntity.query(workspaceId, {
+      startKey: {
+        pk: workspaceId,
+        sk: lastKey,
+      },
+    });
     return {
       statusCode: 200,
-      body: JSON.stringify(res),
+      body: JSON.stringify({
+        Items: res.Items,
+        lastKey: res.LastEvaluatedKey?.sk ?? undefined,
+      }),
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
@@ -113,8 +123,43 @@ export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 
+const getEntityOfMultipleNodesHandler: ValidatedAPIGatewayProxyHandler<{
+  nodes: string[];
+}> = async (event) => {
+  const workspaceId = extractWorkspaceId(event);
+  const req = event.body;
+  const dedupNodeList = [...new Set(req.nodes)];
+  if (dedupNodeList.length > MAX_DYNAMO_BATCH_REQUEST)
+    throw createError(
+      400,
+      `Maximum ${MAX_DYNAMO_BATCH_REQUEST} can be requested at once`
+    );
+  const successful = [];
+  const failed = [];
+  await Promise.all(
+    dedupNodeList.map(async (nodeId) => {
+      const access = await getAccess(workspaceId, nodeId, event);
+      if (access === 'NO_ACCESS') {
+        failed.push({ nodeId, reason: 'No access' });
+      } else {
+        const res = (
+          await TaskEntity.query(nodeId, {
+            index: 'ak-pk-index',
+            eq: workspaceId,
+          })
+        ).Items;
+        successful.push({ [nodeId]: res });
+      }
+    })
+  );
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ Items: successful, Failed: failed }),
+  };
+};
+
 const batchUpdateHandler: ValidatedAPIGatewayProxyHandler<
-  BatchRequest<Task>
+  BatchUpdateRequest<Task>
 > = async (event) => {
   try {
     const workspaceId = extractWorkspaceId(event);
@@ -132,7 +177,9 @@ const batchUpdateHandler: ValidatedAPIGatewayProxyHandler<
       associatedEntity: TaskEntity,
       workspaceId,
       request: req,
+      source: 'NOTE',
     });
+
     const result = await Promise.all(
       batchRequest.map(async (chunk) => await taskTable.batchWrite(chunk))
     );
@@ -231,6 +278,9 @@ export const getAllEntitiesOfWorkspace = middyfy(
 );
 export const getAllEntitiesOfNode = middyfy(getAllEntitiesOfNodeHandler);
 export const batchUpdate = middyfy(batchUpdateHandler);
+export const getEntityOfMultipleNodes = middyfy(
+  getEntityOfMultipleNodesHandler
+);
 
 export const createView = middyfy(createViewHandler);
 export const getView = middyfy(getViewHandler);
