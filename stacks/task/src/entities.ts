@@ -34,5 +34,9 @@ export const ViewEntity = initializeEntity({
     filters: {
       type: 'list',
     },
+    namespace: {
+      type: 'string',
+      required: 'always',
+    },
   },
 });
