@@ -78,11 +78,11 @@ export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
 export const getAllEntitiesOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
   undefined
 > = async (event) => {
-  const lastKey = event.queryStringParameters.lastKey;
+  const lastKey = event.queryStringParameters?.lastKey;
   try {
     const workspaceId = extractWorkspaceId(event);
     const res = await TaskEntity.query(workspaceId, {
-      startKey: {
+      startKey: lastKey && {
         pk: workspaceId,
         sk: lastKey,
       },
