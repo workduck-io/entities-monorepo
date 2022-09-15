@@ -64,7 +64,7 @@ export const initializeEntity = (entityConfig: {
         type: 'string',
       },
       nodeId: { type: 'string', required: true, map: 'ak' },
-      source: { type: 'string', default: () => 'NOTE' },
+      source: { type: 'string', default: () => 'NOTE', hidden: true },
       properties: { type: 'map' },
       ...additionalAttributes,
     },

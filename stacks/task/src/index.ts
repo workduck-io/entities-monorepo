@@ -19,7 +19,7 @@ const batchUpdate = {
     {
       httpApi: {
         method: 'POST',
-        path: '/batch',
+        path: '/batch/update',
         authorizer: 'workduckAuthorizer',
       },
     },
@@ -45,7 +45,7 @@ const getEntityOfMultipleNodes = {
     {
       httpApi: {
         method: 'POST',
-        path: '/getBatch',
+        path: '/batch/get',
         authorizer: 'workduckAuthorizer',
       },
     },
