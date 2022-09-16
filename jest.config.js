@@ -4,5 +4,8 @@ module.exports = {
     '<rootDir>/stacks/task',
     '<rootDir>/libs/entity-utils',
     '<rootDir>/libs/access-checker',
+    '<rootDir>/stacks/comment',
+    '<rootDir>/libs/gen-utils',
+    '<rootDir>/libs/middy-utils',
   ],
 };

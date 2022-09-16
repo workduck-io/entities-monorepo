@@ -2,22 +2,22 @@ import merge from 'deepmerge';
 import type { Serverless } from 'serverless/aws';
 import { baseServerlessConfiguration } from '../../serverless.base';
 import Table from './infra/dynamodb/single-table';
-import functions from './src';
+import { hello } from './src';
 import { combineMerge } from './utils/helpers';
 
-const <%= name %>ServerlessConfig = {
-  service: '<%= name %>',
+const commentServerlessConfig = {
+  service: 'comment',
   custom: {
     ...baseServerlessConfiguration.custom,
     'serverless-offline': {
-      httpPort: 4000, //set different port for each service
-      lambdaPort: 4002,
+      httpPort: 4010, //set different port for each service
+      lambdaPort: 4012,
       ignoreJWTSignature: true,
       noAuth: true,
     },
     customDomain: {
       http: {
-        basePath: '<%= name %>',
+        basePath: 'comment',
       },
     },
     autoswagger: {
@@ -25,18 +25,20 @@ const <%= name %>ServerlessConfig = {
     },
     assets: {
       target: {
-        prefix: '<%= name %>-service',
-      }
-    }
+        prefix: 'comment-service',
+      },
+    },
   },
-  functions,
+  functions: {
+    hello,
+  },
   resources: {
     Resources: Table,
   },
-}
+};
 
 const serverlessConfiguration = <Serverless>(
-  merge(baseServerlessConfiguration, <%= name %>ServerlessConfig, {
+  merge(baseServerlessConfiguration, commentServerlessConfig, {
     arrayMerge: combineMerge,
   })
 );

@@ -1,16 +1,19 @@
 import { getAccess } from '@mex/access-checker';
-import { BatchUpdateRequest, executeBatchRequest } from '@mex/entity-utils';
+import {
+  MAX_DYNAMO_BATCH_REQUEST,
+  type BatchUpdateRequest,
+} from '@mex/entity-utils';
 import { createError } from '@middy/util';
-import { ValidatedAPIGatewayProxyHandler } from '../utils/apiGateway';
-import { MAX_DYNAMO_BATCH_REQUEST } from '../utils/consts';
+
 import {
   extractUserIdFromToken,
   extractWorkspaceId,
-  itemFilter,
-} from '../utils/helpers';
-import { middyfy } from '../utils/middleware';
-import { TaskEntity } from './entities';
-import { Task } from './interface';
+  ValidatedAPIGatewayProxyHandler,
+} from '@mex/gen-utils';
+import { middyfy } from '@mex/middy-utils';
+import { itemFilter } from '../utils/helpers';
+import { TaskEntity, ViewEntity } from './entities';
+import { Task, View } from './interface';
 
 const createHandler: ValidatedAPIGatewayProxyHandler<Task> = async (event) => {
   const workspaceId = extractWorkspaceId(event);
@@ -292,6 +295,7 @@ export const getAllEntitiesOfWorkspace = middyfy(
   getAllEntitiesOfWorkspaceHandler
 );
 export const getAllEntitiesOfNode = middyfy(getAllEntitiesOfNodeHandler);
+
 export const batchUpdate = middyfy(batchUpdateHandler);
 export const getEntityOfMultipleNodes = middyfy(
   getEntityOfMultipleNodesHandler

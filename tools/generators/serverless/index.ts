@@ -5,12 +5,15 @@ import {
   joinPathFragments,
   Tree,
 } from '@nrwl/devkit';
-import { Schema } from './schema';
 import { addJest } from './jest-config';
+import { Schema } from './schema';
 import { addWorkspaceConfig } from './workspace-config';
 
 export default async (host: Tree, schema: Schema) => {
   const stackRoot = `stacks/${schema.name}`;
+  function pascal(val: string) {
+    return val.charAt(0).toUpperCase() + val.slice(1);
+  }
 
   generateFiles(
     host, // the virtual file system

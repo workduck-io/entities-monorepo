@@ -17,7 +17,9 @@
     "baseUrl": ".",
     "paths": {
       "@mex/access-checker": ["libs/access-checker/src/index.ts"],
-      "@mex/entity-utils": ["libs/entity-utils/src/index.ts"]
+      "@mex/entity-utils": ["libs/entity-utils/src/index.ts"],
+      "@mex/gen-utils": ["libs/gen-utils/src/index.ts"],
+      "@mex/middy-utils": ["libs/middy-utils/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

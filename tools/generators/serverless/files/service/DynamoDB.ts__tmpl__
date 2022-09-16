@@ -1,32 +1,5 @@
-import { DynamoDB } from 'aws-sdk';
-import { Table } from 'dynamodb-toolbox';
-import { getEndpoint, getRegion } from '../utils/consts';
+import { initializeTable } from '@mex/entity-utils';
 
-export const DocumentClient = new DynamoDB.DocumentClient({
-  service: new DynamoDB({
-    endpoint: getEndpoint(),
-    region: getRegion(),
-  }),
-});
-
-export const <%= name %>Table = new Table({
-  // Specify table name (used by DynamoDB)
+export const <%= name %>Table = initializeTable({
   name: `${process.env.SLS_STAGE}-<%= name %>-store`,
-
-  // Define partition and sort keys
-  partitionKey: 'pk',
-  sortKey: 'sk',
-  indexes: {
-    'ak-sk-index': {
-      partitionKey: 'ak',
-      sortKey: 'sk',
-    },
-    'reverse-index': {
-      partitionKey: 'sk',
-      sortKey: 'ak',
-    },
-  },
-
-  // Add the DocumentClient
-  DocumentClient,
 });

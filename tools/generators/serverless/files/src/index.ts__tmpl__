@@ -1,13 +1,18 @@
 import { handlerPath } from '../utils/handlerResolver';
 
-export const hello = {
-  handler: `${handlerPath(__dirname)}/handler.hello`,
+const post = {
+  handler: `${handlerPath(__dirname)}/handler.create`,
   events: [
     {
       httpApi: {
-        method: 'GET',
-        path: '/hello',
+        method: 'POST',
+        path: '/',
+        authorizer: 'workduckAuthorizer',
       },
     },
   ],
+};
+
+export default {
+  post,
 };

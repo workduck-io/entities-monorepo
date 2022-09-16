@@ -2,7 +2,10 @@
   "version": 2,
   "projects": {
     "access-checker": "libs/access-checker",
+    "comment": "stacks/comment",
     "entity-utils": "libs/entity-utils",
+    "gen-utils": "libs/gen-utils",
+    "middy-utils": "libs/middy-utils",
     "task": "stacks/task"
   }
 }

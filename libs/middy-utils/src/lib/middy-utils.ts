@@ -9,6 +9,10 @@ import httpErrorHandler from '@middy/http-error-handler';
 import jsonBodyParser from '@middy/http-json-body-parser';
 import { validate } from '@workduck-io/workspace-validator';
 
+export function middyUtils(): string {
+  return 'middy-utils';
+}
+
 const workduckWorkspaceValidatorMiddleware = () => {
   const workduckWorkspaceValidatorMiddlewareBefore = async (request) => {
     request.event.headers.Authorization = request.event.headers.authorization;
