@@ -3,26 +3,6 @@ import merge from 'deepmerge';
 import jwt_decode from 'jwt-decode';
 import { STATUS_STRING, STATUS_TYPE, WDTokenDecode } from './types';
 
-export const extractWorkspaceId = (event) => {
-  return event.headers['mex-workspace-id'];
-};
-
-export const extractApiVersion = (event) => {
-  return event.headers['mex-api-ver'];
-};
-export const extractUserIdFromToken = (event): string => {
-  const userId = (jwt_decode(event.headers.authorization) as WDTokenDecode).sub;
-
-  if (!userId)
-    throw new WDError({
-      message: 'Invalid token provided',
-      code: 403,
-      statusCode: 403,
-    });
-
-  return userId;
-};
-
 export const combineMerge = (target, source, options) => {
   const destination = target.slice();
 

@@ -1,3 +1,5 @@
+import { MAX_DYNAMO_BATCH_REQUEST } from './consts';
+
 export const getEndpoint = () => {
   if (process.env.AWS_EXECUTION_ENV) {
     return undefined;
@@ -20,7 +22,10 @@ export const getRegion = () => {
   }
 };
 
-export const chunkify = <T>(array: T[], chunkSize = 25) => {
+export const chunkify = <T>(
+  array: T[],
+  chunkSize = MAX_DYNAMO_BATCH_REQUEST
+) => {
   const chunkifiedArr: T[][] = [];
   for (let i = 0; i < array.length; i += chunkSize) {
     const chunk = array.slice(i, i + chunkSize);
