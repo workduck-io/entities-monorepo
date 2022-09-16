@@ -134,7 +134,7 @@ const getEntityOfMultipleNodesHandler: ValidatedAPIGatewayProxyHandler<{
       400,
       `Maximum ${MAX_DYNAMO_BATCH_REQUEST} can be requested at once`
     );
-  const successful = [];
+  const successful = {};
   const failed = [];
   await Promise.all(
     dedupNodeList.map(async (nodeId) => {
@@ -148,7 +148,7 @@ const getEntityOfMultipleNodesHandler: ValidatedAPIGatewayProxyHandler<{
             eq: workspaceId,
           })
         ).Items;
-        successful.push({ [nodeId]: res });
+        successful[nodeId] = res;
       }
     })
   );
