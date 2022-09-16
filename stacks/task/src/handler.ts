@@ -123,6 +123,52 @@ export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 
+export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
+  undefined
+> = async (event) => {
+  try {
+    const nodeId = event.pathParameters.nodeId;
+    const workspaceId = extractWorkspaceId(event);
+    const access = await getAccess(workspaceId, nodeId, event);
+    if (access === 'NO_ACCESS' || access === 'READ')
+      throw createError(401, 'User access denied');
+
+    const tasksToDelete = (
+      await TaskEntity.query(nodeId, {
+        index: 'ak-pk-index',
+        eq: nodeId,
+      })
+    ).Items;
+
+    const batchReq: BatchUpdateRequest<Partial<Task>> = tasksToDelete.map(
+      (task) => ({
+        workspaceId: task.workspaceId,
+        entityId: task.entityId,
+        type: 'DELETE',
+      })
+    );
+
+    const batchRequest = createBatchRequest({
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore
+      associatedEntity: TaskEntity,
+      workspaceId,
+      request: batchReq,
+      source: 'NOTE',
+    });
+
+    await Promise.all(
+      batchRequest.map(async (chunk) => await taskTable.batchWrite(chunk))
+    );
+    return {
+      statusCode: 204,
+      body: '',
+    };
+  } catch (e) {
+    throw createError(400, JSON.stringify(e.message));
+  }
+};
+
 const getEntityOfMultipleNodesHandler: ValidatedAPIGatewayProxyHandler<{
   nodes: string[];
 }> = async (event) => {
@@ -281,7 +327,7 @@ export const batchUpdate = middyfy(batchUpdateHandler);
 export const getEntityOfMultipleNodes = middyfy(
   getEntityOfMultipleNodesHandler
 );
-
+export const deleteAllEntitiesOfNode = middyfy(deleteAllEntitiesOfNodeHandler);
 export const createView = middyfy(createViewHandler);
 export const getView = middyfy(getViewHandler);
 export const delView = middyfy(deleteViewHandler);

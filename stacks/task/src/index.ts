@@ -52,6 +52,19 @@ const getEntityOfMultipleNodes = {
   ],
 };
 
+const deleteAllEntitiesOfNode = {
+  handler: `${handlerPath(__dirname)}/handler.deleteAllEntitiesOfNode`,
+  events: [
+    {
+      httpApi: {
+        method: 'DELETE',
+        path: '/all/node/{nodeId}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+  ],
+};
+
 const del = {
   handler: `${handlerPath(__dirname)}/handler.del`,
   events: [
@@ -151,6 +164,7 @@ export default {
   del,
   getAllEntitiesOfWorkspace,
   getAllEntitiesOfNode,
+  deleteAllEntitiesOfNode,
   postView,
   getView,
   delView,
