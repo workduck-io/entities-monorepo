@@ -166,6 +166,23 @@ export const executeBatchRequest = async <
     },
     { fulfilled: [], rejected: [] }
   );
+  return (
+    await Promise.all(
+      chunkifiedRequest.map(
+        async (updateRequestBatch) =>
+          await promisify(
+            updateRequestBatch.map(async (updateRequest) => {
+              return await associatedEntity.update(updateRequest);
+            })
+          )
+      )
+    )
+  ).reduce((acc, result) => {
+    return {
+      fulfilled: [...(acc?.fulfilled ?? []), ...result.fulfilled],
+      rejected: [...(acc?.rejected ?? []), ...result.rejected],
+    };
+  });
 };
 
 export const statusFilter = (
