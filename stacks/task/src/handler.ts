@@ -3,7 +3,7 @@ import { BatchUpdateRequest, executeBatchRequest } from '@mex/entity-utils';
 import { createError } from '@middy/util';
 import { ValidatedAPIGatewayProxyHandler } from '../utils/apiGateway';
 import { MAX_DYNAMO_BATCH_REQUEST } from '../utils/consts';
-import { extractWorkspaceId } from '../utils/helpers';
+import { extractWorkspaceId, itemFilter } from '../utils/helpers';
 import { middyfy } from '../utils/middleware';
 import { TaskEntity, ViewEntity } from './entities';
 import { Task, View } from './interface';
@@ -19,9 +19,9 @@ const createHandler: ValidatedAPIGatewayProxyHandler<Task> = async (event) => {
   try {
     const res = (
       await TaskEntity.update(
-        { ...task, workspaceId, source: 'EXTERNAL' },
+        { ...task, workspaceId, source: 'EXTERNAL', $remove: ['_ttl'] },
         {
-          returnValues: 'ALL_NEW',
+          returnValues: 'UPDATED_NEW',
         }
       )
     ).Attributes;
@@ -61,9 +61,11 @@ export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   try {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
-    const res = await TaskEntity.delete({
+    const res = await TaskEntity.update({
       workspaceId,
       entityId,
+      _status: 'ARCHIVED',
+      _ttl: Date.now() / 1000 + 30 * 24 * 60 * 60, // 30 days ttl
     });
     return {
       statusCode: 200,
@@ -85,6 +87,7 @@ export const getAllEntitiesOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
         pk: workspaceId,
         sk: lastKey,
       },
+      filters: [itemFilter('ACTIVE')],
     });
     return {
       statusCode: 200,
@@ -111,6 +114,7 @@ export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       await TaskEntity.query(nodeId, {
         index: 'ak-pk-index',
         eq: workspaceId,
+        filters: [itemFilter('ACTIVE')],
       })
     ).Items;
     return {
@@ -136,10 +140,55 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       await TaskEntity.query(nodeId, {
         index: 'ak-pk-index',
         eq: nodeId,
+        filters: [itemFilter('ACTIVE')],
       })
     ).Items;
 
     const batchReq: BatchUpdateRequest<Partial<Task>> = tasksToDelete.map(
+      (task) => ({
+        workspaceId: task.workspaceId,
+        entityId: task.entityId,
+        type: 'DELETE',
+      })
+    );
+
+    await executeBatchRequest({
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore
+      associatedEntity: TaskEntity,
+      workspaceId,
+      request: batchReq,
+      source: 'NOTE',
+    });
+
+    return {
+      statusCode: 204,
+      body: '',
+    };
+  } catch (e) {
+    throw createError(400, JSON.stringify(e.message));
+  }
+};
+
+export const restoreAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
+  undefined
+> = async (event) => {
+  try {
+    const nodeId = event.pathParameters.nodeId;
+    const workspaceId = extractWorkspaceId(event);
+    const access = await getAccess(workspaceId, nodeId, event);
+    if (access === 'NO_ACCESS' || access === 'READ')
+      throw createError(401, 'User access denied');
+
+    const tasksToRestore = (
+      await TaskEntity.query(nodeId, {
+        index: 'ak-pk-index',
+        eq: nodeId,
+        filters: [itemFilter('ARCHIVED')],
+      })
+    ).Items;
+
+    const batchReq: BatchUpdateRequest<Partial<Task>> = tasksToRestore.map(
       (task) => ({
         workspaceId: task.workspaceId,
         entityId: task.entityId,
@@ -188,6 +237,9 @@ const getEntityOfMultipleNodesHandler: ValidatedAPIGatewayProxyHandler<{
           await TaskEntity.query(nodeId, {
             index: 'ak-pk-index',
             eq: workspaceId,
+            filters: [
+              itemFilter('ACTIVE')
+            ],
           })
         ).Items;
         successful[nodeId] = res;

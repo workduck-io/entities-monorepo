@@ -104,6 +104,7 @@ export const executeBatchRequest = async <
             ...req,
             workspaceId: wsId,
             source: source ?? 'NOTE',
+            $remove: ['_ttl'],
           };
         case 'DELETE':
           return {
