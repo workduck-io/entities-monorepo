@@ -26,13 +26,12 @@ export interface BaseEntityParameters {
 
 export type UpdateSource = 'NOTE' | 'EXTERNAL';
 
-export type BatchUpdateRequestUnit<T extends BaseEntityParameters> = T & {
-  type: 'UPDATE' | 'CREATE' | 'DELETE';
-};
+export type BatchUpdateRequestUnit<T extends Partial<BaseEntityParameters>> =
+  T & {
+    type: 'UPDATE' | 'CREATE' | 'DELETE';
+  };
 
-export type BatchUpdateRequest<T extends BaseEntityParameters> =
+export type BatchUpdateRequest<T extends Partial<BaseEntityParameters>> =
   BatchUpdateRequestUnit<T>[];
 
-export type DynamoBatchUpdateRequest = {
-  [key: string]: DocumentClient.WriteRequest;
-};
+export type DynamoBatchUpdateRequest = DocumentClient.UpdateItemOutput;

@@ -5,10 +5,10 @@ import { TableDef, TableIndexes } from 'dynamodb-toolbox/dist/classes/Table';
 import {
   BaseEntityParameters,
   BatchUpdateRequest,
-  DynamoBatchUpdateRequest,
+  GenericObject,
   UpdateSource,
 } from './interface';
-import { chunkify, getEndpoint, getRegion } from './utils';
+import { chunkify, getEndpoint, getRegion, promisify } from './utils';
 
 export function entityUtils(): string {
   return 'entity-utils';
@@ -65,6 +65,8 @@ export const initializeEntity = (entityConfig: {
       },
       nodeId: { type: 'string', required: true, map: 'ak' },
       source: { type: 'string', default: () => 'NOTE', hidden: true },
+      _status: { type: 'string', default: () => 'ACTIVE', hidden: true },
+      _ttl: { type: 'number', hidden: true },
       properties: { type: 'map' },
       ...additionalAttributes,
     },
@@ -72,8 +74,8 @@ export const initializeEntity = (entityConfig: {
   } as const);
 };
 
-export const createBatchRequest = <
-  T extends BaseEntityParameters
+export const executeBatchRequest = async <
+  T extends Partial<BaseEntityParameters>
 >(batchrequestParams: {
   request: BatchUpdateRequest<T>;
   associatedEntity: Entity;
@@ -82,21 +84,53 @@ export const createBatchRequest = <
 }) => {
   const { request, associatedEntity, source } = batchrequestParams;
   const workspaceId = batchrequestParams.workspaceId;
-  return chunkify<DynamoBatchUpdateRequest>(
-    request.map((r) => {
+  const ttlDate = new Date().setDate(new Date().getDate() + 30);
+  const uniqueEntityIdSet = new Set();
+  // We reverse the array to find the latest unique record instead of first
+  const uniqueRequest = request.reverse().filter((r) => {
+    const isUnique = !uniqueEntityIdSet.has(r.entityId);
+    uniqueEntityIdSet.add(r.entityId);
+    return isUnique;
+  });
+  const chunkifiedRequest = chunkify<GenericObject>(
+    uniqueRequest.map((r) => {
       const { type, ...req } = r;
       const wsId = workspaceId ?? req.workspaceId;
+
       switch (type) {
         case 'CREATE':
         case 'UPDATE':
-          return associatedEntity.putBatch({
+          return {
             ...req,
             workspaceId: wsId,
             source: source ?? 'NOTE',
-          });
+          };
         case 'DELETE':
-          return associatedEntity.deleteBatch({ ...req, workspaceId: wsId });
+          return {
+            ...req,
+            workspaceId: wsId,
+            source: source ?? 'NOTE',
+            _status: 'ARCHIVED',
+            _ttl: ttlDate,
+          };
       }
     })
   );
+  return (
+    await Promise.all(
+      chunkifiedRequest.map(
+        async (updateRequestBatch) =>
+          await promisify(
+            updateRequestBatch.map(async (updateRequest) => {
+              return await associatedEntity.update(updateRequest);
+            })
+          )
+      )
+    )
+  ).reduce((acc, result) => {
+    return {
+      fulfilled: [...(acc?.fulfilled ?? []), ...result.fulfilled],
+      rejected: [...(acc?.rejected ?? []), ...result.rejected],
+    };
+  });
 };

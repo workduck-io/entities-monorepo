@@ -1,7 +1,6 @@
 import { getAccess } from '@mex/access-checker';
-import { BatchUpdateRequest, createBatchRequest } from '@mex/entity-utils';
+import { BatchUpdateRequest, executeBatchRequest } from '@mex/entity-utils';
 import { createError } from '@middy/util';
-import { taskTable } from '../service/DynamoDB';
 import { ValidatedAPIGatewayProxyHandler } from '../utils/apiGateway';
 import { MAX_DYNAMO_BATCH_REQUEST } from '../utils/consts';
 import { extractWorkspaceId } from '../utils/helpers';
@@ -148,7 +147,7 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       })
     );
 
-    const batchRequest = createBatchRequest({
+    await executeBatchRequest({
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-ignore
       associatedEntity: TaskEntity,
@@ -157,9 +156,6 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       source: 'NOTE',
     });
 
-    await Promise.all(
-      batchRequest.map(async (chunk) => await taskTable.batchWrite(chunk))
-    );
     return {
       statusCode: 204,
       body: '',
@@ -217,7 +213,7 @@ const batchUpdateHandler: ValidatedAPIGatewayProxyHandler<
           throw createError(401, 'User access denied');
       })
     );
-    const batchRequest = createBatchRequest({
+    const batchRequestResult = await executeBatchRequest({
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-ignore
       associatedEntity: TaskEntity,
@@ -226,12 +222,9 @@ const batchUpdateHandler: ValidatedAPIGatewayProxyHandler<
       source: 'NOTE',
     });
 
-    const result = await Promise.all(
-      batchRequest.map(async (chunk) => await taskTable.batchWrite(chunk))
-    );
     return {
       statusCode: 200,
-      body: JSON.stringify(result),
+      body: JSON.stringify(batchRequestResult),
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
