@@ -34,7 +34,7 @@ const createHandler: ValidatedAPIGatewayProxyHandler<Task> = async (event) => {
   }
 };
 
-export const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
+const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   event
 ) => {
   try {
@@ -55,7 +55,7 @@ export const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   }
 };
 
-export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
+const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   event
 ) => {
   try {
@@ -76,7 +76,7 @@ export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   }
 };
 
-export const getAllEntitiesOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
+const getAllEntitiesOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
   undefined
 > = async (event) => {
   const lastKey = event.queryStringParameters?.lastKey;
@@ -101,7 +101,7 @@ export const getAllEntitiesOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 
-export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
+const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
   undefined
 > = async (event) => {
   try {
@@ -126,7 +126,7 @@ export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 
-export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
+const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
   undefined
 > = async (event) => {
   try {
@@ -170,7 +170,7 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 
-export const restoreAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
+const restoreAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
   undefined
 > = async (event) => {
   try {
@@ -237,9 +237,7 @@ const getEntityOfMultipleNodesHandler: ValidatedAPIGatewayProxyHandler<{
           await TaskEntity.query(nodeId, {
             index: 'ak-pk-index',
             eq: workspaceId,
-            filters: [
-              itemFilter('ACTIVE')
-            ],
+            filters: [itemFilter('ACTIVE')],
           })
         ).Items;
         successful[nodeId] = res;
@@ -306,9 +304,9 @@ const createViewHandler: ValidatedAPIGatewayProxyHandler<View> = async (
   }
 };
 
-export const getViewHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
+const getViewHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
+  event
+) => {
   try {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
@@ -327,9 +325,9 @@ export const getViewHandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 
-export const deleteViewHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
+const deleteViewHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
+  event
+) => {
   try {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
@@ -346,7 +344,7 @@ export const deleteViewHandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 
-export const getAllViewsOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
+const getAllViewsOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
   undefined
 > = async (event) => {
   try {
@@ -373,6 +371,9 @@ export const getEntityOfMultipleNodes = middyfy(
   getEntityOfMultipleNodesHandler
 );
 export const deleteAllEntitiesOfNode = middyfy(deleteAllEntitiesOfNodeHandler);
+export const restoreAllEntitiesOfNode = middyfy(
+  restoreAllEntitiesOfNodeHandler
+);
 export const createView = middyfy(createViewHandler);
 export const getView = middyfy(getViewHandler);
 export const delView = middyfy(deleteViewHandler);
