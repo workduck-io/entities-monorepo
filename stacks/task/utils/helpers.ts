@@ -1,7 +1,4 @@
-import { WDError } from '@workduck-io/wderror';
 import merge from 'deepmerge';
-import jwt_decode from 'jwt-decode';
-import { STATUS_STRING, STATUS_TYPE, WDTokenDecode } from './types';
 
 export const combineMerge = (target, source, options) => {
   const destination = target.slice();
@@ -17,13 +14,3 @@ export const combineMerge = (target, source, options) => {
   });
   return destination;
 };
-
-export const itemFilter = (
-  status: STATUS_TYPE
-): {
-  attr: STATUS_STRING;
-  eq: STATUS_TYPE;
-} => ({
-  attr: '_status',
-  eq: status,
-});

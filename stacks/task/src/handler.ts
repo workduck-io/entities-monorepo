@@ -1,5 +1,7 @@
 import { getAccess } from '@mex/access-checker';
 import {
+  executeBatchRequest,
+  itemFilter,
   MAX_DYNAMO_BATCH_REQUEST,
   type BatchUpdateRequest,
 } from '@mex/entity-utils';
@@ -11,7 +13,6 @@ import {
   ValidatedAPIGatewayProxyHandler,
 } from '@mex/gen-utils';
 import { middyfy } from '@mex/middy-utils';
-import { itemFilter } from '../utils/helpers';
 import { TaskEntity, ViewEntity } from './entities';
 import { Task, View } from './interface';
 

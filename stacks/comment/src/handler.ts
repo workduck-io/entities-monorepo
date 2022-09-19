@@ -1,12 +1,15 @@
 import { getAccess } from '@mex/access-checker';
-import { BatchUpdateRequest, createBatchRequest } from '@mex/entity-utils';
+import {
+  BatchUpdateRequest,
+  executeBatchRequest,
+  itemFilter,
+} from '@mex/entity-utils';
 import {
   extractWorkspaceId,
   ValidatedAPIGatewayProxyHandler,
 } from '@mex/gen-utils';
 import { middyfy } from '@mex/middy-utils';
 import { createError } from '@middy/util';
-import { commentTable } from '../service/DynamoDB';
 import { CommentEntity } from './entities';
 import { Comment } from './interface';
 
@@ -116,6 +119,7 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       await CommentEntity.query(nodeId, {
         index: 'ak-pk-index',
         eq: nodeId,
+        filters: [itemFilter('ACTIVE')],
       })
     ).Items;
 
@@ -127,7 +131,7 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       })
     );
 
-    const batchRequest = createBatchRequest({
+    await executeBatchRequest({
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-ignore
       associatedEntity: CommentEntity,
@@ -136,9 +140,6 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       source: 'EXTERNAL',
     });
 
-    await Promise.all(
-      batchRequest.map(async (chunk) => await commentTable.batchWrite(chunk))
-    );
     return {
       statusCode: 204,
       body: '',

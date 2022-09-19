@@ -163,3 +163,16 @@ export const executeBatchRequest = async <
     };
   });
 };
+
+type STATUS_STRING = '_status';
+type STATUS_TYPE = 'ARCHIVED' | 'ACTIVE';
+
+export const itemFilter = (
+  status: STATUS_TYPE
+): {
+  attr: STATUS_STRING;
+  eq: STATUS_TYPE;
+} => ({
+  attr: '_status',
+  eq: status,
+});
