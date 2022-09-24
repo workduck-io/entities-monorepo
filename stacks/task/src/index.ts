@@ -125,7 +125,7 @@ const postView = {
 };
 
 const getView = {
-  handler: `${handlerPath(__dirname)}/handler.getView`,
+  handler: `${handlerPath(__dirname)}/view/handler.get`,
   events: [
     {
       httpApi: {
@@ -138,7 +138,7 @@ const getView = {
 };
 
 const delView = {
-  handler: `${handlerPath(__dirname)}/handler.delView`,
+  handler: `${handlerPath(__dirname)}/view/handler.del`,
   events: [
     {
       httpApi: {
@@ -151,7 +151,7 @@ const delView = {
 };
 
 const getAllViewsOfWorkspace = {
-  handler: `${handlerPath(__dirname)}/handler.getAllViewsOfWorkspace`,
+  handler: `${handlerPath(__dirname)}/view/handler.getAllViewsOfWorkspace`,
   events: [
     {
       httpApi: {
