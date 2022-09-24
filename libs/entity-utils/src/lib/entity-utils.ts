@@ -172,7 +172,23 @@ export const executeBatchRequest = async <
         async (updateRequestBatch) =>
           await promisify(
             updateRequestBatch.map(async (updateRequest) => {
-              return await associatedEntity.update(updateRequest);
+              try {
+                const updatedAttributes = (
+                  await associatedEntity.update(updateRequest, {
+                    returnValues: 'UPDATED_NEW',
+                  })
+                ).Attributes;
+                return {
+                  ...extractEssentialFields(updatedAttributes),
+                };
+              } catch (e) {
+                throw new Error(
+                  JSON.stringify({
+                    ...extractEssentialFields(updateRequest),
+                    reason: e.message,
+                  })
+                );
+              }
             })
           )
       )

@@ -29,9 +29,7 @@ export const chunkify = <T>(array: T[], chunkSize = 25) => {
   return chunkifiedArr;
 };
 
-export const promisify = async (
-  values: Promise<any>[]
-) => {
+export const promisify = async (values: Promise<any>[]) => {
   return (await Promise.allSettled(values)).reduce(
     (acc, result) => {
       return {
@@ -40,7 +38,7 @@ export const promisify = async (
           ...acc[result.status],
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           //@ts-ignore
-          result.value ?? result.reason ?? {},
+          result.value ?? JSON.parse(result.reason?.message) ?? {},
         ],
       };
     },
