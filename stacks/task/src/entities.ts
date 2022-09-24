@@ -5,8 +5,9 @@ export const TaskEntity = initializeEntity({
   name: 'task',
   table: taskTable,
   additionalAttributes: {
-    status: {
+    blockId: {
       type: 'string',
+      required: 'always',
     },
     content: { type: 'list' },
   },

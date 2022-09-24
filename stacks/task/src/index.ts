@@ -66,7 +66,7 @@ const deleteAllEntitiesOfNode = {
 };
 
 const restoreAllEntitiesOfNode = {
-  handler: `${handlerPath(__dirname)}/handler.deleteAllEntitiesOfNode`,
+  handler: `${handlerPath(__dirname)}/handler.restoreAllEntitiesOfNode`,
   events: [
     {
       httpApi: {
