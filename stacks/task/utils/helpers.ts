@@ -4,6 +4,10 @@ export const extractWorkspaceId = (event) => {
   return event.headers['mex-workspace-id'];
 };
 
+export const extractApiVersion = (event) => {
+  return event.headers['mex-api-ver'];
+};
+
 export const combineMerge = (target, source, options) => {
   const destination = target.slice();
 
