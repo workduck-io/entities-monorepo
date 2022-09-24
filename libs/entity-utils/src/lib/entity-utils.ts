@@ -62,8 +62,9 @@ export const initializeEntity = (entityConfig: {
       entityId: {
         sortKey: true,
         type: 'string',
+        coerce: false,
       },
-      nodeId: { type: 'string', required: true, map: 'ak' },
+      nodeId: { type: 'string', map: 'ak', coerce: false },
       source: { type: 'string', default: () => 'NOTE', hidden: true },
       _status: { type: 'string', default: () => 'ACTIVE', hidden: true },
       _ttl: { type: 'number', hidden: true },
@@ -73,6 +74,12 @@ export const initializeEntity = (entityConfig: {
     table: table,
   } as const);
 };
+
+const extractEssentialFields = (request: any) => ({
+  nodeId: request.nodeId,
+  entityId: request.entityId,
+  workspaceId: request.workspaceId,
+});
 
 export const executeBatchRequest = async <
   T extends Partial<BaseEntityParameters>
@@ -123,7 +130,23 @@ export const executeBatchRequest = async <
         async (updateRequestBatch) =>
           await promisify(
             updateRequestBatch.map(async (updateRequest) => {
-              return await associatedEntity.update(updateRequest);
+              try {
+                const updatedAttributes = (
+                  await associatedEntity.update(updateRequest, {
+                    returnValues: 'UPDATED_NEW',
+                  })
+                ).Attributes;
+                return {
+                  ...extractEssentialFields(updatedAttributes),
+                };
+              } catch (e) {
+                throw new Error(
+                  JSON.stringify({
+                    ...extractEssentialFields(updateRequest),
+                    reason: e.message,
+                  })
+                );
+              }
             })
           )
       )

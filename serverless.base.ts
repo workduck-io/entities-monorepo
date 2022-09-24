@@ -13,12 +13,13 @@ export const baseServerlessConfiguration: Partial<Serverless> = {
     'serverless-offline',
     'serverless-domain-manager',
     'serverless-prune-plugin',
-    'serverless-s3-deploy',
+    // 'serverless-s3-deploy',
   ],
   custom: {
     enabled: {
       dev: true,
       test: true,
+      staging: true,
       other: false,
     },
     stage: '${opt:stage, self:provider.stage}',
