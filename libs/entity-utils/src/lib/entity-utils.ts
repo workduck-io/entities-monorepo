@@ -173,13 +173,15 @@ export const executeBatchRequest = async <
           await promisify(
             updateRequestBatch.map(async (updateRequest) => {
               try {
-                const updatedAttributes = (
+                const { modified, created } = (
                   await associatedEntity.update(updateRequest, {
                     returnValues: 'UPDATED_NEW',
                   })
                 ).Attributes;
                 return {
-                  ...extractEssentialFields(updatedAttributes),
+                  modified,
+                  created,
+                  ...extractEssentialFields(updateRequest),
                 };
               } catch (e) {
                 throw new Error(
