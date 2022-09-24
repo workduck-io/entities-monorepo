@@ -124,6 +124,7 @@ export const baseServerlessConfiguration: Partial<Serverless> = {
           'X-Amzn-Trace-Id',
           'mex-workspace-id',
           'wd-request-id',
+          'mex-api-ver',
         ],
       },
       //@ts-ignore

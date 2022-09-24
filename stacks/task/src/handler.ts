@@ -5,8 +5,8 @@ import { ValidatedAPIGatewayProxyHandler } from '../utils/apiGateway';
 import { MAX_DYNAMO_BATCH_REQUEST } from '../utils/consts';
 import { extractWorkspaceId, itemFilter } from '../utils/helpers';
 import { middyfy } from '../utils/middleware';
-import { TaskEntity, ViewEntity } from './entities';
-import { Task, View } from './interface';
+import { TaskEntity } from './entities';
+import { Task } from './interface';
 
 const createHandler: ValidatedAPIGatewayProxyHandler<Task> = async (event) => {
   const workspaceId = extractWorkspaceId(event);
@@ -281,84 +281,6 @@ const batchUpdateHandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 
-const createViewHandler: ValidatedAPIGatewayProxyHandler<View> = async (
-  event
-) => {
-  const workspaceId = extractWorkspaceId(event);
-  const view = event.body;
-  try {
-    const res = (
-      await ViewEntity.update(
-        { ...view, workspaceId },
-        {
-          returnValues: 'ALL_NEW',
-        }
-      )
-    ).Attributes;
-    return {
-      statusCode: 200,
-      body: JSON.stringify(res),
-    };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
-  }
-};
-
-const getViewHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
-  event
-) => {
-  try {
-    const workspaceId = extractWorkspaceId(event);
-    const entityId = event.pathParameters.entityId;
-    const res = (
-      await ViewEntity.get({
-        workspaceId,
-        entityId,
-      })
-    ).Item;
-    return {
-      statusCode: 200,
-      body: JSON.stringify(res),
-    };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
-  }
-};
-
-const deleteViewHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
-  event
-) => {
-  try {
-    const workspaceId = extractWorkspaceId(event);
-    const entityId = event.pathParameters.entityId;
-    const res = await ViewEntity.delete({
-      workspaceId,
-      entityId,
-    });
-    return {
-      statusCode: 200,
-      body: JSON.stringify(res),
-    };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
-  }
-};
-
-const getAllViewsOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  try {
-    const workspaceId = extractWorkspaceId(event);
-    const res = (await ViewEntity.query(workspaceId)).Items;
-    return {
-      statusCode: 200,
-      body: JSON.stringify(res),
-    };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
-  }
-};
-
 export const create = middyfy(createHandler);
 export const get = middyfy(getHandler);
 export const del = middyfy(deleteHandler);
@@ -374,8 +296,3 @@ export const deleteAllEntitiesOfNode = middyfy(deleteAllEntitiesOfNodeHandler);
 export const restoreAllEntitiesOfNode = middyfy(
   restoreAllEntitiesOfNodeHandler
 );
-export const createView = middyfy(createViewHandler);
-export const getView = middyfy(getViewHandler);
-export const delView = middyfy(deleteViewHandler);
-
-export const getAllViewsOfWorkspace = middyfy(getAllViewsOfWorkspaceHandler);
