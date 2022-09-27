@@ -1,4 +1,6 @@
+import { WDError } from '@workduck-io/wderror';
 import merge from 'deepmerge';
+import jwt_decode from 'jwt-decode';
 
 export const extractWorkspaceId = (event) => {
   return event.headers['mex-workspace-id'];
@@ -6,6 +8,20 @@ export const extractWorkspaceId = (event) => {
 
 export const extractApiVersion = (event) => {
   return event.headers['mex-api-ver'];
+};
+export const extractUserIdFromToken = (event): string => {
+  const userId = JSON.parse(
+    jwt_decode(event.headers.authorization).toString()
+  ).sub;
+
+  if (!userId)
+    throw new WDError({
+      message: 'Invalid token provided',
+      code: 403,
+      statusCode: 403,
+    });
+
+  return userId;
 };
 
 export const combineMerge = (target, source, options) => {

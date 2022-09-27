@@ -68,6 +68,7 @@ export const initializeEntity = (entityConfig: {
       source: { type: 'string', default: () => 'NOTE', hidden: true },
       _status: { type: 'string', default: () => 'ACTIVE', hidden: true },
       _ttl: { type: 'number', hidden: true },
+      userId: { type: 'string', required: true },
       properties: { type: 'map' },
       ...additionalAttributes,
     },
