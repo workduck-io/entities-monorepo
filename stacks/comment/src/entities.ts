@@ -11,6 +11,7 @@ export const CommentEntity = initializeEntity({
       transform: (value, data) => value + '#' + data.blockId,
     },
     blockId: { type: 'string', required: 'always' },
+    threadId: { type: 'string', default: (data) => data.entityId },
     content: { type: 'list' },
   },
   table: commentTable,

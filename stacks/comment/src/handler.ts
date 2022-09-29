@@ -97,6 +97,7 @@ const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
         await CommentEntity.query(workspaceId, {
           index: 'pk-ak-index',
           beginsWith: nodeId,
+          filters: [itemFilter('ACTIVE')],
         })
       ).Items;
     } else {
@@ -104,6 +105,7 @@ const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
         await CommentEntity.query(workspaceId, {
           index: 'pk-ak-index',
           beginsWith: `${nodeId}#${blockId}`,
+          filters: [itemFilter('ACTIVE')],
         })
       ).Items;
     }
