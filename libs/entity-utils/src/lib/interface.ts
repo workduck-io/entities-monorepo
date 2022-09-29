@@ -17,6 +17,7 @@ export interface GenericObject {
 }
 export interface BaseEntityParameters {
   workspaceId: string;
+  userId: string;
   nodeId?: string;
   entityId: string;
   blockId?: string;

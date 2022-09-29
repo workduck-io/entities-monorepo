@@ -46,6 +46,7 @@
     "@types/aws-lambda": "8.10.90",
     "@types/deep-diff": "^1.0.1",
     "@types/jest": "27.4.0",
+    "@types/jwt-decode": "^3.1.0",
     "@types/node": "15.12.4",
     "@types/serverless": "1.78.42",
     "@typescript-eslint/eslint-plugin": "5.10.0",
@@ -95,6 +96,7 @@
     "@workduck-io/workspace-validator": "^0.0.7",
     "deepmerge": "^4.2.2",
     "dynamodb-toolbox": "^0.4.3",
+    "jwt-decode": "^3.1.2",
     "nanoid": "^4.0.0",
     "tslib": "^2.0.0"
   }

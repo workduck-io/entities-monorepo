@@ -3,13 +3,18 @@ import { BatchUpdateRequest, executeBatchRequest } from '@mex/entity-utils';
 import { createError } from '@middy/util';
 import { ValidatedAPIGatewayProxyHandler } from '../utils/apiGateway';
 import { MAX_DYNAMO_BATCH_REQUEST } from '../utils/consts';
-import { extractWorkspaceId, itemFilter } from '../utils/helpers';
+import {
+  extractUserIdFromToken,
+  extractWorkspaceId,
+  itemFilter,
+} from '../utils/helpers';
 import { middyfy } from '../utils/middleware';
 import { TaskEntity } from './entities';
 import { Task } from './interface';
 
 const createHandler: ValidatedAPIGatewayProxyHandler<Task> = async (event) => {
   const workspaceId = extractWorkspaceId(event);
+  const userId = extractUserIdFromToken(event);
   const task = event.body;
   if (task.workspaceId && workspaceId != task.workspaceId) {
     const access = await getAccess(workspaceId, task.nodeId, event);
@@ -19,7 +24,7 @@ const createHandler: ValidatedAPIGatewayProxyHandler<Task> = async (event) => {
   try {
     const res = (
       await TaskEntity.update(
-        { ...task, workspaceId, source: 'EXTERNAL', $remove: ['_ttl'] },
+        { ...task, workspaceId, userId, source: 'EXTERNAL', $remove: ['_ttl'] },
         {
           returnValues: 'UPDATED_NEW',
         }
