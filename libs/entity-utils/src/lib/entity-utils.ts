@@ -188,30 +188,64 @@ export const executeBatchRequest = async <
                   ...extractEssentialFields(updateRequest),
                 });
 
+    switch (type) {
+      case 'CREATE':
+      case 'UPDATE':
+        return {
+          ...req,
+          workspaceId: wsId,
+          source: source ?? 'NOTE',
+          $remove: ['_ttl'],
+        };
+      case 'DELETE':
+        return {
+          ...req,
+          workspaceId: wsId,
+          source: source ?? 'NOTE',
+          _status: 'ARCHIVED',
+          _ttl: ttlDate,
+        };
+    }
+  });
+  const result = await batchPromises<any, any>(
+    MAX_DYNAMO_BATCH_REQUEST,
+    requestFull,
+    (i) =>
+      new Promise((resolve, reject) => {
+        try {
+          resolve(
+            associatedEntity
+              .update(i as any, {
+                returnValues: 'UPDATED_NEW',
+              })
+              .then((e) => {
+                const { modified, created } = e.Attributes;
                 return {
                   modified,
                   created,
-                  ...extractEssentialFields(updateRequest),
+                  ...extractEssentialFields(i),
                 };
-              } catch (e) {
-                console.log(e);
+              })
+          );
+        } catch (e) {
+          reject({
+            ...extractEssentialFields(i),
+            reason: e.message,
+          });
+        }
+      })
+  );
 
-                throw new Error(
-                  JSON.stringify({
-                    ...extractEssentialFields(updateRequest),
-                    reason: e.message,
-                  })
-                );
-              }
-            })
-          )
-      )
-    )
-  ).reduce(
+  return result.reduce(
     (acc, result) => {
       return {
-        fulfilled: [...(acc?.fulfilled ?? []), ...result.fulfilled],
-        rejected: [...(acc?.rejected ?? []), ...result.rejected],
+        ...acc,
+        [result.status]: [
+          ...acc[result.status],
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          //@ts-ignore
+          result.value ?? result.reason ?? {},
+        ],
       };
     },
     { fulfilled: [], rejected: [] }

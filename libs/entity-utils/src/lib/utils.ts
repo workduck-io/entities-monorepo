@@ -34,24 +34,23 @@ export const chunkify = <T>(
   return chunkifiedArr;
 };
 
-export const promisify = async (values: Promise<any>[]) => {
-  return (await Promise.allSettled(values)).reduce(
-    (acc, result) => {
-      return {
-        ...acc,
-        [result.status]: [
-          ...acc[result.status],
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          //@ts-ignore
-          result.value ?? JSON.parse(result.reason?.message) ?? {},
-        ],
-      };
-    },
-    {
-      fulfilled: [],
-      rejected: [],
-    }
-  );
+type Promisable<T> = T | Promise<T>;
+
+type Iterator<T, U> = (item: T) => Promisable<U>;
+
+export const batchPromises = async <T, U>(
+  batchSize: number,
+  collection: Promisable<T[]>,
+  callback: Iterator<T, U>
+): Promise<U[]> => {
+  const arr = await Promise.resolve(collection);
+  return arr
+    .map((_, i) => (i % batchSize ? [] : arr.slice(i, i + batchSize)))
+    .map(
+      (group) => (res) =>
+        Promise.allSettled(group.map(callback)).then((r) => res.concat(r))
+    )
+    .reduce((chain, work) => chain.then(work), Promise.resolve([]));
 };
 
 export default () => process.env.DATA_STORE_ARN.split('/').slice(-1)[0];
