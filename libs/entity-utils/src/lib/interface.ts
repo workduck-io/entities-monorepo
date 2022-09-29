@@ -36,3 +36,6 @@ export type BatchUpdateRequest<T extends Partial<BaseEntityParameters>> =
   BatchUpdateRequestUnit<T>[];
 
 export type DynamoBatchUpdateRequest = DocumentClient.UpdateItemOutput;
+
+export type STATUS_STRING = '_status';
+export type STATUS_TYPE = 'ARCHIVED' | 'ACTIVE';

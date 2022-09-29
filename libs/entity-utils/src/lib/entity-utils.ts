@@ -2,13 +2,15 @@ import DynamoDB from 'aws-sdk/clients/dynamodb';
 import { Entity, Table } from 'dynamodb-toolbox';
 import { AttributeDefinitions } from 'dynamodb-toolbox/dist/classes/Entity';
 import { TableDef, TableIndexes } from 'dynamodb-toolbox/dist/classes/Table';
+import { MAX_DYNAMO_BATCH_REQUEST } from './consts';
 import {
   BaseEntityParameters,
   BatchUpdateRequest,
-  GenericObject,
+  STATUS_STRING,
+  STATUS_TYPE,
   UpdateSource,
 } from './interface';
-import { chunkify, getEndpoint, getRegion, promisify } from './utils';
+import { batchPromises, getEndpoint, getRegion } from './utils';
 
 export function entityUtils(): string {
   return 'entity-utils';
@@ -100,87 +102,73 @@ export const executeBatchRequest = async <
     uniqueEntityIdSet.add(r.entityId);
     return isUnique;
   });
-  const chunkifiedRequest = chunkify<GenericObject>(
-    uniqueRequest.map((r) => {
-      const { type, ...req } = r;
-      const wsId = workspaceId ?? req.workspaceId;
+  const requestFull = uniqueRequest.map((r) => {
+    const { type, ...req } = r;
+    const wsId = workspaceId ?? req.workspaceId;
 
-      switch (type) {
-        case 'CREATE':
-        case 'UPDATE':
-          return {
-            ...req,
-            workspaceId: wsId,
-            source: source ?? 'NOTE',
-            $remove: ['_ttl'],
-          };
-        case 'DELETE':
-          return {
-            ...req,
-            workspaceId: wsId,
-            source: source ?? 'NOTE',
-            _status: 'ARCHIVED',
-            _ttl: ttlDate,
-          };
-        default:
-          throw new Error('type field does not exist!');
-      }
-    })
-  );
-  console.log(JSON.stringify({ chunkifiedRequest }));
-
-  return (
-    await Promise.all(
-      chunkifiedRequest.map(
-        async (updateRequestBatch) =>
-          await promisify(
-            updateRequestBatch.map(async (updateRequest) => {
-              console.log({ updateRequest });
-
-              try {
-                const { modified, created } = (
-                  await associatedEntity.update(updateRequest, {
-                    returnValues: 'UPDATED_NEW',
-                  })
-                ).Attributes;
-                console.log({
-                  modified,
-                  created,
-                  ...extractEssentialFields(updateRequest),
-                });
-
+    switch (type) {
+      case 'CREATE':
+      case 'UPDATE':
+        return {
+          ...req,
+          workspaceId: wsId,
+          source: source ?? 'NOTE',
+          $remove: ['_ttl'],
+        };
+      case 'DELETE':
+        return {
+          ...req,
+          workspaceId: wsId,
+          source: source ?? 'NOTE',
+          _status: 'ARCHIVED',
+          _ttl: ttlDate,
+        };
+    }
+  });
+  const result = await batchPromises<any, any>(
+    MAX_DYNAMO_BATCH_REQUEST,
+    requestFull,
+    (i) =>
+      new Promise((resolve, reject) => {
+        try {
+          resolve(
+            associatedEntity
+              .update(i as any, {
+                returnValues: 'UPDATED_NEW',
+              })
+              .then((e) => {
+                const { modified, created } = e.Attributes;
                 return {
                   modified,
                   created,
-                  ...extractEssentialFields(updateRequest),
+                  ...extractEssentialFields(i),
                 };
-              } catch (e) {
-                console.log(e);
+              })
+          );
+        } catch (e) {
+          reject({
+            ...extractEssentialFields(i),
+            reason: e.message,
+          });
+        }
+      })
+  );
 
-                throw new Error(
-                  JSON.stringify({
-                    ...extractEssentialFields(updateRequest),
-                    reason: e.message,
-                  })
-                );
-              }
-            })
-          )
-      )
-    )
-  ).reduce(
+  return result.reduce(
     (acc, result) => {
       return {
-        fulfilled: [...(acc?.fulfilled ?? []), ...result.fulfilled],
-        rejected: [...(acc?.rejected ?? []), ...result.rejected],
+        ...acc,
+        [result.status]: [
+          ...acc[result.status],
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          //@ts-ignore
+          result.value ?? result.reason ?? {},
+        ],
       };
     },
     { fulfilled: [], rejected: [] }
   );
 };
-
-type STATUS_STRING = '_status';
-type STATUS_TYPE = 'ARCHIVED' | 'ACTIVE';
 
 export const itemFilter = (
   status: STATUS_TYPE
