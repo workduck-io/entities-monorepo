@@ -13,8 +13,8 @@ import {
   ValidatedAPIGatewayProxyHandler,
 } from '@mex/gen-utils';
 import { middyfy } from '@mex/middy-utils';
-import { TaskEntity, ViewEntity } from './entities';
-import { Task, View } from './interface';
+import { TaskEntity } from './entities';
+import { Task } from './interface';
 
 const createHandler: ValidatedAPIGatewayProxyHandler<Task> = async (event) => {
   const workspaceId = extractWorkspaceId(event);

@@ -41,7 +41,7 @@ const createHandler: ValidatedAPIGatewayProxyHandler<Comment> = async (
   }
 };
 
-export const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
+const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   event
 ) => {
   try {
@@ -62,7 +62,7 @@ export const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   }
 };
 
-export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
+const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   event
 ) => {
   try {
@@ -81,21 +81,33 @@ export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   }
 };
 
-export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
+const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
   undefined
 > = async (event) => {
   try {
     const nodeId = event.pathParameters.nodeId;
+    const blockId = event.queryStringParameters?.blockId;
     const workspaceId = extractWorkspaceId(event);
     const access = await getAccess(workspaceId, nodeId, event);
     if (access === 'NO_ACCESS' || access === 'READ')
       throw createError(401, 'User access denied');
-    const res = (
-      await CommentEntity.query(nodeId, {
-        index: 'ak-pk-index',
-        eq: nodeId,
-      })
-    ).Items;
+    let res;
+    if (!blockId) {
+      res = (
+        await CommentEntity.query(workspaceId, {
+          index: 'pk-ak-index',
+          beginsWith: nodeId,
+        })
+      ).Items;
+    } else {
+      res = (
+        await CommentEntity.query(workspaceId, {
+          index: 'pk-ak-index',
+          beginsWith: `${nodeId}#${blockId}`,
+        })
+      ).Items;
+    }
+
     return {
       statusCode: 200,
       body: JSON.stringify(res),
@@ -105,28 +117,39 @@ export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 
-export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
+const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
   undefined
 > = async (event) => {
   try {
     const nodeId = event.pathParameters.nodeId;
+    const blockId = event.queryStringParameters?.blockId;
     const workspaceId = extractWorkspaceId(event);
     const access = await getAccess(workspaceId, nodeId, event);
     if (access === 'NO_ACCESS' || access === 'READ')
       throw createError(401, 'User access denied');
-
-    const commentsToDelete = (
-      await CommentEntity.query(nodeId, {
-        index: 'ak-pk-index',
-        eq: nodeId,
-        filters: [itemFilter('ACTIVE')],
-      })
-    ).Items;
+    let commentsToDelete;
+    if (!blockId)
+      commentsToDelete = (
+        await CommentEntity.query(workspaceId, {
+          index: 'pk-ak-index',
+          beginsWith: nodeId,
+          filters: [itemFilter('ACTIVE')],
+        })
+      ).Items;
+    else
+      commentsToDelete = (
+        await CommentEntity.query(workspaceId, {
+          index: 'pk-ak-index',
+          beginsWith: `${nodeId}#${blockId}`,
+          filters: [itemFilter('ACTIVE')],
+        })
+      ).Items;
 
     const batchReq: BatchUpdateRequest<Partial<Comment>> = commentsToDelete.map(
       (comment) => ({
         workspaceId: comment.workspaceId,
         entityId: comment.entityId,
+        blockId: comment.blockId,
         type: 'DELETE',
       })
     );

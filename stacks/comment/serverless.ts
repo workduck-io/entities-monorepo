@@ -2,7 +2,7 @@ import merge from 'deepmerge';
 import type { Serverless } from 'serverless/aws';
 import { baseServerlessConfiguration } from '../../serverless.base';
 import Table from './infra/dynamodb/single-table';
-import { hello } from './src';
+import functions from './src';
 import { combineMerge } from './utils/helpers';
 
 const commentServerlessConfig = {
@@ -29,9 +29,7 @@ const commentServerlessConfig = {
       },
     },
   },
-  functions: {
-    hello,
-  },
+  functions,
   resources: {
     Resources: Table,
   },

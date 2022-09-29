@@ -53,14 +53,14 @@ export default {
           },
         },
         {
-          IndexName: 'ak-sk-index',
+          IndexName: 'pk-ak-index',
           KeySchema: [
             {
-              AttributeName: 'ak',
+              AttributeName: 'pk',
               KeyType: 'HASH',
             },
             {
-              AttributeName: 'sk',
+              AttributeName: 'ak',
               KeyType: 'RANGE',
             },
           ],

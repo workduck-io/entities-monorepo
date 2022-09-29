@@ -33,9 +33,9 @@ export const initializeTable = (tableConfig: {
     partitionKey: 'pk',
     sortKey: 'sk',
     indexes: {
-      'ak-pk-index': {
-        partitionKey: 'ak',
-        sortKey: 'pk',
+      'pk-ak-index': {
+        partitionKey: 'pk',
+        sortKey: 'ak',
       },
       'reverse-index': {
         partitionKey: 'sk',
@@ -127,24 +127,36 @@ export const executeBatchRequest = async <
       }
     })
   );
+  console.log(JSON.stringify({ chunkifiedRequest }));
+
   return (
     await Promise.all(
       chunkifiedRequest.map(
         async (updateRequestBatch) =>
           await promisify(
             updateRequestBatch.map(async (updateRequest) => {
+              console.log({ updateRequest });
+
               try {
                 const { modified, created } = (
                   await associatedEntity.update(updateRequest, {
                     returnValues: 'UPDATED_NEW',
                   })
                 ).Attributes;
+                console.log({
+                  modified,
+                  created,
+                  ...extractEssentialFields(updateRequest),
+                });
+
                 return {
                   modified,
                   created,
                   ...extractEssentialFields(updateRequest),
                 };
               } catch (e) {
+                console.log(e);
+
                 throw new Error(
                   JSON.stringify({
                     ...extractEssentialFields(updateRequest),
@@ -156,12 +168,15 @@ export const executeBatchRequest = async <
           )
       )
     )
-  ).reduce((acc, result) => {
-    return {
-      fulfilled: [...(acc?.fulfilled ?? []), ...result.fulfilled],
-      rejected: [...(acc?.rejected ?? []), ...result.rejected],
-    };
-  });
+  ).reduce(
+    (acc, result) => {
+      return {
+        fulfilled: [...(acc?.fulfilled ?? []), ...result.fulfilled],
+        rejected: [...(acc?.rejected ?? []), ...result.rejected],
+      };
+    },
+    { fulfilled: [], rejected: [] }
+  );
 };
 
 type STATUS_STRING = '_status';
