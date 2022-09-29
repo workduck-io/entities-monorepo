@@ -1,6 +1,7 @@
 import { WDError } from '@workduck-io/wderror';
 import merge from 'deepmerge';
 import jwt_decode from 'jwt-decode';
+import { STATUS_STRING, STATUS_TYPE, WDTokenDecode } from './types';
 
 export const extractWorkspaceId = (event) => {
   return event.headers['mex-workspace-id'];
@@ -10,9 +11,7 @@ export const extractApiVersion = (event) => {
   return event.headers['mex-api-ver'];
 };
 export const extractUserIdFromToken = (event): string => {
-  const userId = JSON.parse(
-    jwt_decode(event.headers.authorization).toString()
-  ).sub;
+  const userId = (jwt_decode(event.headers.authorization) as WDTokenDecode).sub;
 
   if (!userId)
     throw new WDError({
@@ -38,9 +37,6 @@ export const combineMerge = (target, source, options) => {
   });
   return destination;
 };
-
-type STATUS_STRING = '_status';
-type STATUS_TYPE = 'ARCHIVED' | 'ACTIVE';
 
 export const itemFilter = (
   status: STATUS_TYPE
