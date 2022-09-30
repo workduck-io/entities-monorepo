@@ -12,10 +12,6 @@ export default {
           AttributeName: 'sk',
           AttributeType: 'S',
         },
-        {
-          AttributeName: 'ak',
-          AttributeType: 'S',
-        },
       ],
       KeySchema: [
         {
@@ -31,48 +27,6 @@ export default {
         ReadCapacityUnits: '15',
         WriteCapacityUnits: '15',
       },
-      GlobalSecondaryIndexes: [
-        {
-          IndexName: 'reverse-index',
-          KeySchema: [
-            {
-              AttributeName: 'sk',
-              KeyType: 'HASH',
-            },
-            {
-              AttributeName: 'pk',
-              KeyType: 'RANGE',
-            },
-          ],
-          Projection: {
-            ProjectionType: 'ALL',
-          },
-          ProvisionedThroughput: {
-            ReadCapacityUnits: '15',
-            WriteCapacityUnits: '15',
-          },
-        },
-        {
-          IndexName: 'ak-sk-index',
-          KeySchema: [
-            {
-              AttributeName: 'ak',
-              KeyType: 'HASH',
-            },
-            {
-              AttributeName: 'sk',
-              KeyType: 'RANGE',
-            },
-          ],
-          Projection: {
-            ProjectionType: 'ALL',
-          },
-          ProvisionedThroughput: {
-            ReadCapacityUnits: '15',
-            WriteCapacityUnits: '15',
-          },
-        },
-      ],
     },
   },
 };

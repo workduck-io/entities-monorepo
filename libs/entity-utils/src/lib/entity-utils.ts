@@ -18,7 +18,7 @@ export function entityUtils(): string {
   return 'entity-utils';
 }
 
-const DocumentClient = new DynamoDB.DocumentClient({
+export const DocumentClient = new DynamoDB.DocumentClient({
   service: new DynamoDB({
     endpoint: getEndpoint(),
     region: getRegion(),

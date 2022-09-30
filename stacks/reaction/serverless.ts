@@ -10,8 +10,8 @@ const reactionServerlessConfig = {
   custom: {
     ...baseServerlessConfiguration.custom,
     'serverless-offline': {
-      httpPort: 4000, //set different port for each service
-      lambdaPort: 4002,
+      httpPort: 4020, //set different port for each service
+      lambdaPort: 4022,
       ignoreJWTSignature: true,
       noAuth: true,
     },

@@ -1,23 +1,42 @@
-import { initializeEntity } from '@mex/entity-utils';
 import { Entity } from 'dynamodb-toolbox';
 import { reactionTable } from '../service/DynamoDB';
 
-export const ReactionEntity = initializeEntity({
-  name: 'reaction',
-  additionalAttributes: {
-    up: { type: 'number', default: () => 0 },
-    down: { type: 'number', default: () => 0 },
-  },
-  table: reactionTable,
-} as const);
-
-export const ReactionItemEntity = new Entity({
-  name: 'reactionItem',
+export const UserReaction = new Entity({
+  name: 'userReaction',
   attributes: {
-    blockId: { partitionKey: true },
-    userId: { sortKey: true },
-    nodeId: { type: 'string', required: true, map: 'ak' },
-    reaction: { type: 'string' },
+    workspaceId: { partitionKey: true },
+    userId: ['sk', 0, { type: 'string', required: 'always' }],
+    nodeId: ['sk', 1, { type: 'string', required: 'always' }],
+    blockId: ['sk', 2, { type: 'string', required: 'always' }],
+    sk: { hidden: true, sortKey: true },
+    reaction: {
+      type: 'set',
+      setType: 'string',
+      default: () => [],
+    },
   },
   table: reactionTable,
-} as const);
+});
+
+export const ReactionCount = new Entity({
+  name: 'reactionCount',
+  timestamps: false,
+  attributes: {
+    workspaceId: { partitionKey: true },
+    sk: { hidden: true, sortKey: true },
+    nodeId: ['sk', 0, { type: 'string', required: 'always' }],
+    blockId: ['sk', 1, { type: 'string', required: 'always' }],
+    reaction: [
+      'sk',
+      2,
+      {
+        type: 'string',
+        required: 'always',
+        transform: (_, data: any) =>
+          `${data.reaction.type}_${data.reaction.value}`,
+      },
+    ],
+    count: { type: 'number', default: () => 0 },
+  },
+  table: reactionTable,
+});
