@@ -19,7 +19,7 @@ export default async (host: Tree, schema: Schema) => {
     host, // the virtual file system
     joinPathFragments(__dirname, './files'), // path to the file templates
     stackRoot, // destination path of the files
-    { ...schema, tmpl: '' } // config object to replace variable in file templates
+    { ...schema, tmpl: '', pascal } // config object to replace variable in file templates
   );
 
   addWorkspaceConfig(host, schema.name, stackRoot);

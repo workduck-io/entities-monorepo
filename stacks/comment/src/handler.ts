@@ -86,7 +86,7 @@ const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
 > = async (event) => {
   try {
     const nodeId = event.pathParameters.nodeId;
-    const blockId = event.queryStringParameters?.blockId;
+    const blockId = event.pathParameters?.blockId;
     const workspaceId = extractWorkspaceId(event);
     const access = await getAccess(workspaceId, nodeId, event);
     if (access === 'NO_ACCESS' || access === 'READ')
@@ -124,7 +124,7 @@ const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
 > = async (event) => {
   try {
     const nodeId = event.pathParameters.nodeId;
-    const blockId = event.queryStringParameters?.blockId;
+    const blockId = event.pathParameters?.blockId;
     const workspaceId = extractWorkspaceId(event);
     const access = await getAccess(workspaceId, nodeId, event);
     if (access === 'NO_ACCESS' || access === 'READ')
