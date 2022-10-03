@@ -56,6 +56,13 @@ const getAllEntitiesOfNode = {
         authorizer: 'workduckAuthorizer',
       },
     },
+    {
+      httpApi: {
+        method: 'GET',
+        path: 'all/{nodeId}/block/{blockId}/thread/{threadId}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
   ],
 };
 
@@ -73,6 +80,13 @@ const deleteAllEntitiesOfNode = {
       httpApi: {
         method: 'DELETE',
         path: 'all/{nodeId}/block/{blockId}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'DELETE',
+        path: 'all/{nodeId}/block/{blockId}/thread/{threadId}',
         authorizer: 'workduckAuthorizer',
       },
     },

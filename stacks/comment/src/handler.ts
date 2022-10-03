@@ -87,28 +87,22 @@ const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
   try {
     const nodeId = event.pathParameters.nodeId;
     const blockId = event.pathParameters?.blockId;
+    const threadId = event.pathParameters?.threadId;
     const workspaceId = extractWorkspaceId(event);
     const access = await getAccess(workspaceId, nodeId, event);
     if (access === 'NO_ACCESS' || access === 'READ')
       throw createError(401, 'User access denied');
-    let res;
-    if (!blockId) {
-      res = (
-        await CommentEntity.query(workspaceId, {
-          index: 'pk-ak-index',
-          beginsWith: nodeId,
-          filters: [itemFilter('ACTIVE')],
-        })
-      ).Items;
-    } else {
-      res = (
-        await CommentEntity.query(workspaceId, {
-          index: 'pk-ak-index',
-          beginsWith: `${nodeId}#${blockId}`,
-          filters: [itemFilter('ACTIVE')],
-        })
-      ).Items;
-    }
+    const res = (
+      await CommentEntity.query(workspaceId, {
+        index: 'pk-ak-index',
+        beginsWith: blockId
+          ? threadId
+            ? `${nodeId}#${blockId}#${threadId}`
+            : `${nodeId}#${blockId}`
+          : nodeId,
+        filters: [itemFilter('ACTIVE')],
+      })
+    ).Items;
 
     return {
       statusCode: 200,
@@ -125,32 +119,30 @@ const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
   try {
     const nodeId = event.pathParameters.nodeId;
     const blockId = event.pathParameters?.blockId;
+    const threadId = event.pathParameters?.threadId;
+
     const workspaceId = extractWorkspaceId(event);
     const access = await getAccess(workspaceId, nodeId, event);
     if (access === 'NO_ACCESS' || access === 'READ')
       throw createError(401, 'User access denied');
-    let commentsToDelete;
-    if (!blockId)
-      commentsToDelete = (
-        await CommentEntity.query(workspaceId, {
-          index: 'pk-ak-index',
-          beginsWith: nodeId,
-          filters: [itemFilter('ACTIVE')],
-        })
-      ).Items;
-    else
-      commentsToDelete = (
-        await CommentEntity.query(workspaceId, {
-          index: 'pk-ak-index',
-          beginsWith: `${nodeId}#${blockId}`,
-          filters: [itemFilter('ACTIVE')],
-        })
-      ).Items;
+    const commentsToDelete = (
+      await CommentEntity.query(workspaceId, {
+        index: 'pk-ak-index',
+        beginsWith: blockId
+          ? threadId
+            ? `${nodeId}#${blockId}#${threadId}`
+            : `${nodeId}#${blockId}`
+          : nodeId,
+        filters: [itemFilter('ACTIVE')],
+      })
+    ).Items;
 
     const batchReq: BatchUpdateRequest<Partial<Comment>> = commentsToDelete.map(
       (comment) => ({
         workspaceId: comment.workspaceId,
         entityId: comment.entityId,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        //@ts-ignore
         blockId: comment.blockId,
         type: 'DELETE',
       })

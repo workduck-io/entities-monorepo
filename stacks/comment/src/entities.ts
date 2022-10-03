@@ -8,7 +8,8 @@ export const CommentEntity = initializeEntity({
       type: 'string',
       map: 'ak',
       coerce: false,
-      transform: (value, data) => value + '#' + data.blockId,
+      transform: (value, data) =>
+        value + '#' + data.blockId + '#' + data.threadId ?? data.entityId,
     },
     blockId: { type: 'string', required: 'always' },
     threadId: { type: 'string', default: (data) => data.entityId },
