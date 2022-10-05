@@ -122,6 +122,8 @@ export const executeBatchRequest = async <
             _status: 'ARCHIVED',
             _ttl: ttlDate,
           };
+        default:
+          throw new Error('type field does not exist!');
       }
     })
   );

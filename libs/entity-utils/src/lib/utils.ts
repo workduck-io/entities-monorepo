@@ -38,7 +38,8 @@ export const promisify = async (values: Promise<any>[]) => {
           ...acc[result.status],
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           //@ts-ignore
-          result.value ?? JSON.parse(result.reason?.message) ?? {},
+
+          result.value ?? result.reason?.message ?? {},
         ],
       };
     },
