@@ -106,6 +106,11 @@ export const baseServerlessConfiguration: Partial<Serverless> = {
             ],
             Resource: 'arn:aws:dynamodb:us-east-1:*:*',
           },
+          {
+            Effect: 'Allow',
+            Action: ['lambda:InvokeFunction', 'lambda:InvokeAsync'],
+            Resource: '*',
+          },
         ],
       },
     },
