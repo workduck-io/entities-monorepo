@@ -22,7 +22,6 @@ export const ViewEntity = initializeEntity({
     },
     namespace: {
       type: 'string',
-      required: 'always',
     },
   },
 });
