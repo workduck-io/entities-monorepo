@@ -276,7 +276,6 @@ const batchUpdateHandler: ValidatedAPIGatewayProxyHandler<
       request: req,
       source: 'NOTE',
     });
-
     return {
       statusCode: 200,
       body: JSON.stringify(batchRequestResult),
