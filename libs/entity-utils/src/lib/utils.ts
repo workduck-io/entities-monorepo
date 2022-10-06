@@ -29,6 +29,14 @@ export const chunkify = <T>(array: T[], chunkSize = 25) => {
   return chunkifiedArr;
 };
 
+function safeJsonParse(str: string) {
+  try {
+    return JSON.parse(str);
+  } catch (err) {
+    return str;
+  }
+}
+
 export const promisify = async (values: Promise<any>[]) => {
   return (await Promise.allSettled(values)).reduce(
     (acc, result) => {
@@ -39,7 +47,7 @@ export const promisify = async (values: Promise<any>[]) => {
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           //@ts-ignore
 
-          result.value ?? result.reason?.message ?? {},
+          result.value ?? safeJsonParse(result.reason?.message) ?? {},
         ],
       };
     },
