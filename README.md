@@ -73,9 +73,9 @@ Install project dependencies
 
 - Using Yarn
 
-      ```shell
-      yarn
-      ```
+```shell
+yarn
+```
 
   <details>
   <summary>Generate a new stack</summary>

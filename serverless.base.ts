@@ -13,12 +13,13 @@ export const baseServerlessConfiguration: Partial<Serverless> = {
     'serverless-offline',
     'serverless-domain-manager',
     'serverless-prune-plugin',
-    'serverless-s3-deploy',
+    // 'serverless-s3-deploy',
   ],
   custom: {
     enabled: {
       dev: true,
       test: true,
+      staging: true,
       other: false,
     },
     stage: '${opt:stage, self:provider.stage}',
@@ -52,7 +53,8 @@ export const baseServerlessConfiguration: Partial<Serverless> = {
     },
     autoswagger: {
       typefiles: ['./src/interface.ts'],
-      useStage: false,
+      useStage: true,
+      deploySwagger: false,
       includeStages: ['local'],
       swaggerPath: 'swagger',
       apiKeyHeaders: ['Authorization', 'mex-workspace-id', 'wd-request-id'],
@@ -104,13 +106,32 @@ export const baseServerlessConfiguration: Partial<Serverless> = {
             ],
             Resource: 'arn:aws:dynamodb:us-east-1:*:*',
           },
+          {
+            Effect: 'Allow',
+            Action: ['lambda:InvokeFunction', 'lambda:InvokeAsync'],
+            Resource: '*',
+          },
         ],
       },
     },
 
     region: 'us-east-1',
     httpApi: {
-      cors: true,
+      cors: {
+        allowedOrigins: ['*'],
+        allowedHeaders: [
+          'Content-Type',
+          'X-Amz-Date',
+          'Authorization',
+          'X-Api-Key',
+          'X-Amz-Security-Token',
+          'X-Amz-User-Agent',
+          'X-Amzn-Trace-Id',
+          'mex-workspace-id',
+          'wd-request-id',
+          'mex-api-ver',
+        ],
+      },
       //@ts-ignore
       disableDefaultEndpoint: true,
       authorizers: {

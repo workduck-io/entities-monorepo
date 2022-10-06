@@ -1,0 +1,54 @@
+{
+  "root": "stacks/task",
+  "projectType": "application",
+  "sourceRoot": "stacks/task/src",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/workspace:run-commands",
+      "options": {
+        "cwd": "stacks/task",
+        "color": true,
+        "command": "sls package"
+      }
+    },
+    "serve": {
+      "executor": "@nrwl/workspace:run-commands",
+      "options": {
+        "cwd": "stacks/task",
+        "color": true,
+        "command": "sls offline start"
+      }
+    },
+    "deploy": {
+      "executor": "@nrwl/workspace:run-commands",
+      "options": {
+        "cwd": "stacks/task",
+        "color": true,
+        "command": "sls deploy --verbose"
+      }
+    },
+    "remove": {
+      "executor": "@nrwl/workspace:run-commands",
+      "options": {
+        "cwd": "stacks/task",
+        "color": true,
+        "command": "sls remove"
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": ["stacks/task/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/stacks/task"],
+      "options": {
+        "jestConfig": "stacks/task/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": ["stack"]
+}
