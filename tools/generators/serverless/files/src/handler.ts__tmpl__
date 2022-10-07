@@ -1,11 +1,38 @@
-import { APIGatewayProxyHandler } from 'aws-lambda';
+import { getAccess } from '@mex/access-checker';
+import {
+  extractWorkspaceId,
+  ValidatedAPIGatewayProxyHandler,
+} from '@mex/gen-utils';
+import { middyfy } from '@mex/middy-utils';
+import { createError } from '@middy/util';
+import { <%= pascal(name) %>Entity } from './entities';
+import { <%= pascal(name) %> } from './interface';
 
-export const hello: APIGatewayProxyHandler = async (event, _context) => {
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      message: 'Go Serverless (Typescript) v1.0! Your function executed successfully!',
-      input: event,
-    }, null, 2),
-  };
-}
+const createHandler: ValidatedAPIGatewayProxyHandler<<%= pascal(name) %>> = async (
+  event
+) => {
+  const workspaceId = extractWorkspaceId(event);
+  const <%= name %> = event.body;
+  if (<%= name %>.workspaceId && workspaceId != <%= name %>.workspaceId) {
+    const access = await getAccess(workspaceId, <%= name %>.nodeId, event);
+    if (access === 'NO_ACCESS' || access === 'READ')
+      throw createError(401, 'User access denied');
+  }
+  try {
+    const res = (
+      await <%= pascal(name) %>Entity.update(
+        { ...<%= name %>, workspaceId, source: 'EXTERNAL' },
+        {
+          returnValues: 'ALL_NEW',
+        }
+      )
+    ).Attributes;
+    return {
+      statusCode: 200,
+      body: JSON.stringify(res),
+    };
+  } catch (e) {
+    throw createError(400, JSON.stringify(e.message));
+  }
+};
+export const create = middyfy(createHandler);

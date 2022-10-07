@@ -1,0 +1,23 @@
+{
+  "root": "libs/middy-utils",
+  "sourceRoot": "libs/middy-utils/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/middy-utils/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/libs/middy-utils"],
+      "options": {
+        "jestConfig": "libs/middy-utils/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": ["lib"]
+}

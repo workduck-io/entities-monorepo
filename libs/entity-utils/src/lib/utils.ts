@@ -1,3 +1,5 @@
+import { MAX_DYNAMO_BATCH_REQUEST } from './consts';
+
 export const getEndpoint = () => {
   if (process.env.AWS_EXECUTION_ENV) {
     return undefined;
@@ -20,7 +22,10 @@ export const getRegion = () => {
   }
 };
 
-export const chunkify = <T>(array: T[], chunkSize = 25) => {
+export const chunkify = <T>(
+  array: T[],
+  chunkSize = MAX_DYNAMO_BATCH_REQUEST
+) => {
   const chunkifiedArr: T[][] = [];
   for (let i = 0; i < array.length; i += chunkSize) {
     const chunk = array.slice(i, i + chunkSize);
@@ -29,33 +34,23 @@ export const chunkify = <T>(array: T[], chunkSize = 25) => {
   return chunkifiedArr;
 };
 
-function safeJsonParse(str: string) {
-  try {
-    return JSON.parse(str);
-  } catch (err) {
-    return str;
-  }
-}
+type Promisable<T> = T | Promise<T>;
 
-export const promisify = async (values: Promise<any>[]) => {
-  return (await Promise.allSettled(values)).reduce(
-    (acc, result) => {
-      return {
-        ...acc,
-        [result.status]: [
-          ...acc[result.status],
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          //@ts-ignore
+type Iterator<T, U> = (item: T) => Promisable<U>;
 
-          result.value ?? safeJsonParse(result.reason?.message) ?? {},
-        ],
-      };
-    },
-    {
-      fulfilled: [],
-      rejected: [],
-    }
-  );
+export const batchPromises = async <T, U>(
+  batchSize: number,
+  collection: Promisable<T[]>,
+  callback: Iterator<T, U>
+): Promise<U[]> => {
+  const arr = await Promise.resolve(collection);
+  return arr
+    .map((_, i) => (i % batchSize ? [] : arr.slice(i, i + batchSize)))
+    .map(
+      (group) => (res) =>
+        Promise.allSettled(group.map(callback)).then((r) => res.concat(r))
+    )
+    .reduce((chain, work) => chain.then(work), Promise.resolve([]));
 };
 
 export default () => process.env.DATA_STORE_ARN.split('/').slice(-1)[0];

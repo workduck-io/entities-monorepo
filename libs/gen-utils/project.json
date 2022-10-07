@@ -1,0 +1,23 @@
+{
+  "root": "libs/gen-utils",
+  "sourceRoot": "libs/gen-utils/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/gen-utils/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/libs/gen-utils"],
+      "options": {
+        "jestConfig": "libs/gen-utils/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": ["lib"]
+}

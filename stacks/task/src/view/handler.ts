@@ -1,7 +1,10 @@
+import {
+  extractApiVersion,
+  extractWorkspaceId,
+  ValidatedAPIGatewayProxyHandler,
+} from '@mex/gen-utils';
+import { middyfy } from '@mex/middy-utils';
 import { createError } from '@middy/util';
-import { ValidatedAPIGatewayProxyHandler } from '../../utils/apiGateway';
-import { extractApiVersion, extractWorkspaceId } from '../../utils/helpers';
-import { middyfy } from '../../utils/middleware';
 import { ViewEntity } from '../entities';
 import { View } from '../interface';
 
