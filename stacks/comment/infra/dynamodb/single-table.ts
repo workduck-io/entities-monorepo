@@ -33,26 +33,6 @@ export default {
       },
       GlobalSecondaryIndexes: [
         {
-          IndexName: 'reverse-index',
-          KeySchema: [
-            {
-              AttributeName: 'sk',
-              KeyType: 'HASH',
-            },
-            {
-              AttributeName: 'pk',
-              KeyType: 'RANGE',
-            },
-          ],
-          Projection: {
-            ProjectionType: 'ALL',
-          },
-          ProvisionedThroughput: {
-            ReadCapacityUnits: '15',
-            WriteCapacityUnits: '15',
-          },
-        },
-        {
           IndexName: 'pk-ak-index',
           KeySchema: [
             {
