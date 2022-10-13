@@ -28,8 +28,8 @@ export default {
         },
       ],
       ProvisionedThroughput: {
-        ReadCapacityUnits: '15',
-        WriteCapacityUnits: '15',
+        ReadCapacityUnits: '5',
+        WriteCapacityUnits: '5',
       },
       GlobalSecondaryIndexes: [
         {
