@@ -1,8 +1,26 @@
 import type {
   APIGatewayProxyEventV2,
-  APIGatewayProxyResult,
+  APIGatewayProxyResultV2,
   Handler,
 } from 'aws-lambda';
+
+export enum HTTPMethod {
+  'POST' = 'POST',
+  'GET' = 'GET',
+  'PUT' = 'PUT',
+  'DELETE' = 'DELETE',
+  'PATCH' = 'PATCH',
+}
+
+export type EventHandlerMap = {
+  handler: ValidatedAPIGatewayProxyHandler<any>;
+  method: HTTPMethod;
+  path: string;
+};
+
+export type EventHandlerPairs = {
+  [routeKey: string]: ValidatedAPIGatewayProxyHandler<any>;
+};
 
 export type ValidatedAPIGatewayProxyEvent<S> = Omit<
   APIGatewayProxyEventV2,
@@ -13,7 +31,7 @@ export type ValidatedAPIGatewayProxyEvent<S> = Omit<
 
 export type ValidatedAPIGatewayProxyHandler<S> = Handler<
   ValidatedAPIGatewayProxyEvent<S>,
-  APIGatewayProxyResult
+  APIGatewayProxyResultV2
 >;
 
 export interface WDTokenDecode {

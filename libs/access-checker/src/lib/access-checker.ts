@@ -1,4 +1,4 @@
-import { ValidatedAPIGatewayProxyEvent } from './apiGateway';
+import { ValidatedAPIGatewayProxyEvent } from '@mex/gen-utils';
 import { NodeLambdaFunctionName } from './consts';
 import { lambda } from './invokeLambda';
 

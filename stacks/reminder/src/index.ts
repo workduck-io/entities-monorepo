@@ -1,7 +1,7 @@
 import { handlerPath } from '../utils/handlerResolver';
 
-const post = {
-  handler: `${handlerPath(__dirname)}/handler.create`,
+const main = {
+  handler: `${handlerPath(__dirname)}/handler.main`,
   events: [
     {
       httpApi: {
@@ -10,12 +10,6 @@ const post = {
         authorizer: 'workduckAuthorizer',
       },
     },
-  ],
-};
-
-const get = {
-  handler: `${handlerPath(__dirname)}/handler.get`,
-  events: [
     {
       httpApi: {
         method: 'GET',
@@ -23,12 +17,6 @@ const get = {
         authorizer: 'workduckAuthorizer',
       },
     },
-  ],
-};
-
-const deleteAllEntitiesOfNode = {
-  handler: `${handlerPath(__dirname)}/handler.deleteAllEntitiesOfNode`,
-  events: [
     {
       httpApi: {
         method: 'DELETE',
@@ -36,12 +24,6 @@ const deleteAllEntitiesOfNode = {
         authorizer: 'workduckAuthorizer',
       },
     },
-  ],
-};
-
-const restoreAllEntitiesOfNode = {
-  handler: `${handlerPath(__dirname)}/handler.restoreAllEntitiesOfNode`,
-  events: [
     {
       httpApi: {
         method: 'POST',
@@ -49,12 +31,6 @@ const restoreAllEntitiesOfNode = {
         authorizer: 'workduckAuthorizer',
       },
     },
-  ],
-};
-
-const del = {
-  handler: `${handlerPath(__dirname)}/handler.del`,
-  events: [
     {
       httpApi: {
         method: 'DELETE',
@@ -62,12 +38,6 @@ const del = {
         authorizer: 'workduckAuthorizer',
       },
     },
-  ],
-};
-
-const getAllEntitiesOfWorkspace = {
-  handler: `${handlerPath(__dirname)}/handler.getAllEntitiesOfWorkspace`,
-  events: [
     {
       httpApi: {
         method: 'GET',
@@ -75,12 +45,6 @@ const getAllEntitiesOfWorkspace = {
         authorizer: 'workduckAuthorizer',
       },
     },
-  ],
-};
-
-const getAllEntitiesOfNode = {
-  handler: `${handlerPath(__dirname)}/handler.getAllEntitiesOfNode`,
-  events: [
     {
       httpApi: {
         method: 'GET',
@@ -92,11 +56,5 @@ const getAllEntitiesOfNode = {
 };
 
 export default {
-  post,
-  get,
-  del,
-  getAllEntitiesOfWorkspace,
-  getAllEntitiesOfNode,
-  deleteAllEntitiesOfNode,
-  restoreAllEntitiesOfNode,
+  main,
 };
