@@ -39,9 +39,9 @@ export const initializeTable = (tableConfig: {
         partitionKey: 'pk',
         sortKey: 'ak',
       },
-      'reverse-index': {
-        partitionKey: 'sk',
-        sortKey: 'ak',
+      'ak-pk-index': {
+        partitionKey: 'ak',
+        sortKey: 'pk',
       },
       ...additionalIndexes,
     },

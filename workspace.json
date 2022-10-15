@@ -6,6 +6,7 @@
     "entity-utils": "libs/entity-utils",
     "gen-utils": "libs/gen-utils",
     "middy-utils": "libs/middy-utils",
+    "reminder": "stacks/reminder",
     "task": "stacks/task"
   }
 }

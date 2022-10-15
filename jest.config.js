@@ -7,5 +7,6 @@ module.exports = {
     '<rootDir>/stacks/comment',
     '<rootDir>/libs/gen-utils',
     '<rootDir>/libs/middy-utils',
+    '<rootDir>/stacks/reminder',
   ],
 };
