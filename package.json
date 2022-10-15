@@ -90,6 +90,7 @@
     "@middy/http-json-body-parser": "^3.2.0",
     "@middy/util": "^3.2.0",
     "@workduck-io/invoke-lambda": "^0.0.1",
+    "@workduck-io/lambda-routing": "^0.0.1",
     "@workduck-io/serverless-auto-swagger": "^2.8.3",
     "@workduck-io/wd-request-id-parser": "^0.0.3",
     "@workduck-io/wderror": "^0.0.4",
