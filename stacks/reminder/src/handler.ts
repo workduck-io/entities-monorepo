@@ -1,8 +1,9 @@
+import { middyfy } from '@mex/middy-utils';
 import {
   createGatewayLambdaHandler,
   createLambdaEventMapping,
   HTTPMethod,
-} from '@mex/gen-utils';
+} from '@workduck-io/lambda-routing';
 import { createHandler } from './handlers/createHandler';
 import { deleteAllEntitiesOfNodeHandler } from './handlers/deleteAllEntitiesOfNodeHandler';
 import { deleteHandler } from './handlers/deleteHandler';
@@ -51,4 +52,4 @@ const routeHandlers = [
 
 const handlerPairs = createLambdaEventMapping(routeHandlers);
 
-export const main = createGatewayLambdaHandler(handlerPairs);
+export const main = middyfy(createGatewayLambdaHandler(handlerPairs));
