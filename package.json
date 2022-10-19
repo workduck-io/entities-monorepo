@@ -29,6 +29,7 @@
     "prepare": "husky install",
     "container-up": "cd ./scripts && docker-compose up",
     "nxall": "nx run-many --target=serve --all --maxParallel=10",
+    "local": "cd ./scripts && sh runner",
     "nxa": "npm-run-all -p nxall container-up"
   },
   "devDependencies": {
@@ -72,7 +73,7 @@
     "typescript": "~4.6.0"
   },
   "engines": {
-    "node": ">=14 <15"
+    "node": ">=16 <17"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [

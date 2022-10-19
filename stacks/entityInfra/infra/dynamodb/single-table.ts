@@ -2,7 +2,7 @@ export default {
   SingleTableDesignDynamoDBTable: {
     Type: 'AWS::DynamoDB::Table',
     Properties: {
-      TableName: '${self:custom.stage}-<%= name %>-store',
+      TableName: '${self:custom.stage}-entity-store',
       AttributeDefinitions: [
         {
           AttributeName: 'pk',
@@ -32,26 +32,6 @@ export default {
         WriteCapacityUnits: '5',
       },
       GlobalSecondaryIndexes: [
-        {
-          IndexName: 'ak-sk-index',
-          KeySchema: [
-            {
-              AttributeName: 'ak',
-              KeyType: 'HASH',
-            },
-            {
-              AttributeName: 'sk',
-              KeyType: 'RANGE',
-            },
-          ],
-          Projection: {
-            ProjectionType: 'ALL',
-          },
-          ProvisionedThroughput: {
-            ReadCapacityUnits: '5',
-            WriteCapacityUnits: '5',
-          },
-        },
         {
           IndexName: 'ak-pk-index',
           KeySchema: [

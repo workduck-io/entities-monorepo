@@ -4,12 +4,10 @@ import {
   executeBatchRequest,
   itemFilter,
 } from '@mex/entity-utils';
-import {
-  extractWorkspaceId,
-  ValidatedAPIGatewayProxyHandler,
-} from '@mex/gen-utils';
+import { extractWorkspaceId } from '@mex/gen-utils';
 import { middyfy } from '@mex/middy-utils';
 import { createError } from '@middy/util';
+import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { CommentEntity } from './entities';
 import { Comment } from './interface';
 

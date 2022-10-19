@@ -13,7 +13,7 @@ export const baseServerlessConfiguration: Partial<Serverless> = {
     'serverless-offline',
     'serverless-domain-manager',
     'serverless-prune-plugin',
-    // 'serverless-s3-deploy',
+    'serverless-s3-deploy',
   ],
   custom: {
     enabled: {
@@ -76,7 +76,7 @@ export const baseServerlessConfiguration: Partial<Serverless> = {
   },
   provider: {
     name: 'aws',
-    runtime: 'nodejs14.x',
+    runtime: 'nodejs16.x',
     memorySize: 512,
     logRetentionInDays: 7,
     apiGateway: {
