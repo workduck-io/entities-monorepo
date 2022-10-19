@@ -24,7 +24,7 @@ const createHandler: ValidatedAPIGatewayProxyHandler<Comment> = async (
   try {
     const res = (
       await CommentEntity.update(
-        { ...comment, workspaceId, source: 'EXTERNAL' },
+        { ...comment, workspaceId, _source: 'EXTERNAL' },
         {
           returnValues: 'ALL_NEW',
         }
@@ -152,7 +152,7 @@ const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       associatedEntity: CommentEntity,
       workspaceId,
       request: batchReq,
-      source: 'EXTERNAL',
+      _source: 'EXTERNAL',
     });
 
     return {

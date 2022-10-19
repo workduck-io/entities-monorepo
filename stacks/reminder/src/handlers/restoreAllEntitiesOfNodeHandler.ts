@@ -44,7 +44,7 @@ export const restoreAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       associatedEntity: ReminderEntity,
       workspaceId,
       request: batchReq,
-      source: 'NOTE',
+      _source: 'INTERNAL',
     });
 
     return {

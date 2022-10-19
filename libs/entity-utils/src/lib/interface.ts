@@ -22,10 +22,10 @@ export interface BaseEntityParameters {
   entityId: string;
   blockId?: string;
   properties?: GenericObject;
-  source: UpdateSource;
+  _source: UpdateSource;
 }
 
-export type UpdateSource = 'NOTE' | 'EXTERNAL';
+export type UpdateSource = 'INTERNAL' | 'EXTERNAL';
 
 export type BatchUpdateRequestUnit<T extends Partial<BaseEntityParameters>> =
   T & {

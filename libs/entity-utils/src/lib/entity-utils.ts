@@ -63,7 +63,7 @@ export const initializeEntity = (entityConfig: {
         coerce: false,
       },
       nodeId: { type: 'string', map: 'ak', coerce: false },
-      source: { type: 'string', default: () => 'NOTE', hidden: true },
+      _source: { type: 'string', default: () => 'INTERNAL', hidden: true },
       _status: { type: 'string', default: () => 'ACTIVE', hidden: true },
       _ttl: { type: 'number', hidden: true },
       userId: { type: 'string', required: true },
@@ -108,14 +108,14 @@ export const executeBatchRequest = async <
         return {
           ...req,
           workspaceId: wsId,
-          source: source ?? 'NOTE',
+          _source: source ?? 'INTERNAL',
           $remove: ['_ttl'],
         };
       case 'DELETE':
         return {
           ...req,
           workspaceId: wsId,
-          source: source ?? 'NOTE',
+          _source: source ?? 'INTERNAL',
           _status: 'ARCHIVED',
           _ttl: ttlDate,
         };

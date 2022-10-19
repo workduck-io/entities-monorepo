@@ -21,7 +21,7 @@ const createHandler: ValidatedAPIGatewayProxyHandler<<%= pascal(name) %>> = asyn
   try {
     const res = (
       await <%= pascal(name) %>Entity.update(
-        { ...<%= name %>, workspaceId, source: 'EXTERNAL' },
+        { ...<%= name %>, workspaceId, _source: 'EXTERNAL' },
         {
           returnValues: 'ALL_NEW',
         }

@@ -26,7 +26,13 @@ export const createHandler: ValidatedAPIGatewayProxyHandler<Task> = async (
   try {
     const res = (
       await TaskEntity.update(
-        { ...task, workspaceId, userId, source: 'EXTERNAL', $remove: ['_ttl'] },
+        {
+          ...task,
+          workspaceId,
+          userId,
+          _source: 'EXTERNAL',
+          $remove: ['_ttl'],
+        },
         {
           returnValues: 'UPDATED_NEW',
         }
@@ -166,7 +172,7 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       associatedEntity: TaskEntity,
       workspaceId,
       request: batchReq,
-      source: 'NOTE',
+      _source: 'INTERNAL',
     });
 
     return {
@@ -210,7 +216,7 @@ export const restoreAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       associatedEntity: TaskEntity,
       workspaceId,
       request: batchReq,
-      source: 'NOTE',
+      _source: 'INTERNAL',
     });
 
     return {
@@ -277,7 +283,7 @@ export const batchUpdateHandler: ValidatedAPIGatewayProxyHandler<
       associatedEntity: TaskEntity,
       workspaceId,
       request: req,
-      source: 'NOTE',
+      _source: 'INTERNAL',
     });
     return {
       statusCode: 200,
