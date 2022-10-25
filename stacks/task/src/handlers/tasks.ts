@@ -1,8 +1,9 @@
 import { getAccess } from '@mex/access-checker';
 import {
+  entityFilter,
   executeBatchRequest,
-  itemFilter,
   MAX_DYNAMO_BATCH_REQUEST,
+  statusFilter,
   type BatchUpdateRequest,
 } from '@mex/entity-utils';
 import { createError } from '@middy/util';
@@ -101,7 +102,7 @@ export const getAllEntitiesOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
         pk: workspaceId,
         sk: lastKey,
       },
-      filters: [itemFilter('ACTIVE')],
+      filters: [statusFilter('ACTIVE'), entityFilter('task')],
     });
     return {
       statusCode: 200,
@@ -128,7 +129,7 @@ export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       await TaskEntity.query(workspaceId, {
         index: 'pk-ak-index',
         eq: nodeId,
-        filters: [itemFilter('ACTIVE')],
+        filters: [statusFilter('ACTIVE'), entityFilter('task')],
       })
     ).Items;
     return {
@@ -154,7 +155,7 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       await TaskEntity.query(workspaceId, {
         index: 'pk-ak-index',
         eq: nodeId,
-        filters: [itemFilter('ACTIVE')],
+        filters: [statusFilter('ACTIVE'), entityFilter('task')],
       })
     ).Items;
 
@@ -198,7 +199,7 @@ export const restoreAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       await TaskEntity.query(workspaceId, {
         index: 'pk-ak-index',
         eq: nodeId,
-        filters: [itemFilter('ARCHIVED')],
+        filters: [statusFilter('ARCHIVED'), entityFilter('task')],
       })
     ).Items;
 
@@ -251,7 +252,7 @@ export const getEntityOfMultipleNodesHandler: ValidatedAPIGatewayProxyHandler<{
           await TaskEntity.query(workspaceId, {
             index: 'pk-ak-index',
             eq: nodeId,
-            filters: [itemFilter('ACTIVE')],
+            filters: [statusFilter('ACTIVE'), entityFilter('task')],
           })
         ).Items;
         successful[nodeId] = res;

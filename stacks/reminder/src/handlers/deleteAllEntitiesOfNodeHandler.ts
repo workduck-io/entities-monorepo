@@ -1,8 +1,9 @@
 import { getAccess } from '@mex/access-checker';
 import {
   BatchUpdateRequest,
+  entityFilter,
   executeBatchRequest,
-  itemFilter,
+  statusFilter,
 } from '@mex/entity-utils';
 import { extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
@@ -24,7 +25,7 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       await ReminderEntity.query(workspaceId, {
         index: 'pk-ak-index',
         eq: nodeId,
-        filters: [itemFilter('ACTIVE')],
+        filters: [statusFilter('ACTIVE'), entityFilter('reminder')],
       })
     ).Items;
 

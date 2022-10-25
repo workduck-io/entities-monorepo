@@ -39,3 +39,5 @@ export type DynamoBatchUpdateRequest = DocumentClient.UpdateItemOutput;
 
 export type STATUS_STRING = '_status';
 export type STATUS_TYPE = 'ARCHIVED' | 'ACTIVE';
+export type ENTITY_STRING = 'entity';
+export type ENTITY_TYPE = 'task' | 'comment' | 'reminder' | 'view';

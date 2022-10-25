@@ -6,6 +6,8 @@ import { MAX_DYNAMO_BATCH_REQUEST } from './consts';
 import {
   BaseEntityParameters,
   BatchUpdateRequest,
+  ENTITY_STRING,
+  ENTITY_TYPE,
   STATUS_STRING,
   STATUS_TYPE,
   UpdateSource,
@@ -166,7 +168,7 @@ export const executeBatchRequest = async <
   );
 };
 
-export const itemFilter = (
+export const statusFilter = (
   status: STATUS_TYPE
 ): {
   attr: STATUS_STRING;
@@ -174,4 +176,14 @@ export const itemFilter = (
 } => ({
   attr: '_status',
   eq: status,
+});
+
+export const entityFilter = (
+  type: ENTITY_TYPE
+): {
+  attr: ENTITY_STRING;
+  eq: ENTITY_TYPE;
+} => ({
+  attr: 'entity',
+  eq: type,
 });

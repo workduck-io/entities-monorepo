@@ -1,8 +1,9 @@
 import { getAccess } from '@mex/access-checker';
 import {
   BatchUpdateRequest,
+  entityFilter,
   executeBatchRequest,
-  itemFilter,
+  statusFilter,
 } from '@mex/entity-utils';
 import { extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
@@ -97,7 +98,7 @@ export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
             ? `${nodeId}#${blockId}#${threadId}`
             : `${nodeId}#${blockId}`
           : nodeId,
-        filters: [itemFilter('ACTIVE')],
+        filters: [statusFilter('ACTIVE'), entityFilter('comment')],
       })
     ).Items;
 
@@ -130,7 +131,7 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
             ? `${nodeId}#${blockId}#${threadId}`
             : `${nodeId}#${blockId}`
           : nodeId,
-        filters: [itemFilter('ACTIVE')],
+        filters: [statusFilter('ACTIVE'), entityFilter('comment')],
       })
     ).Items;
 

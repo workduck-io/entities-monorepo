@@ -1,5 +1,5 @@
 import { getAccess } from '@mex/access-checker';
-import { itemFilter } from '@mex/entity-utils';
+import { entityFilter, statusFilter } from '@mex/entity-utils';
 import { extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
@@ -18,7 +18,7 @@ export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       await ReminderEntity.query(workspaceId, {
         index: 'pk-ak-index',
         eq: nodeId,
-        filters: [itemFilter('ACTIVE')],
+        filters: [statusFilter('ACTIVE'), entityFilter('reminder')],
       })
     ).Items;
     return {

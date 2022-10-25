@@ -1,3 +1,4 @@
+import { entityFilter } from '@mex/entity-utils';
 import { extractApiVersion, extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
@@ -77,6 +78,7 @@ export const getAllViewsOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
     const res = (
       await ViewEntity.query(workspaceId, {
         beginsWith: apiVersion ? 'TASKVIEW' : 'TASK_VIEW',
+        filters: [entityFilter('view')],
       })
     ).Items;
     return {
