@@ -1,8 +1,6 @@
-import {
-  extractWorkspaceId,
-  ValidatedAPIGatewayProxyHandler,
-} from '@mex/gen-utils';
+import { extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
+import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { ReminderEntity } from '../entities';
 
 export const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (

@@ -35,9 +35,9 @@ export const initializeTable = (tableConfig: {
     partitionKey: 'pk',
     sortKey: 'sk',
     indexes: {
-      'ak-pk-index': {
-        partitionKey: 'ak',
-        sortKey: 'pk',
+      'pk-ak-index': {
+        partitionKey: 'pk',
+        sortKey: 'ak',
       },
       ...additionalIndexes,
     },

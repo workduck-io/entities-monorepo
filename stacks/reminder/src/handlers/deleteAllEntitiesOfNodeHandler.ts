@@ -4,11 +4,9 @@ import {
   executeBatchRequest,
   itemFilter,
 } from '@mex/entity-utils';
-import {
-  extractWorkspaceId,
-  ValidatedAPIGatewayProxyHandler,
-} from '@mex/gen-utils';
+import { extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
+import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { ReminderEntity } from '../entities';
 import { Reminder } from '../interface';
 
@@ -23,8 +21,8 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       throw createError(401, 'User access denied');
 
     const tasksToDelete = (
-      await ReminderEntity.query(nodeId, {
-        index: 'ak-pk-index',
+      await ReminderEntity.query(workspaceId, {
+        index: 'pk-ak-index',
         eq: nodeId,
         filters: [itemFilter('ACTIVE')],
       })

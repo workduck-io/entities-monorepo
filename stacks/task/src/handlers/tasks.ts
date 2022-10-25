@@ -125,9 +125,9 @@ export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
     if (access === 'NO_ACCESS' || access === 'READ')
       throw createError(401, 'User access denied');
     const res = (
-      await TaskEntity.query(nodeId, {
-        index: 'ak-pk-index',
-        eq: workspaceId,
+      await TaskEntity.query(workspaceId, {
+        index: 'pk-ak-index',
+        eq: nodeId,
         filters: [itemFilter('ACTIVE')],
       })
     ).Items;
@@ -151,8 +151,8 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       throw createError(401, 'User access denied');
 
     const tasksToDelete = (
-      await TaskEntity.query(nodeId, {
-        index: 'ak-pk-index',
+      await TaskEntity.query(workspaceId, {
+        index: 'pk-ak-index',
         eq: nodeId,
         filters: [itemFilter('ACTIVE')],
       })
@@ -195,8 +195,8 @@ export const restoreAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       throw createError(401, 'User access denied');
 
     const tasksToRestore = (
-      await TaskEntity.query(nodeId, {
-        index: 'ak-pk-index',
+      await TaskEntity.query(workspaceId, {
+        index: 'pk-ak-index',
         eq: nodeId,
         filters: [itemFilter('ARCHIVED')],
       })
@@ -248,9 +248,9 @@ export const getEntityOfMultipleNodesHandler: ValidatedAPIGatewayProxyHandler<{
         failed.push({ nodeId, reason: 'No access' });
       } else {
         const res = (
-          await TaskEntity.query(nodeId, {
-            index: 'ak-pk-index',
-            eq: workspaceId,
+          await TaskEntity.query(workspaceId, {
+            index: 'pk-ak-index',
+            eq: nodeId,
             filters: [itemFilter('ACTIVE')],
           })
         ).Items;

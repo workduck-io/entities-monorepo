@@ -33,14 +33,14 @@ export default {
       },
       GlobalSecondaryIndexes: [
         {
-          IndexName: 'ak-pk-index',
+          IndexName: 'pk-ak-index',
           KeySchema: [
             {
-              AttributeName: 'ak',
+              AttributeName: 'pk',
               KeyType: 'HASH',
             },
             {
-              AttributeName: 'pk',
+              AttributeName: 'ak',
               KeyType: 'RANGE',
             },
           ],

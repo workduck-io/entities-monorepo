@@ -1,7 +1,6 @@
-import {
-  extractWorkspaceId,
-  ValidatedAPIGatewayProxyHandler,
-} from '@mex/gen-utils';
+import { extractWorkspaceId } from '@mex/gen-utils';
+import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
+
 import { createError } from '@middy/util';
 import { ReminderEntity } from '../entities';
 

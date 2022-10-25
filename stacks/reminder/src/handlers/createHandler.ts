@@ -2,9 +2,9 @@ import { getAccess } from '@mex/access-checker';
 import {
   extractUserIdFromToken,
   extractWorkspaceId,
-  ValidatedAPIGatewayProxyHandler,
 } from '@mex/gen-utils';
 import { createError } from '@middy/util';
+import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { ReminderEntity } from '../entities';
 import { Reminder } from '../interface';
 

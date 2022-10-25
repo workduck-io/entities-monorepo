@@ -1,10 +1,8 @@
 import { getAccess } from '@mex/access-checker';
 import { itemFilter } from '@mex/entity-utils';
-import {
-  extractWorkspaceId,
-  ValidatedAPIGatewayProxyHandler,
-} from '@mex/gen-utils';
+import { extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
+import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { ReminderEntity } from '../entities';
 
 export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
@@ -17,9 +15,9 @@ export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
     if (access === 'NO_ACCESS' || access === 'READ')
       throw createError(401, 'User access denied');
     const res = (
-      await ReminderEntity.query(nodeId, {
-        index: 'ak-pk-index',
-        eq: workspaceId,
+      await ReminderEntity.query(workspaceId, {
+        index: 'pk-ak-index',
+        eq: nodeId,
         filters: [itemFilter('ACTIVE')],
       })
     ).Items;

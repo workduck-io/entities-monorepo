@@ -1,9 +1,7 @@
 import { itemFilter } from '@mex/entity-utils';
-import {
-  extractWorkspaceId,
-  ValidatedAPIGatewayProxyHandler,
-} from '@mex/gen-utils';
+import { extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
+import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { ReminderEntity } from '../entities';
 
 export const getAllEntitiesOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
