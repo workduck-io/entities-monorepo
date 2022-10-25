@@ -3,7 +3,7 @@ import { Table } from 'dynamodb-toolbox';
 
 export const reactionTable = new Table({
   // Specify table name (used by DynamoDB)
-  name: `${process.env.SLS_STAGE}-reaction-store`,
+  name: `${process.env.SLS_STAGE}-entity-store`,
   // Define partition and sort keys
   partitionKey: 'pk',
   sortKey: 'sk',
