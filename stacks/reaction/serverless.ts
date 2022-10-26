@@ -1,7 +1,7 @@
 import merge from 'deepmerge';
 import type { Serverless } from 'serverless/aws';
 import { baseServerlessConfiguration } from '../../serverless.base';
-import Table from './infra/dynamodb/single-table';
+
 import functions from './src';
 import { combineMerge } from './utils/helpers';
 
@@ -30,9 +30,6 @@ const reactionServerlessConfig = {
     },
   },
   functions,
-  resources: {
-    Resources: Table,
-  },
 };
 
 const serverlessConfiguration = <Serverless>(

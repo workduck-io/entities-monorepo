@@ -1,7 +1,7 @@
 import { handlerPath } from '../utils/handlerResolver';
 
-const post = {
-  handler: `${handlerPath(__dirname)}/handler.create`,
+const main = {
+  handler: `${handlerPath(__dirname)}/handler.main`,
   events: [
     {
       httpApi: {
@@ -10,12 +10,7 @@ const post = {
         authorizer: 'workduckAuthorizer',
       },
     },
-  ],
-};
 
-const getReactionsOfNode = {
-  handler: `${handlerPath(__dirname)}/handler.getReactionsOfNode`,
-  events: [
     {
       httpApi: {
         method: 'GET',
@@ -30,12 +25,6 @@ const getReactionsOfNode = {
         authorizer: 'workduckAuthorizer',
       },
     },
-  ],
-};
-
-const getDetailedReactionForBlock = {
-  handler: `${handlerPath(__dirname)}/handler.getDetailedReactionForBlock`,
-  events: [
     {
       httpApi: {
         method: 'GET',
@@ -47,7 +36,5 @@ const getDetailedReactionForBlock = {
 };
 
 export default {
-  post,
-  getReactionsOfNode,
-  getDetailedReactionForBlock,
+  main,
 };
