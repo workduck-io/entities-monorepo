@@ -1,14 +1,11 @@
-import {
-  extractApiVersion,
-  extractWorkspaceId,
-  ValidatedAPIGatewayProxyHandler,
-} from '@mex/gen-utils';
-import { middyfy } from '@mex/middy-utils';
+import { entityFilter } from '@mex/entity-utils';
+import { extractApiVersion, extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
+import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { ViewEntity } from '../entities';
 import { View } from '../interface';
 
-const createViewHandler: ValidatedAPIGatewayProxyHandler<View> = async (
+export const createViewHandler: ValidatedAPIGatewayProxyHandler<View> = async (
   event
 ) => {
   const workspaceId = extractWorkspaceId(event);
@@ -32,9 +29,9 @@ const createViewHandler: ValidatedAPIGatewayProxyHandler<View> = async (
   }
 };
 
-const getViewHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
-  event
-) => {
+export const getViewHandler: ValidatedAPIGatewayProxyHandler<
+  undefined
+> = async (event) => {
   try {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
@@ -53,9 +50,9 @@ const getViewHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   }
 };
 
-const deleteViewHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
-  event
-) => {
+export const deleteViewHandler: ValidatedAPIGatewayProxyHandler<
+  undefined
+> = async (event) => {
   try {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
@@ -72,7 +69,7 @@ const deleteViewHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   }
 };
 
-const getAllViewsOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
+export const getAllViewsOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
   undefined
 > = async (event) => {
   try {
@@ -81,6 +78,7 @@ const getAllViewsOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
     const res = (
       await ViewEntity.query(workspaceId, {
         beginsWith: apiVersion ? 'TASKVIEW' : 'TASK_VIEW',
+        filters: [entityFilter('view')],
       })
     ).Items;
     return {
@@ -91,9 +89,3 @@ const getAllViewsOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
     throw createError(400, JSON.stringify(e.message));
   }
 };
-
-export const create = middyfy(createViewHandler);
-export const get = middyfy(getViewHandler);
-export const del = middyfy(deleteViewHandler);
-
-export const getAllViewsOfWorkspace = middyfy(getAllViewsOfWorkspaceHandler);

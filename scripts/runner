@@ -1,0 +1,3 @@
+#! /usr/bin/env bash
+
+nx run-many --target=$1 --projects=entityInfra,$2

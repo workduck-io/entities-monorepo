@@ -6,6 +6,8 @@ import { MAX_DYNAMO_BATCH_REQUEST } from './consts';
 import {
   BaseEntityParameters,
   BatchUpdateRequest,
+  ENTITY_STRING,
+  ENTITY_TYPE,
   STATUS_STRING,
   STATUS_TYPE,
   UpdateSource,
@@ -39,10 +41,6 @@ export const initializeTable = (tableConfig: {
         partitionKey: 'pk',
         sortKey: 'ak',
       },
-      'ak-pk-index': {
-        partitionKey: 'ak',
-        sortKey: 'pk',
-      },
       ...additionalIndexes,
     },
 
@@ -67,7 +65,7 @@ export const initializeEntity = (entityConfig: {
         coerce: false,
       },
       nodeId: { type: 'string', map: 'ak', coerce: false },
-      source: { type: 'string', default: () => 'NOTE', hidden: true },
+      _source: { type: 'string', default: () => 'INTERNAL', hidden: true },
       _status: { type: 'string', default: () => 'ACTIVE', hidden: true },
       _ttl: { type: 'number', hidden: true },
       userId: { type: 'string', required: true },
@@ -112,14 +110,14 @@ export const executeBatchRequest = async <
         return {
           ...req,
           workspaceId: wsId,
-          source: source ?? 'NOTE',
+          _source: source ?? 'INTERNAL',
           $remove: ['_ttl'],
         };
       case 'DELETE':
         return {
           ...req,
           workspaceId: wsId,
-          source: source ?? 'NOTE',
+          _source: source ?? 'INTERNAL',
           _status: 'ARCHIVED',
           _ttl: ttlDate,
         };
@@ -170,7 +168,7 @@ export const executeBatchRequest = async <
   );
 };
 
-export const itemFilter = (
+export const statusFilter = (
   status: STATUS_TYPE
 ): {
   attr: STATUS_STRING;
@@ -178,4 +176,14 @@ export const itemFilter = (
 } => ({
   attr: '_status',
   eq: status,
+});
+
+export const entityFilter = (
+  type: ENTITY_TYPE
+): {
+  attr: ENTITY_STRING;
+  eq: ENTITY_TYPE;
+} => ({
+  attr: 'entity',
+  eq: type,
 });

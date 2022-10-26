@@ -22,10 +22,10 @@ export interface BaseEntityParameters {
   entityId: string;
   blockId?: string;
   properties?: GenericObject;
-  source: UpdateSource;
+  _source: UpdateSource;
 }
 
-export type UpdateSource = 'NOTE' | 'EXTERNAL';
+export type UpdateSource = 'INTERNAL' | 'EXTERNAL';
 
 export type BatchUpdateRequestUnit<T extends Partial<BaseEntityParameters>> =
   T & {
@@ -39,3 +39,5 @@ export type DynamoBatchUpdateRequest = DocumentClient.UpdateItemOutput;
 
 export type STATUS_STRING = '_status';
 export type STATUS_TYPE = 'ARCHIVED' | 'ACTIVE';
+export type ENTITY_STRING = 'entity';
+export type ENTITY_TYPE = 'task' | 'comment' | 'reminder' | 'view';

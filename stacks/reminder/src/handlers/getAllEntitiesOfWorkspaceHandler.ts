@@ -1,9 +1,7 @@
-import { itemFilter } from '@mex/entity-utils';
-import {
-  extractWorkspaceId,
-  ValidatedAPIGatewayProxyHandler,
-} from '@mex/gen-utils';
+import { entityFilter, statusFilter } from '@mex/entity-utils';
+import { extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
+import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { ReminderEntity } from '../entities';
 
 export const getAllEntitiesOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
@@ -17,7 +15,7 @@ export const getAllEntitiesOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
         pk: workspaceId,
         sk: lastKey,
       },
-      filters: [itemFilter('ACTIVE')],
+      filters: [statusFilter('ACTIVE'), entityFilter('reminder')],
     });
     return {
       statusCode: 200,

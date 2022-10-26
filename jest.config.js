@@ -8,5 +8,6 @@ module.exports = {
     '<rootDir>/libs/gen-utils',
     '<rootDir>/libs/middy-utils',
     '<rootDir>/stacks/reminder',
+    '<rootDir>/stacks/entityInfra',
   ],
 };
