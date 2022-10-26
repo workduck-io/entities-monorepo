@@ -75,13 +75,12 @@ export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   try {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
-    const res = await CommentEntity.delete({
+    await CommentEntity.delete({
       workspaceId,
       entityId,
     });
     return {
-      statusCode: 200,
-      body: JSON.stringify(res),
+      statusCode: 204,
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
@@ -166,7 +165,6 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
 
     return {
       statusCode: 204,
-      body: '',
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
