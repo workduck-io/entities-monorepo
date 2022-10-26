@@ -9,6 +9,7 @@ export const UserReaction = new Entity({
     nodeId: ['sk', 1, { type: 'string', required: 'always' }],
     blockId: ['sk', 2, { type: 'string', required: 'always' }],
     sk: { hidden: true, sortKey: true },
+    ak: { hidden: true, default: (data) => `${data.nodeId}#${data.blockId}` },
     reaction: {
       type: 'set',
       setType: 'string',

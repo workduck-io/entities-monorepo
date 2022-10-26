@@ -74,7 +74,7 @@ export const getAllReactionsOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       await UserReaction.query(workspaceId, {
         beginsWith: blockId
           ? `${userId}#${nodeId}#${blockId}`
-          : `${userId}#${nodeId}`,
+          : `${userId}#${nodeId}#`,
       })
     ).Items.reduce(
       (acc, value) => ({
@@ -86,7 +86,7 @@ export const getAllReactionsOfNodeHandler: ValidatedAPIGatewayProxyHandler<
 
     const metaData = (
       await ReactionCount.query(workspaceId, {
-        beginsWith: blockId ? `${nodeId}#${blockId}` : `${nodeId}`,
+        beginsWith: blockId ? `${nodeId}#${blockId}` : `${nodeId}#`,
       })
     ).Items.reduce((acc, val) => {
       return {
@@ -119,11 +119,12 @@ export const getDetailedReactionForBlockHandler: ValidatedAPIGatewayProxyHandler
 > = async (event) => {
   try {
     const workspaceId = extractWorkspaceId(event);
-    const userId = extractUserIdFromToken(event);
     const { nodeId, blockId } = event.pathParameters;
     const reactions = (
       await UserReaction.query(workspaceId, {
-        eq: `${nodeId}#${blockId}#${userId}`,
+        eq: `${nodeId}#${blockId}`,
+        index: 'pk-ak-index',
+        attributes: ['userId', 'reaction'],
       })
     ).Items;
     return {
