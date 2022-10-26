@@ -14,3 +14,11 @@ export const combineMerge = (target, source, options) => {
   });
   return destination;
 };
+
+export const sanitizeComment = (comment) =>
+  comment?.nodeId
+    ? {
+        ...comment,
+        nodeId: comment.nodeId.split('#')[0],
+      }
+    : undefined;

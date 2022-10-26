@@ -5,9 +5,10 @@ import {
   executeBatchRequest,
   statusFilter,
 } from '@mex/entity-utils';
-import { extractWorkspaceId } from '@mex/gen-utils';
+import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
+import { sanitizeComment } from '../../utils/helpers';
 import { CommentEntity } from '../entities';
 import { Comment } from '../interface';
 
@@ -15,6 +16,7 @@ export const createHandler: ValidatedAPIGatewayProxyHandler<Comment> = async (
   event
 ) => {
   const workspaceId = extractWorkspaceId(event);
+  const userId = extractUserIdFromToken(event);
   const comment = event.body;
   if (comment.workspaceId && workspaceId != comment.workspaceId) {
     const access = await getAccess(workspaceId, comment.nodeId, event);
@@ -24,7 +26,13 @@ export const createHandler: ValidatedAPIGatewayProxyHandler<Comment> = async (
   try {
     const res = (
       await CommentEntity.update(
-        { ...comment, workspaceId, _source: 'EXTERNAL' },
+        {
+          ...comment,
+          workspaceId,
+          userId,
+          _source: 'EXTERNAL',
+          _status: 'ACTIVE',
+        },
         {
           returnValues: 'ALL_NEW',
         }
@@ -32,7 +40,7 @@ export const createHandler: ValidatedAPIGatewayProxyHandler<Comment> = async (
     ).Attributes;
     return {
       statusCode: 200,
-      body: JSON.stringify(res),
+      body: JSON.stringify(sanitizeComment(res)),
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
@@ -53,7 +61,8 @@ export const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
     ).Item;
     return {
       statusCode: 200,
-      body: JSON.stringify(res),
+      //NOTE: Do away with it when toolbox adds format function
+      body: JSON.stringify(sanitizeComment(res)),
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
@@ -66,13 +75,12 @@ export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   try {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
-    const res = await CommentEntity.delete({
+    await CommentEntity.delete({
       workspaceId,
       entityId,
     });
     return {
-      statusCode: 200,
-      body: JSON.stringify(res),
+      statusCode: 204,
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
@@ -104,7 +112,7 @@ export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
 
     return {
       statusCode: 200,
-      body: JSON.stringify(res),
+      body: JSON.stringify(res.map(sanitizeComment)),
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
@@ -157,7 +165,6 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
 
     return {
       statusCode: 204,
-      body: '',
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
