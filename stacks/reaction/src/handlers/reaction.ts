@@ -106,7 +106,8 @@ export const getAllReactionsOfNodeHandler: ValidatedAPIGatewayProxyHandler<
 
     return {
       statusCode: 200,
-      body: JSON.stringify(metaData),
+      //In case blockId is passed just return the array instead of object
+      body: JSON.stringify(blockId ? metaData[blockId] : metaData),
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
