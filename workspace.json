@@ -8,6 +8,7 @@
     "gen-utils": "libs/gen-utils",
     "middy-utils": "libs/middy-utils",
     "reminder": "stacks/reminder",
+    "reaction": "stacks/reaction",
     "task": "stacks/task"
   }
 }
