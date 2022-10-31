@@ -20,7 +20,7 @@ export const createHandler: ValidatedAPIGatewayProxyHandler<
   const isAdd = reaction.action === 'ADD' ?? true;
 
   delete reaction.action;
-  const count = ReactionCount.updateTransaction({
+  const updateCount = ReactionCount.updateTransaction({
     ...reaction,
     workspaceId,
     count: {
@@ -52,7 +52,7 @@ export const createHandler: ValidatedAPIGatewayProxyHandler<
     }
   );
   try {
-    await reactionTable.transactWrite([react, count]);
+    await reactionTable.transactWrite([react, updateCount]);
     return {
       statusCode: 204,
     };
@@ -75,20 +75,35 @@ export const getAllReactionsOfNodeHandler: ValidatedAPIGatewayProxyHandler<
         beginsWith: blockId
           ? `${userId}#${nodeId}#${blockId}`
           : `${userId}#${nodeId}#`,
+        filters: [
+          {
+            attr: 'reaction',
+            exists: true,
+          },
+        ],
       })
     ).Items.reduce(
       (acc, value) => ({
         ...acc,
-        [value.blockId]: [...(acc[value.blockId] ?? []), ...value.reaction],
+        [value.blockId]: [
+          ...(acc?.[value.blockId] ?? []),
+          ...(value.reaction ?? []),
+        ],
       }),
       {}
     );
-
     const metaData = (
       await ReactionCount.query(workspaceId, {
         beginsWith: blockId ? `${nodeId}#${blockId}` : `${nodeId}#`,
+        filters: [
+          {
+            attr: 'count',
+            gt: 0,
+          },
+        ],
       })
-    ).Items.reduce((acc, val) => {
+    ).Items;
+    metaData.reduce((acc, val) => {
       return {
         ...acc,
         [val.blockId]: [
@@ -96,7 +111,7 @@ export const getAllReactionsOfNodeHandler: ValidatedAPIGatewayProxyHandler<
           {
             reaction: val.reaction,
             count: val.count,
-            ...(userData[val.blockId]?.includes(val.reaction)
+            ...(userData?.[val.blockId]?.includes(val.reaction)
               ? { user: true }
               : {}),
           },
@@ -110,7 +125,7 @@ export const getAllReactionsOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       body: JSON.stringify(blockId ? metaData[blockId] : metaData),
     };
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, JSON.stringify(e.stack));
   }
 };
 
