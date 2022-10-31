@@ -92,7 +92,7 @@ export const getAllReactionsOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       return {
         ...acc,
         [val.blockId]: [
-          ...(acc.blockId ?? []),
+          ...(acc[val.blockId] ?? []),
           {
             reaction: val.reaction,
             count: val.count,
