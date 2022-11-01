@@ -9,5 +9,6 @@ module.exports = {
     '<rootDir>/libs/middy-utils',
     '<rootDir>/stacks/reminder',
     '<rootDir>/stacks/entityInfra',
+    '<rootDir>/stacks/smartcapture',
   ],
 };
