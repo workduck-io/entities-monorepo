@@ -13,14 +13,14 @@ const main = {
     {
       httpApi: {
         method: 'DELETE',
-        path: '/{entityId}',
+        path: '/{nodeId}/{entityId}',
         authorizer: 'workduckAuthorizer',
       },
     },
     {
       httpApi: {
         method: 'GET',
-        path: '/{entityId}',
+        path: '/{nodeId}/{entityId}',
         authorizer: 'workduckAuthorizer',
       },
     },

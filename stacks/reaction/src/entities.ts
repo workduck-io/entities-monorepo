@@ -4,12 +4,11 @@ import { reactionTable } from '../service/DynamoDB';
 export const UserReaction = new Entity({
   name: 'userReaction',
   attributes: {
-    workspaceId: { partitionKey: true },
+    nodeId: { partitionKey: true },
     userId: ['sk', 0, { type: 'string', required: 'always' }],
-    nodeId: ['sk', 1, { type: 'string', required: 'always' }],
-    blockId: ['sk', 2, { type: 'string', required: 'always' }],
+    blockId: ['sk', 1, { type: 'string', required: 'always' }],
     sk: { hidden: true, sortKey: true },
-    ak: { hidden: true, default: (data) => `${data.nodeId}#${data.blockId}` },
+    ak: { hidden: true, default: (data) => `${data.blockId}#${data.userId}` },
     reaction: {
       type: 'set',
       setType: 'string',
@@ -23,13 +22,12 @@ export const ReactionCount = new Entity({
   name: 'reactionCount',
   timestamps: false,
   attributes: {
-    workspaceId: { partitionKey: true },
+    nodeId: { partitionKey: true },
     sk: { hidden: true, sortKey: true },
-    nodeId: ['sk', 0, { type: 'string', required: 'always' }],
-    blockId: ['sk', 1, { type: 'string', required: 'always' }],
+    blockId: ['sk', 0, { type: 'string', required: 'always' }],
     reaction: [
       'sk',
-      2,
+      1,
       {
         type: 'string',
         required: 'always',

@@ -53,9 +53,15 @@ export const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   try {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
+    const nodeId = event.pathParameters.nodeId;
+
+    const access = await getAccess(workspaceId, nodeId, event);
+    if (access === 'NO_ACCESS' || access === 'READ')
+      throw createError(401, 'User access denied');
+
     const res = (
       await CommentEntity.get({
-        workspaceId,
+        nodeId,
         entityId,
       })
     ).Item;
@@ -75,8 +81,14 @@ export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
   try {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
+    const nodeId = event.pathParameters.nodeId;
+
+    const access = await getAccess(workspaceId, nodeId, event);
+    if (access === 'NO_ACCESS' || access === 'READ')
+      throw createError(401, 'User access denied');
+
     await CommentEntity.delete({
-      workspaceId,
+      nodeId,
       entityId,
     });
     return {
@@ -99,13 +111,11 @@ export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
     if (access === 'NO_ACCESS' || access === 'READ')
       throw createError(401, 'User access denied');
     const res = (
-      await CommentEntity.query(workspaceId, {
+      await CommentEntity.query(nodeId, {
         index: 'pk-ak-index',
-        beginsWith: blockId
-          ? threadId
-            ? `${nodeId}#${blockId}#${threadId}`
-            : `${nodeId}#${blockId}`
-          : nodeId,
+        ...(blockId && {
+          beginsWith: threadId ? `${blockId}#${threadId}` : `${blockId}#`,
+        }),
         filters: [statusFilter('ACTIVE'), entityFilter('comment')],
       })
     ).Items;
@@ -132,12 +142,12 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
     if (access === 'NO_ACCESS' || access === 'READ')
       throw createError(401, 'User access denied');
     const commentsToDelete = (
-      await CommentEntity.query(workspaceId, {
+      await CommentEntity.query(nodeId, {
         index: 'pk-ak-index',
         beginsWith: blockId
           ? threadId
-            ? `${nodeId}#${blockId}#${threadId}`
-            : `${nodeId}#${blockId}`
+            ? `${blockId}#${threadId}`
+            : `${blockId}#`
           : nodeId,
         filters: [statusFilter('ACTIVE'), entityFilter('comment')],
       })
