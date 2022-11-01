@@ -7,8 +7,9 @@
     "entityInfra": "stacks/entityInfra",
     "gen-utils": "libs/gen-utils",
     "middy-utils": "libs/middy-utils",
-    "reminder": "stacks/reminder",
     "reaction": "stacks/reaction",
+    "reminder": "stacks/reminder",
+    "smartcapture": "stacks/smartcapture",
     "task": "stacks/task"
   }
 }
