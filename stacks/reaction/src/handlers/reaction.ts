@@ -22,7 +22,6 @@ export const createHandler: ValidatedAPIGatewayProxyHandler<
   delete reaction.action;
   const updateCount = ReactionCount.updateTransaction({
     ...reaction,
-    workspaceId,
     count: {
       $add: isAdd ? 1 : -1,
     },
@@ -33,7 +32,6 @@ export const createHandler: ValidatedAPIGatewayProxyHandler<
     {
       blockId: reaction.blockId,
       nodeId: reaction.nodeId,
-      workspaceId,
       userId,
       reaction: isAdd
         ? {
@@ -66,15 +64,18 @@ export const getAllReactionsOfNodeHandler: ValidatedAPIGatewayProxyHandler<
 > = async (event) => {
   try {
     const workspaceId = extractWorkspaceId(event);
+
     const userId = extractUserIdFromToken(event);
     const nodeId = event.pathParameters?.nodeId;
     const blockId = event.pathParameters?.blockId;
 
+    const access = await getAccess(workspaceId, nodeId, event);
+    if (access === 'NO_ACCESS' || access === 'READ')
+      throw createError(401, 'User access denied');
+
     const userData = (
-      await UserReaction.query(workspaceId, {
-        beginsWith: blockId
-          ? `${userId}#${nodeId}#${blockId}`
-          : `${userId}#${nodeId}#`,
+      await UserReaction.query(userId, {
+        beginsWith: blockId ? `${nodeId}#${blockId}` : `${nodeId}#`,
         filters: [
           {
             attr: 'reaction',
@@ -93,8 +94,8 @@ export const getAllReactionsOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       {}
     );
     const metaData = (
-      await ReactionCount.query(workspaceId, {
-        beginsWith: blockId ? `${nodeId}#${blockId}` : `${nodeId}#`,
+      await ReactionCount.query(nodeId, {
+        ...(blockId && { beginsWith: blockId }),
         filters: [
           {
             attr: 'count',
@@ -102,8 +103,7 @@ export const getAllReactionsOfNodeHandler: ValidatedAPIGatewayProxyHandler<
           },
         ],
       })
-    ).Items;
-    metaData.reduce((acc, val) => {
+    ).Items.reduce((acc, val) => {
       return {
         ...acc,
         [val.blockId]: [
@@ -135,9 +135,14 @@ export const getDetailedReactionForBlockHandler: ValidatedAPIGatewayProxyHandler
   try {
     const workspaceId = extractWorkspaceId(event);
     const { nodeId, blockId } = event.pathParameters;
+
+    const access = await getAccess(workspaceId, nodeId, event);
+    if (access === 'NO_ACCESS' || access === 'READ')
+      throw createError(401, 'User access denied');
+
     const reactions = (
-      await UserReaction.query(workspaceId, {
-        eq: `${nodeId}#${blockId}`,
+      await UserReaction.query(nodeId, {
+        beginsWith: `${blockId}`,
         index: 'pk-ak-index',
         attributes: ['userId', 'reaction'],
       })

@@ -51,13 +51,13 @@ const routeHandlers = [
 
   {
     method: HTTPMethod.GET,
-    path: '/{entityId}',
+    path: '/{nodeId}/{entityId}',
     handler: getHandler,
   },
 
   {
     method: HTTPMethod.DELETE,
-    path: '/{entityId}',
+    path: '/{nodeId}/{entityId}',
     handler: deleteHandler,
   },
 
