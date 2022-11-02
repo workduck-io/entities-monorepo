@@ -9,6 +9,7 @@ import {
   createVariableHandler,
   deleteLabelHandler,
   deleteVariableHandler,
+  getAllLabelsForWebpageHandler,
   getAllLabelsHandler,
   getAllVariablesHandler,
   getLabelHandler,
@@ -45,6 +46,11 @@ const routeHandlers = [
     method: HTTPMethod.GET,
     path: '/variable/{variableId}',
     handler: getVariableHandler,
+  },
+  {
+    method: HTTPMethod.GET,
+    path: '/labels/webpage/{webPage}',
+    handler: getAllLabelsForWebpageHandler,
   },
   {
     method: HTTPMethod.DELETE,

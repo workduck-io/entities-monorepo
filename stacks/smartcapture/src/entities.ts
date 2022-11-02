@@ -27,7 +27,7 @@ export const CaptureLabelEntity = initializeEntity({
     variableId: { type: 'string', required: 'always', prefix: 'VARIABLE#' },
     labelName: { type: 'string' },
     path: { type: 'string', required: 'always' },
-    webPage: { type: 'string', required: 'always' },
+    webPage: { type: 'string', required: 'always', map: 'ak' },
     regex: { type: 'string', required: 'always' },
   },
   table: smartcaptureTable,

@@ -51,7 +51,7 @@ export const getAllVariablesHandler: ValidatedAPIGatewayProxyHandler<
     const res = (
       await CaptureVariableEntity.query(workspaceId, {
         beginsWith: 'VARIABLE',
-        filters: [entityFilter('captureVariable')],
+        filters: [statusFilter('ACTIVE'), entityFilter('captureVariable')],
       })
     ).Items;
 
@@ -174,6 +174,29 @@ export const getLabelHandler: ValidatedAPIGatewayProxyHandler<
         entityId: labelId,
       })
     ).Item;
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify(res),
+    };
+  } catch (e) {
+    throw createError(400, JSON.stringify(e.message));
+  }
+};
+
+export const getAllLabelsForWebpageHandler: ValidatedAPIGatewayProxyHandler<
+  Variable
+> = async (event) => {
+  const workspaceId = extractWorkspaceId(event) as string;
+  const webPage = event.pathParameters.webPage;
+  try {
+    const res = await (
+      await CaptureLabelEntity.query(workspaceId, {
+        index: 'pk-ak-index',
+        eq: webPage,
+        filters: [statusFilter('ACTIVE'), entityFilter('captureLabel')],
+      })
+    ).Items;
 
     return {
       statusCode: 200,

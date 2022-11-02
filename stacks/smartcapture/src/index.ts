@@ -47,6 +47,13 @@ const main = {
     },
     {
       httpApi: {
+        method: 'GET',
+        path: '/labels/webpage/{webPage}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
         method: 'DELETE',
         path: '/label/{labelId}',
         authorizer: 'workduckAuthorizer',
