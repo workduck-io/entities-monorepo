@@ -8,6 +8,7 @@ import { createError } from '@middy/util';
 import { CaptureLabelEntity, CaptureVariableEntity } from '../entities';
 import { nanoid } from 'nanoid';
 import { Smartcapture, Variable } from '../interface';
+import { serializeLabel } from '../../utils/helpers';
 
 export const createVariableHandler: ValidatedAPIGatewayProxyHandler<
   Variable
@@ -134,7 +135,7 @@ export const createLabelHandler: ValidatedAPIGatewayProxyHandler<
     ).Attributes;
     return {
       statusCode: 200,
-      body: JSON.stringify(result),
+      body: JSON.stringify(serializeLabel([result])),
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
@@ -177,7 +178,7 @@ export const getLabelHandler: ValidatedAPIGatewayProxyHandler<
 
     return {
       statusCode: 200,
-      body: JSON.stringify(res),
+      body: JSON.stringify(serializeLabel([res])),
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
@@ -200,7 +201,7 @@ export const getAllLabelsForWebpageHandler: ValidatedAPIGatewayProxyHandler<
 
     return {
       statusCode: 200,
-      body: JSON.stringify(res),
+      body: JSON.stringify(serializeLabel(res)),
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
