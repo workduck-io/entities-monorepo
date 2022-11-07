@@ -16,7 +16,7 @@ export const combineMerge = (target, source, options) => {
   return destination;
 };
 
-export const serializeLabel = (labels: Smartcapture[]) => {
+export const serializeLabel = (labels) => {
   const map = new Map<string, Smartcapture[]>();
   labels.map((label) => {
     const labelArr = map.get(label.webPage);

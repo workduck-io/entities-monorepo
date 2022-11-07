@@ -1,19 +1,19 @@
 import { getAccess } from '@mex/access-checker';
-import {
-  extractWorkspaceId,
-  ValidatedAPIGatewayProxyHandler,
-} from '@mex/gen-utils';
+import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
+import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { entityFilter, statusFilter } from '@mex/entity-utils';
 import { createError } from '@middy/util';
 import { CaptureLabelEntity, CaptureVariableEntity } from '../entities';
 import { nanoid } from 'nanoid';
 import { Smartcapture, Variable } from '../interface';
+import { smartcaptureTable } from '../../service/DynamoDB';
 import { serializeLabel } from '../../utils/helpers';
 
 export const createVariableHandler: ValidatedAPIGatewayProxyHandler<
   Variable
 > = async (event) => {
   const workspaceId = extractWorkspaceId(event);
+  const userId = extractUserIdFromToken(event);
   const variable = event.body;
   if (variable.workspaceId && workspaceId != variable.workspaceId) {
     const access = await getAccess(workspaceId, variable.nodeId, event);
@@ -21,13 +21,17 @@ export const createVariableHandler: ValidatedAPIGatewayProxyHandler<
       throw createError(401, 'User access denied');
   }
   try {
+    const payload = {
+      entityId: variable.entityId ?? nanoid(),
+      variableName: variable.variableName,
+      workspaceId,
+      _source: 'EXTERNAL',
+      userId,
+    };
     const res = (
       await CaptureVariableEntity.update(
         {
-          variableName: variable.variableName,
-          entityId: variable.entityId ?? nanoid(),
-          workspaceId,
-          _source: 'EXTERNAL',
+          ...payload,
         },
         {
           returnValues: 'ALL_NEW',
@@ -93,16 +97,13 @@ export const deleteVariableHandler: ValidatedAPIGatewayProxyHandler<
   const workspaceId = extractWorkspaceId(event) as string;
   const variableId = event.pathParameters.variableId;
   try {
-    const res = await (
-      await CaptureVariableEntity.delete({
-        workspaceId,
-        entityId: variableId,
-      })
-    ).Item;
+    await CaptureVariableEntity.delete({
+      workspaceId,
+      entityId: variableId,
+    });
 
     return {
-      statusCode: 200,
-      body: JSON.stringify(res),
+      statusCode: 204,
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
@@ -113,6 +114,7 @@ export const createLabelHandler: ValidatedAPIGatewayProxyHandler<
   Smartcapture
 > = async (event) => {
   const workspaceId = extractWorkspaceId(event);
+  const userId = extractUserIdFromToken(event);
   const smartcapture = event.body;
   if (smartcapture.workspaceId && workspaceId != smartcapture.workspaceId) {
     const access = await getAccess(workspaceId, smartcapture.nodeId, event);
@@ -120,23 +122,52 @@ export const createLabelHandler: ValidatedAPIGatewayProxyHandler<
       throw createError(401, 'User access denied');
   }
   try {
-    const result = (
-      await CaptureLabelEntity.update(
-        {
-          ...smartcapture,
-          entityId: smartcapture.entityId ?? nanoid(),
-          workspaceId,
-          _source: 'EXTERNAL',
-        },
-        {
-          returnValues: 'ALL_NEW',
-        }
-      )
-    ).Attributes;
-    return {
-      statusCode: 200,
-      body: JSON.stringify(serializeLabel([result])),
-    };
+    if (!smartcapture.variableId) {
+      const pendingTransacts = [];
+      const variableId = nanoid();
+      const payload = {
+        variableName: smartcapture.labelName,
+        entityId: variableId,
+        workspaceId,
+        userId,
+        _source: 'EXTERNAL',
+      };
+      const createVariable = CaptureVariableEntity.putTransaction(payload);
+      pendingTransacts.push(createVariable);
+      const labelPayload = {
+        ...smartcapture,
+        entityId: smartcapture.entityId ?? nanoid(),
+        workspaceId,
+        _source: 'EXTERNAL',
+        userId,
+        variableId,
+      };
+      const createLabel = CaptureLabelEntity.putTransaction(labelPayload);
+      pendingTransacts.push(createLabel);
+      await smartcaptureTable.transactWrite(pendingTransacts);
+      return {
+        statusCode: 204,
+      };
+    } else {
+      const result = (
+        await CaptureLabelEntity.update(
+          {
+            ...smartcapture,
+            userId,
+            entityId: smartcapture.entityId ?? nanoid(),
+            workspaceId,
+            _source: 'EXTERNAL',
+          },
+          {
+            returnValues: 'ALL_NEW',
+          }
+        )
+      ).Attributes;
+      return {
+        statusCode: 200,
+        body: JSON.stringify(serializeLabel([result])),
+      };
+    }
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
   }
@@ -214,16 +245,13 @@ export const deleteLabelHandler: ValidatedAPIGatewayProxyHandler<
   const workspaceId = extractWorkspaceId(event) as string;
   const labelId = event.pathParameters.labelId;
   try {
-    const res = await (
-      await CaptureLabelEntity.delete({
-        workspaceId,
-        entityId: labelId,
-      })
-    ).Item;
+    await CaptureLabelEntity.delete({
+      workspaceId,
+      entityId: labelId,
+    });
 
     return {
-      statusCode: 200,
-      body: JSON.stringify(res),
+      statusCode: 204,
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
