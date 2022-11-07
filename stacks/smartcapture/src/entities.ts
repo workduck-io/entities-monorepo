@@ -11,7 +11,6 @@ export const CaptureVariableEntity = initializeEntity({
       prefix: 'VARIABLE#',
     },
     variableName: { type: 'string' },
-    userId: { type: 'string', required: false },
   },
   table: smartcaptureTable,
 } as const);
