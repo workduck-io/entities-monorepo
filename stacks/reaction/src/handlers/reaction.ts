@@ -74,8 +74,8 @@ export const getAllReactionsOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       throw createError(401, 'User access denied');
 
     const userData = (
-      await UserReaction.query(userId, {
-        beginsWith: blockId ? `${nodeId}#${blockId}` : `${nodeId}#`,
+      await UserReaction.query(nodeId, {
+        beginsWith: blockId ? `${userId}#${blockId}` : `${userId}#`,
         filters: [
           {
             attr: 'reaction',
@@ -118,6 +118,8 @@ export const getAllReactionsOfNodeHandler: ValidatedAPIGatewayProxyHandler<
         ],
       };
     }, {});
+
+    console.log({ userData, metaData });
 
     return {
       statusCode: 200,

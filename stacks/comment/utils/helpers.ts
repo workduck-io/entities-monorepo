@@ -19,6 +19,6 @@ export const sanitizeComment = (comment) =>
   comment?.nodeId
     ? {
         ...comment,
-        nodeId: comment.nodeId.split('#')[0],
+        blockId: comment.blockId.split('#')[0],
       }
     : undefined;
