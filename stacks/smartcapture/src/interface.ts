@@ -6,6 +6,7 @@ export interface Variable extends Omit<BaseEntityParameters, 'entityId'> {
 }
 
 export interface Smartcapture extends Omit<BaseEntityParameters, 'entityId'> {
+  variable?: Variable;
   variableId?: string;
   entityId?: string;
   labelName: string;

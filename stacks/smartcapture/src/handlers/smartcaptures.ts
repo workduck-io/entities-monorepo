@@ -7,7 +7,28 @@ import { CaptureLabelEntity, CaptureVariableEntity } from '../entities';
 import { nanoid } from 'nanoid';
 import { Smartcapture, Variable } from '../interface';
 import { smartcaptureTable } from '../../service/DynamoDB';
-import { serializeLabel } from '../../utils/helpers';
+
+export const serializeLabel = async (workspaceId, labels) => {
+  const map = new Map<string, Smartcapture[]>();
+
+  for await (const label of labels) {
+    const variableItem = (
+      await CaptureVariableEntity.get({
+        workspaceId,
+        entityId: label.variableId,
+      })
+    ).Item;
+    delete label.variableId;
+    label.variable = variableItem;
+    const labelArr = map.get(label.webPage);
+    if (labelArr) {
+      labelArr.push(label);
+      map.set(label.webPage, labelArr);
+    } else map.set(label.webPage, [label]);
+  }
+
+  return Object.fromEntries(map);
+};
 
 export const createVariableHandler: ValidatedAPIGatewayProxyHandler<
   Variable
@@ -165,7 +186,7 @@ export const createLabelHandler: ValidatedAPIGatewayProxyHandler<
       ).Attributes;
       return {
         statusCode: 200,
-        body: JSON.stringify(serializeLabel([result])),
+        body: JSON.stringify(await serializeLabel(workspaceId, [result])),
       };
     }
   } catch (e) {
@@ -200,16 +221,25 @@ export const getLabelHandler: ValidatedAPIGatewayProxyHandler<
   const workspaceId = extractWorkspaceId(event) as string;
   const labelId = event.pathParameters.labelId;
   try {
-    const res = await (
+    const labelResult = (
       await CaptureLabelEntity.get({
         workspaceId,
         entityId: labelId,
       })
-    ).Item;
+    ).Item as unknown as Smartcapture;
 
+    const variableResult = (
+      await CaptureVariableEntity.get({
+        workspaceId,
+        entityId: labelResult.variableId,
+      })
+    ).Item as unknown as Variable;
+
+    delete labelResult.variableId;
+    labelResult.variable = variableResult;
     return {
       statusCode: 200,
-      body: JSON.stringify(serializeLabel([res])),
+      body: JSON.stringify(labelResult),
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
@@ -232,7 +262,7 @@ export const getAllLabelsForWebpageHandler: ValidatedAPIGatewayProxyHandler<
 
     return {
       statusCode: 200,
-      body: JSON.stringify(serializeLabel(res)),
+      body: JSON.stringify(await serializeLabel(workspaceId, [res])),
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
