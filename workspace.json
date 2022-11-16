@@ -6,6 +6,7 @@
     "entity-utils": "libs/entity-utils",
     "entityInfra": "stacks/entityInfra",
     "gen-utils": "libs/gen-utils",
+    "highlights": "stacks/highlights",
     "middy-utils": "libs/middy-utils",
     "reaction": "stacks/reaction",
     "reminder": "stacks/reminder",

@@ -1,0 +1,54 @@
+{
+  "root": "stacks/highlights",
+  "projectType": "application",
+  "sourceRoot": "stacks/highlights/src",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/workspace:run-commands",
+      "options": {
+        "cwd": "stacks/highlights",
+        "color": true,
+        "command": "sls package"
+      }
+    },
+    "serve": {
+      "executor": "@nrwl/workspace:run-commands",
+      "options": {
+        "cwd": "stacks/highlights",
+        "color": true,
+        "command": "sls offline start"
+      }
+    },
+    "deploy": {
+      "executor": "@nrwl/workspace:run-commands",
+      "options": {
+        "cwd": "stacks/highlights",
+        "color": true,
+        "command": "sls deploy --verbose"
+      }
+    },
+    "remove": {
+      "executor": "@nrwl/workspace:run-commands",
+      "options": {
+        "cwd": "stacks/highlights",
+        "color": true,
+        "command": "sls remove"
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": ["stacks/highlights/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/stacks/highlights"],
+      "options": {
+        "jestConfig": "stacks/highlights/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": ["stack"]
+}
