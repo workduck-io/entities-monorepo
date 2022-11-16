@@ -10,5 +10,6 @@ module.exports = {
     '<rootDir>/stacks/reminder',
     '<rootDir>/stacks/entityInfra',
     '<rootDir>/stacks/smartcapture',
+    '<rootDir>/stacks/highlights',
   ],
 };

@@ -45,5 +45,6 @@ export type ENTITY_TYPE =
   | 'comment'
   | 'reminder'
   | 'view'
+  | 'highlights'
   | 'captureVariable'
   | 'captureLabel';
