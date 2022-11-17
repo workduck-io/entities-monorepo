@@ -5,7 +5,7 @@ import functions from './src';
 import { combineMerge } from './utils/helpers';
 
 const highlightsServerlessConfig = {
-  service: 'highlights',
+  service: 'highlight',
   custom: {
     ...baseServerlessConfiguration.custom,
     'serverless-offline': {
@@ -16,7 +16,7 @@ const highlightsServerlessConfig = {
     },
     customDomain: {
       http: {
-        basePath: 'highlights',
+        basePath: 'highlight',
       },
     },
     autoswagger: {
