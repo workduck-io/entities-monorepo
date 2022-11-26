@@ -11,5 +11,6 @@ module.exports = {
     '<rootDir>/stacks/entityInfra',
     '<rootDir>/stacks/smartcapture',
     '<rootDir>/stacks/highlights',
+    '<rootDir>/stacks/gpt3Prompt',
   ],
 };
