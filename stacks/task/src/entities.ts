@@ -9,7 +9,6 @@ export const TaskEntity = new Entity({
     ...defaultEntityAttributes,
     blockId: {
       type: 'string',
-      required: 'always',
     },
     content: { type: 'list' },
   },

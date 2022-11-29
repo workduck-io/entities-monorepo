@@ -8,13 +8,13 @@ import {
 import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
+import { InferEntityItem } from 'dynamodb-toolbox';
 import { sanitizeComment } from '../../utils/helpers';
 import { CommentEntity } from '../entities';
-import { Comment } from '../interface';
 
-export const createHandler: ValidatedAPIGatewayProxyHandler<Comment> = async (
-  event
-) => {
+export const createHandler: ValidatedAPIGatewayProxyHandler<
+  InferEntityItem<typeof CommentEntity>
+> = async (event) => {
   const workspaceId = extractWorkspaceId(event);
   const userId = extractUserIdFromToken(event);
   const comment = event.body;
@@ -153,24 +153,20 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       })
     ).Items;
 
-    const batchReq: BatchUpdateRequest<Partial<Comment>> = commentsToDelete.map(
+    const batchReq: BatchUpdateRequest<any> = commentsToDelete.map(
       (comment) => ({
         workspaceId: comment.workspaceId,
         entityId: comment.entityId,
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        //@ts-ignore
         blockId: comment.blockId,
         type: 'DELETE',
       })
     );
 
     await executeBatchRequest({
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //@ts-ignore
       associatedEntity: CommentEntity,
       workspaceId,
       request: batchReq,
-      _source: 'EXTERNAL',
+      source: 'EXTERNAL',
     });
 
     return {

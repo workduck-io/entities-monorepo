@@ -20,6 +20,8 @@ export const createHandler: ValidatedAPIGatewayProxyHandler<
   const isAdd = reaction.action === 'ADD' ?? true;
 
   delete reaction.action;
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  //@ts-ignore
   const updateCount = ReactionCount.updateTransaction({
     ...reaction,
     count: {
@@ -88,7 +90,7 @@ export const getAllReactionsOfNodeHandler: ValidatedAPIGatewayProxyHandler<
         ...acc,
         [value.blockId]: [
           ...(acc?.[value.blockId] ?? []),
-          ...(value.reaction ?? []),
+          ...((value.reaction as any[]) ?? []),
         ],
       }),
       {}

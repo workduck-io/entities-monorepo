@@ -38,12 +38,10 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
     );
 
     await executeBatchRequest({
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //@ts-ignore
       associatedEntity: ReminderEntity,
       workspaceId,
       request: batchReq,
-      _source: 'INTERNAL',
+      source: 'INTERNAL',
     });
 
     return {

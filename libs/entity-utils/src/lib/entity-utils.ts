@@ -160,8 +160,6 @@ export const executeBatchRequest = async <
         ...acc,
         [result.status]: [
           ...acc[result.status],
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          //@ts-ignore
           result.value ?? result.reason ?? {},
         ],
       };

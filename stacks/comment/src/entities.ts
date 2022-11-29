@@ -1,11 +1,13 @@
+import { defaultEntityAttributes } from '@mex/entity-utils';
 import { Entity } from 'dynamodb-toolbox';
 import { commentTable } from '../service/DynamoDB';
 
 export const CommentEntity = new Entity({
   name: 'comment',
   attributes: {
-    nodeId: { partitionKey: true, coerce: false },
-    entityId: { sortKey: true, coerce: false },
+    ...defaultEntityAttributes,
+    nodeId: { partitionKey: true, coerce: false, type: 'string' },
+    entityId: { sortKey: true, coerce: false, type: 'string' },
     blockId: {
       type: 'string',
       map: 'ak',
