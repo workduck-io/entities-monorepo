@@ -26,6 +26,20 @@ const config = {
     },
     {
       httpApi: {
+        method: 'GET',
+        path: '/config/all',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/config/all/{base}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
         method: 'DELETE',
         path: '/config/{configId}',
         authorizer: 'workduckAuthorizer',

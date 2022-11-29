@@ -100,6 +100,8 @@
     "dynamodb-toolbox": "^0.6.0",
     "jwt-decode": "^3.1.2",
     "nanoid": "^4.0.0",
+    "ts-node": "^10.9.1",
+    "ts-node-dev": "^2.0.0",
     "tslib": "^2.0.0"
   }
 }

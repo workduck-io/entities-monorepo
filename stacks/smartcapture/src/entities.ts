@@ -26,6 +26,11 @@ export const CaptureConfigEntity = new Entity({
       type: 'string',
       coerce: false,
     },
+    base: {
+      type: 'string',
+      map: 'ak',
+      coerce: false,
+    },
     dataOrder: {
       type: 'list',
       hidden: true,

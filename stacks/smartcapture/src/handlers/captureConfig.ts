@@ -102,6 +102,45 @@ export const getConfigHandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 
+export const getAllConfigOfWorkspace: ValidatedAPIGatewayProxyHandler<
+  undefined
+> = async (event) => {
+  const workspaceId = extractWorkspaceId(event) as string;
+  try {
+    const res = await CaptureConfigEntity.query(workspaceId);
+    return {
+      statusCode: 200,
+      body: JSON.stringify(res.Items),
+    };
+  } catch (error) {
+    return {
+      statusCode: 400,
+      body: `Cannot get config ${error}`,
+    };
+  }
+};
+
+export const getAllConfigOfBase: ValidatedAPIGatewayProxyHandler<
+  undefined
+> = async (event) => {
+  const workspaceId = extractWorkspaceId(event) as string;
+  try {
+    const res = await CaptureConfigEntity.query(workspaceId, {
+      index: 'pk-ak-index',
+      eq: event.pathParameters.base,
+    });
+    return {
+      statusCode: 200,
+      body: JSON.stringify(res.Items),
+    };
+  } catch (error) {
+    return {
+      statusCode: 400,
+      body: `Cannot get config ${error}`,
+    };
+  }
+};
+
 export const deleteConfigHandler: ValidatedAPIGatewayProxyHandler<any> = async (
   event
 ) => {
