@@ -25,7 +25,7 @@ export const baseServerlessConfiguration: Partial<Serverless> = {
     stage: '${opt:stage, self:provider.stage}',
     esbuild: {
       packager: 'yarn',
-      minify: true,
+      minify: false,
       bundle: true,
       sourcemap: true,
     },

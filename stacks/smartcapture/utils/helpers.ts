@@ -28,3 +28,24 @@ export const serializeLabel = (labels) => {
 
   return Object.fromEntries(map);
 };
+
+export const serializeConfig = (config) => {
+  return {
+    order: config.map((label) => label.id),
+    data: config.reduce((acc, val) => {
+      return {
+        ...acc,
+        [val.id]: val,
+      };
+    }, {}),
+  };
+};
+
+export const serializeConfigDelete = (config) => {
+  return config.reduce((acc, val) => {
+    return {
+      ...acc,
+      [val.id]: undefined,
+    };
+  }, {});
+};

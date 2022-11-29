@@ -1,5 +1,46 @@
 import { handlerPath } from '../utils/handlerResolver';
 
+const config = {
+  handler: `${handlerPath(__dirname)}/handler.config`,
+  events: [
+    {
+      httpApi: {
+        method: 'POST',
+        path: '/config',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'PATCH',
+        path: '/config/{configId}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/config/{configId}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'DELETE',
+        path: '/config/{configId}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'DELETE',
+        path: '/config/{configId}/labels',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+  ],
+};
+
 const main = {
   handler: `${handlerPath(__dirname)}/handler.main`,
   events: [
@@ -71,4 +112,5 @@ const main = {
 
 export default {
   main,
+  config,
 };

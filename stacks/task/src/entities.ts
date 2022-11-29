@@ -1,10 +1,12 @@
-import { initializeEntity } from '@mex/entity-utils';
+import { defaultEntityAttributes } from '@mex/entity-utils';
+import { Entity } from 'dynamodb-toolbox';
 import { taskTable } from '../service/DynamoDB';
 
-export const TaskEntity = initializeEntity({
+export const TaskEntity = new Entity({
   name: 'task',
   table: taskTable,
-  additionalAttributes: {
+  attributes: {
+    ...defaultEntityAttributes,
     blockId: {
       type: 'string',
       required: 'always',
@@ -13,10 +15,11 @@ export const TaskEntity = initializeEntity({
   },
 });
 
-export const ViewEntity = initializeEntity({
+export const ViewEntity = new Entity({
   name: 'view',
   table: taskTable,
-  additionalAttributes: {
+  attributes: {
+    ...defaultEntityAttributes,
     filters: {
       type: 'list',
     },

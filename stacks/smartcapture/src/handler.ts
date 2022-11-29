@@ -5,6 +5,13 @@ import {
   HTTPMethod,
 } from '@workduck-io/lambda-routing';
 import {
+  createConfigHandler,
+  deleteConfigHandler,
+  deleteLabelHandler as deleteConfigLabelHandler,
+  getConfigHandler,
+  updateConfigHandler,
+} from './handlers/captureConfig';
+import {
   createLabelHandler,
   createVariableHandler,
   deleteLabelHandler,
@@ -16,6 +23,33 @@ import {
   getVariableHandler,
 } from './handlers/smartcaptures';
 
+const configRouteHandlers = [
+  {
+    method: HTTPMethod.POST,
+    path: '/config',
+    handler: createConfigHandler,
+  },
+  {
+    method: HTTPMethod.PATCH,
+    path: '/config/{configId}',
+    handler: updateConfigHandler,
+  },
+  {
+    method: HTTPMethod.GET,
+    path: '/config/{configId}',
+    handler: getConfigHandler,
+  },
+  {
+    method: HTTPMethod.DELETE,
+    path: '/config/{configId}',
+    handler: deleteConfigHandler,
+  },
+  {
+    method: HTTPMethod.DELETE,
+    path: '/config/{configId}/labels',
+    handler: deleteConfigLabelHandler,
+  },
+];
 const routeHandlers = [
   {
     method: HTTPMethod.POST,
@@ -65,5 +99,7 @@ const routeHandlers = [
 ];
 
 const handlerPairs = createLambdaEventMapping(routeHandlers);
+const configHandlerPairs = createLambdaEventMapping(configRouteHandlers);
 
 export const main = middyfy(createGatewayLambdaHandler(handlerPairs));
+export const config = middyfy(createGatewayLambdaHandler(configHandlerPairs));

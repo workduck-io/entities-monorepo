@@ -1,9 +1,11 @@
-import { initializeEntity } from '@mex/entity-utils';
+import { defaultEntityAttributes } from '@mex/entity-utils';
+import { Entity } from 'dynamodb-toolbox';
 import { highlightsTable } from '../service/DynamoDB';
 
-export const HighlightsEntity = initializeEntity({
+export const HighlightsEntity = new Entity({
   name: 'highlights',
-  additionalAttributes: {
+  attributes: {
+    ...defaultEntityAttributes,
     nodeId: { type: 'string' },
     urlHash: { map: 'ak', type: 'string', prefix: 'URL_', required: true },
   },

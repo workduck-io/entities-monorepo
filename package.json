@@ -97,7 +97,7 @@
     "@workduck-io/wderror": "^0.0.4",
     "@workduck-io/workspace-validator": "^0.0.7",
     "deepmerge": "^4.2.2",
-    "dynamodb-toolbox": "^0.4.3",
+    "dynamodb-toolbox": "^0.6.0",
     "jwt-decode": "^3.1.2",
     "nanoid": "^4.0.0",
     "tslib": "^2.0.0"

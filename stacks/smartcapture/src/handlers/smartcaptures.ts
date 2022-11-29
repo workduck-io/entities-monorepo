@@ -1,13 +1,13 @@
 import { getAccess } from '@mex/access-checker';
-import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
-import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { entityFilter, statusFilter } from '@mex/entity-utils';
+import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
-import { CaptureLabelEntity, CaptureVariableEntity } from '../entities';
+import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { nanoid } from 'nanoid';
-import { Smartcapture, Variable } from '../interface';
 import { smartcaptureTable } from '../../service/DynamoDB';
 import { serializeLabel } from '../../utils/helpers';
+import { CaptureLabelEntity, CaptureVariableEntity } from '../entities';
+import { Smartcapture, Variable } from '../interface';
 
 export const createVariableHandler: ValidatedAPIGatewayProxyHandler<
   Variable
@@ -28,20 +28,12 @@ export const createVariableHandler: ValidatedAPIGatewayProxyHandler<
       _source: 'EXTERNAL',
       userId,
     };
-    const res = (
-      await CaptureVariableEntity.update(
-        {
-          ...payload,
-        },
-        {
-          returnValues: 'ALL_NEW',
-        }
-      )
-    ).Attributes;
+    await CaptureVariableEntity.put({
+      ...payload,
+    });
 
     return {
-      statusCode: 200,
-      body: JSON.stringify(res),
+      statusCode: 204,
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
