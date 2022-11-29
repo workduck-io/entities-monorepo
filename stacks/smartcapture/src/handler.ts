@@ -12,14 +12,9 @@ import {
   updateConfigHandler,
 } from './handlers/captureConfig';
 import {
-  createLabelHandler,
   createVariableHandler,
-  deleteLabelHandler,
   deleteVariableHandler,
-  getAllLabelsForWebpageHandler,
-  getAllLabelsHandler,
   getAllVariablesHandler,
-  getLabelHandler,
   getVariableHandler,
 } from './handlers/smartcaptures';
 
@@ -53,11 +48,6 @@ const configRouteHandlers = [
 const routeHandlers = [
   {
     method: HTTPMethod.POST,
-    path: '/label',
-    handler: createLabelHandler,
-  },
-  {
-    method: HTTPMethod.POST,
     path: '/variable',
     handler: createVariableHandler,
   },
@@ -66,31 +56,13 @@ const routeHandlers = [
     path: '/variables',
     handler: getAllVariablesHandler,
   },
-  {
-    method: HTTPMethod.GET,
-    path: '/labels',
-    handler: getAllLabelsHandler,
-  },
-  {
-    method: HTTPMethod.GET,
-    path: '/label/{labelId}',
-    handler: getLabelHandler,
-  },
+
   {
     method: HTTPMethod.GET,
     path: '/variable/{variableId}',
     handler: getVariableHandler,
   },
-  {
-    method: HTTPMethod.GET,
-    path: '/labels/webpage/{webPage}',
-    handler: getAllLabelsForWebpageHandler,
-  },
-  {
-    method: HTTPMethod.DELETE,
-    path: '/label/{labelId}',
-    handler: deleteLabelHandler,
-  },
+
   {
     method: HTTPMethod.DELETE,
     path: '/variable/{variableId}',

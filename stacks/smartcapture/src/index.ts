@@ -53,13 +53,6 @@ const main = {
     },
     {
       httpApi: {
-        method: 'POST',
-        path: '/label',
-        authorizer: 'workduckAuthorizer',
-      },
-    },
-    {
-      httpApi: {
         method: 'GET',
         path: '/variables',
         authorizer: 'workduckAuthorizer',
@@ -68,35 +61,7 @@ const main = {
     {
       httpApi: {
         method: 'GET',
-        path: '/labels',
-        authorizer: 'workduckAuthorizer',
-      },
-    },
-    {
-      httpApi: {
-        method: 'GET',
-        path: '/label/{labelId}',
-        authorizer: 'workduckAuthorizer',
-      },
-    },
-    {
-      httpApi: {
-        method: 'GET',
         path: '/variable/{variableId}',
-        authorizer: 'workduckAuthorizer',
-      },
-    },
-    {
-      httpApi: {
-        method: 'GET',
-        path: '/labels/webpage/{webPage}',
-        authorizer: 'workduckAuthorizer',
-      },
-    },
-    {
-      httpApi: {
-        method: 'DELETE',
-        path: '/label/{labelId}',
         authorizer: 'workduckAuthorizer',
       },
     },

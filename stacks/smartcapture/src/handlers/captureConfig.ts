@@ -70,8 +70,6 @@ export const deleteLabelHandler: ValidatedAPIGatewayProxyHandler<any> = async (
     _source: 'EXTERNAL',
     userId,
   };
-  console.log(updateItem);
-
   try {
     await CaptureConfigEntity.update(updateItem);
     return {
