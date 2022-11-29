@@ -1,6 +1,7 @@
 export default {
   SingleTableDesignDynamoDBTable: {
     Type: 'AWS::DynamoDB::Table',
+    DeletionPolicy: 'Retain',
     Properties: {
       TableName: '${self:custom.stage}-entity-store',
       AttributeDefinitions: [
