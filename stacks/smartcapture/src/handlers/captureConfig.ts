@@ -120,6 +120,23 @@ export const getAllConfigOfWorkspace: ValidatedAPIGatewayProxyHandler<
   }
 };
 
+export const getAllConfigOfPublic: ValidatedAPIGatewayProxyHandler<
+  undefined
+> = async (event) => {
+  try {
+    const res = await CaptureConfigEntity.query('WORKSPACE_INTERNAL');
+    return {
+      statusCode: 200,
+      body: JSON.stringify(res.Items),
+    };
+  } catch (error) {
+    return {
+      statusCode: 400,
+      body: `Cannot get config ${error}`,
+    };
+  }
+};
+
 export const getAllConfigOfBase: ValidatedAPIGatewayProxyHandler<
   undefined
 > = async (event) => {

@@ -40,6 +40,13 @@ const config = {
     },
     {
       httpApi: {
+        method: 'GET',
+        path: '/config/all/public',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
         method: 'DELETE',
         path: '/config/{configId}',
         authorizer: 'workduckAuthorizer',

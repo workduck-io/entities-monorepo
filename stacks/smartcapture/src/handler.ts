@@ -9,6 +9,7 @@ import {
   deleteConfigHandler,
   deleteLabelHandler as deleteConfigLabelHandler,
   getAllConfigOfBase,
+  getAllConfigOfPublic,
   getAllConfigOfWorkspace,
   getConfigHandler,
   updateConfigHandler,
@@ -45,6 +46,11 @@ const configRouteHandlers = [
     method: HTTPMethod.GET,
     path: '/config/all/{base}',
     handler: getAllConfigOfBase,
+  },
+  {
+    method: HTTPMethod.GET,
+    path: '/config/all/public',
+    handler: getAllConfigOfPublic,
   },
   {
     method: HTTPMethod.DELETE,
