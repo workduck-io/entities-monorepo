@@ -64,7 +64,7 @@ export const deleteLabelHandler: ValidatedAPIGatewayProxyHandler<any> = async (
   const updateItem = {
     entityId: event.pathParameters.configId,
     config: {
-      $set: serializeConfigDelete(config.config),
+      $set: serializeConfigDelete(config.labels),
     },
     workspaceId,
     _source: 'EXTERNAL',

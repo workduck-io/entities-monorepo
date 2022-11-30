@@ -36,12 +36,12 @@ export const CaptureConfigEntity = new Entity({
       hidden: true,
       onUpdate: false,
       default: (data: any) => {
-        if (Array.isArray(data.config))
-          return serializeConfig(data.config).order;
+        if (Array.isArray(data.labels))
+          return serializeConfig(data.labels).order;
         return undefined;
       },
     },
-    config: {
+    labels: {
       type: 'map',
       transform: (value) => {
         if (Array.isArray(value)) {
