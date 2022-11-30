@@ -107,7 +107,9 @@ export const getAllConfigOfWorkspace: ValidatedAPIGatewayProxyHandler<
 > = async (event) => {
   const workspaceId = extractWorkspaceId(event) as string;
   try {
-    const res = await CaptureConfigEntity.query(workspaceId);
+    const res = await CaptureConfigEntity.query(workspaceId, {
+      beginsWith: 'CONFIG_',
+    });
     return {
       statusCode: 200,
       body: JSON.stringify(res.Items),
@@ -124,7 +126,9 @@ export const getAllConfigOfPublic: ValidatedAPIGatewayProxyHandler<
   undefined
 > = async (event) => {
   try {
-    const res = await CaptureConfigEntity.query('WORKSPACE_INTERNAL');
+    const res = await CaptureConfigEntity.query('WORKSPACE_INTERNAL', {
+      beginsWith: 'CONFIG_',
+    });
     return {
       statusCode: 200,
       body: JSON.stringify(res.Items),
