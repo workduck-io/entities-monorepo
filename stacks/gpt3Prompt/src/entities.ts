@@ -1,31 +1,62 @@
-import { initializeEntity } from '@mex/entity-utils';
+import { Entity } from 'dynamodb-toolbox';
 import { gpt3PromptTable } from '../service/DynamoDB';
 
-export const Gpt3PromptEntity = initializeEntity({
+export const Gpt3PromptEntity = new Entity({
   name: 'gpt3Prompt',
-  additionalAttributes: {
+  attributes: {
+    workspaceId: { partitionKey: true, type: 'string' },
     entityId: {
       sortKey: true,
       type: 'string',
       coerce: false,
       prefix: 'PROMPT_',
     },
+    userId: { type: 'string', required: true },
     createdBy: { type: 'string', required: 'always', map: 'ak' },
-    title: { type: 'string' },
-    description: { type: 'string' },
-    prompt: { type: 'string' },
-    properties: { type: 'map' },
-    category: { type: 'string' },
-    isPublic: { type: 'boolean' },
-    tags: { type: 'list' },
-    createdAt: { type: 'string' },
-    updatedAt: { type: 'string' },
-    input: { type: 'map' },
-    downloadedBy: { type: 'list' },
-    imageUrls: { type: 'list' },
-    views: { type: 'number' },
-    likes: { type: 'number' },
-    version: { type: 'number' },
+    title: { type: 'string', required: true },
+    description: { type: 'string', required: true },
+    prompt: { type: 'string', required: true },
+    properties: { type: 'map', required: true },
+    category: { type: 'string', required: true },
+    isPublic: { type: 'boolean', required: true },
+    tags: { type: 'list', required: true },
+    createdAt: { type: 'number', required: false },
+    updatedAt: { type: 'number', required: false },
+    input: { type: 'map', required: false },
+    downloadedBy: { type: 'list', required: true },
+    imageUrls: { type: 'list', required: false },
+    version: { type: 'number', default: () => 0, required: false },
+    showcase: { type: 'list', required: false },
+    analyticsId: { type: 'string', required: true },
+  },
+  timestamps: false,
+  table: gpt3PromptTable,
+} as const);
+
+export const Gpt3PromptAnalyticsEntity = new Entity({
+  name: 'gpt3PromptAnalytics',
+  attributes: {
+    promptId: {
+      type: 'string',
+      prefix: 'PROMPT_',
+      partitionKey: true,
+      coerce: false,
+    },
+    analyticsId: {
+      sortKey: true,
+      type: 'string',
+      coerce: false,
+      prefix: 'PROMPT_ANALYTICS_',
+    },
+    createdBy: {
+      type: 'string',
+      required: 'always',
+      map: 'ak',
+    },
+    views: { type: 'number', required: true },
+    likes: { type: 'number', required: true },
+    downloads: { type: 'number', required: true },
   },
   table: gpt3PromptTable,
+  timestamps: false,
 } as const);

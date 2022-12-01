@@ -27,7 +27,7 @@ const main = {
     {
       httpApi: {
         method: 'PUT',
-        path: '/prompt/{id}',
+        path: '/prompt',
         authorizer: 'workduckAuthorizer',
       },
     },
@@ -63,6 +63,20 @@ const main = {
       httpApi: {
         method: 'GET',
         path: '/sortPrompts',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/categories',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/search',
         authorizer: 'workduckAuthorizer',
       },
     },
