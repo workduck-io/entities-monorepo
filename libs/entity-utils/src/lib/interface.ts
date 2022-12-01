@@ -22,7 +22,7 @@ export interface BaseEntityParameters {
   entityId: string;
   blockId?: string;
   properties?: GenericObject;
-  _source: UpdateSource;
+  _source?: UpdateSource;
 }
 
 export type UpdateSource = 'INTERNAL' | 'EXTERNAL';

@@ -6,14 +6,16 @@ import {
 } from '@workduck-io/lambda-routing';
 import {
   createPromptHandler,
-  getPromptHandler,
-  getAllPromptsHandler,
-  updatePromptHandler,
   deletePromptHandler,
   downloadPromptHandler,
-  resultPrompthandler,
+  getAllPromptsHandler,
   getAllUserPromptsHandler,
+  getPromptAnalyticsHandler,
+  getPromptHandler,
+  resultPrompthandler,
+  searchPromptHandler,
   sortPromptsHandler,
+  updatePromptHandler,
 } from './handlers/promptHandler';
 
 const routeHandlers = [
@@ -34,7 +36,7 @@ const routeHandlers = [
   },
   {
     method: HTTPMethod.PUT,
-    path: '/prompt/{id}',
+    path: '/prompt',
     handler: updatePromptHandler,
   },
   {
@@ -61,6 +63,16 @@ const routeHandlers = [
     method: HTTPMethod.GET,
     path: '/sortPrompts',
     handler: sortPromptsHandler,
+  },
+  {
+    method: HTTPMethod.GET,
+    path: '/analytics/{promptId}',
+    handler: getPromptAnalyticsHandler,
+  },
+  {
+    method: HTTPMethod.GET,
+    path: '/search',
+    handler: searchPromptHandler,
   },
 ];
 

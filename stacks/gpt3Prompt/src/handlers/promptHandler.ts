@@ -2,31 +2,46 @@ import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { nanoid } from 'nanoid';
-import { openai } from '../../utils/helpers';
-import { Gpt3PromptEntity } from '../entities';
-import { Gpt3Prompt } from '../interface';
+import { getUserInfo, openai } from '../../utils/helpers';
+import {
+  addDocumentToMeiliSearch,
+  deleteDocumentFromMeiliSearch,
+  searchDocumentFromMeiliSearch,
+  updateDocumentInMeiliSearch,
+} from '../../utils/meiliSearchHelper';
+import { Gpt3PromptAnalyticsEntity, Gpt3PromptEntity } from '../entities';
+import {
+  Gpt3Prompt,
+  Gpt3PromptAnalytics,
+  Gpt3PromptBody,
+  MeiliSearchDocumentResponse,
+} from '../interface';
 
 export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
 > = async (event) => {
   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
   const userId = extractUserIdFromToken(event);
-  const gpt3Prompt = event.body;
+  const gpt3Prompt: Gpt3PromptBody = event.body;
+
   const payload = {
-    entityId: gpt3Prompt.entityId ?? nanoid(),
-    createdBy: userId,
-    workspaceId,
     userId,
-    version: 0,
+    createdBy: userId,
     downloadedBy: [`${userId}`],
+    workspaceId,
+    entityId: gpt3Prompt.entityId ?? nanoid(),
+    analyticsId: nanoid(),
+    version: 0,
     createdAt: Date.now(),
     updatedAt: Date.now(),
-    _source: 'EXTERNAL',
     ...gpt3Prompt,
   };
 
   try {
-    const res = (
+    // Lamda invoke for fetching user createdBy data
+    const userResponse = await getUserInfo(event);
+
+    const dbRes: Gpt3Prompt = (
       await Gpt3PromptEntity.update(
         { ...payload },
         {
@@ -34,10 +49,52 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
         }
       )
     ).Attributes;
-    return {
-      statusCode: 200,
-      body: JSON.stringify(res),
-    };
+
+    // Analytics entry
+    const analyticsRes: Gpt3PromptAnalytics = (
+      await Gpt3PromptAnalyticsEntity.update(
+        {
+          analyticsId: dbRes.analyticsId,
+          promptId: dbRes.entityId,
+          createdBy: dbRes.createdBy,
+          views: 1,
+          likes: 1,
+          downloads: dbRes.downloadedBy.length,
+        },
+        {
+          returnValues: 'ALL_NEW',
+        }
+      )
+    ).Attributes;
+
+    // Meilisearch entry
+    const meilisearchRes: MeiliSearchDocumentResponse =
+      await addDocumentToMeiliSearch({
+        mid: dbRes.entityId,
+        title: dbRes.title,
+        description: dbRes.description,
+        category: dbRes.category,
+        tags: dbRes.tags,
+        showcase: dbRes.showcase,
+        views: 1,
+        likes: 1,
+        downloads: 1,
+        createdBy: {
+          name: userResponse.name,
+          email: userResponse.email,
+          alias: userResponse.alias,
+        },
+      });
+
+    // Remove prompt, properities from the response
+    const { prompt, properties, downloadedBy, analyticsId, ...rest } = dbRes;
+
+    if (dbRes && analyticsRes && meilisearchRes)
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ ...rest }),
+      };
+    else throw createError(400, 'Error creating prompt');
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
   }
@@ -47,6 +104,7 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
 export const getAllPromptsHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
 > = async (event) => {
+  let res;
   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
   const queryParams = event.queryStringParameters;
 
@@ -58,33 +116,59 @@ export const getAllPromptsHandler: ValidatedAPIGatewayProxyHandler<
     if (isPublic) filters.push({ attr: 'isPublic', eq: isPublic === 'true' });
 
     try {
-      const res = (
+      res = (
         await Gpt3PromptEntity.query(workspaceId, {
           beginsWith: 'PROMPT_',
           filters: filters,
         })
       ).Items;
-      return {
-        statusCode: 200,
-        body: JSON.stringify(res),
-      };
     } catch (e) {
       throw createError(400, JSON.stringify(e.message));
     }
   } else {
     try {
-      const res = (
+      res = (
         await Gpt3PromptEntity.query(workspaceId, {
           beginsWith: 'PROMPT_',
         })
       ).Items;
-      return {
-        statusCode: 200,
-        body: JSON.stringify(res),
-      };
     } catch (e) {
       throw createError(400, JSON.stringify(e.message));
     }
+  }
+
+  // Remove prompt, properities from the response
+  const prompts = res.map((item: any) => {
+    const { prompt, properties, downloadedBy, ...rest } = item;
+    return rest;
+  });
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify(prompts),
+  };
+};
+
+// Get thr analytics of a prompt
+export const getPromptAnalyticsHandler: ValidatedAPIGatewayProxyHandler<
+  Gpt3Prompt
+> = async (event) => {
+  const promptId = event.pathParameters?.promptId;
+
+  try {
+    const response = await Gpt3PromptAnalyticsEntity.query(
+      `PROMPT_${promptId}`,
+      {
+        beginsWith: 'PROMPT_ANALYTICS_',
+      }
+    );
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify(response.Items[0]),
+    };
+  } catch (e) {
+    throw createError(400, JSON.stringify(e.message));
   }
 };
 
@@ -95,7 +179,7 @@ export const getPromptHandler: ValidatedAPIGatewayProxyHandler<
   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
   const { id } = event.pathParameters;
   try {
-    const res = (
+    const { prompt, properties, downloadedBy, ...rest }: any = (
       await Gpt3PromptEntity.get({
         entityId: id,
         workspaceId,
@@ -103,7 +187,7 @@ export const getPromptHandler: ValidatedAPIGatewayProxyHandler<
     ).Item;
     return {
       statusCode: 200,
-      body: JSON.stringify(res),
+      body: JSON.stringify(rest),
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
@@ -116,42 +200,97 @@ export const updatePromptHandler: ValidatedAPIGatewayProxyHandler<
 > = async (event) => {
   const workspaceId = extractWorkspaceId(event);
   const userId = extractUserIdFromToken(event);
-  const gpt3Prompt = event.body;
-  const { id } = event.pathParameters;
-
-  const payload = {
-    entityId: id,
-    updatedAt: Date.now(),
-    createdBy: userId,
-    workspaceId,
-    userId,
-  };
-  console.log('payload', payload);
+  const gpt3Prompt: Gpt3PromptBody = event.body;
 
   try {
-    const res = (
-      await Gpt3PromptEntity.update(
-        { ...payload, ...gpt3Prompt },
-        {
-          returnValues: 'ALL_NEW',
-        }
-        // {
-        //   UpdateExpression: 'set version = version + :num',
-        //   ExpressionAttributeValues: {
-        //     ':num': 1,
-        //   },
-        //   ExpressionAttributeNames: {
-        //     '#version': 'version',
-        //   },
-        //   ReturnValues: 'ALL_NEW',
-        // }
-      )
-    ).Attributes;
+    const prompRes: Gpt3Prompt = (
+      await Gpt3PromptEntity.get({
+        entityId: gpt3Prompt.entityId,
+        workspaceId,
+      })
+    ).Item;
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify(res),
-    };
+    // userId should be the same as the one who created the prompt
+    if (userId !== prompRes.createdBy)
+      return {
+        statusCode: 401,
+        body: JSON.stringify('You are not authorized to update this prompt'),
+      };
+    else {
+      // check if prompt changed then empty the showcase
+      if (prompRes.prompt !== gpt3Prompt.prompt) {
+        const dbRes: Gpt3Prompt = (
+          await Gpt3PromptEntity.update(
+            {
+              entityId: gpt3Prompt.entityId,
+              workspaceId,
+              userId,
+              createdBy: userId,
+              version: prompRes.version + 1,
+              updatedAt: Date.now(),
+              showcase: [],
+              ...gpt3Prompt,
+            },
+            {
+              returnValues: 'ALL_NEW',
+            }
+          )
+        ).Attributes;
+
+        // Update meilisearch
+        const meilisearchRes: MeiliSearchDocumentResponse =
+          await updateDocumentInMeiliSearch({
+            mid: dbRes.entityId,
+            title: dbRes.title,
+            description: dbRes.description,
+            category: dbRes.category,
+            tags: dbRes.tags,
+            showcase: [],
+          });
+
+        const { prompt, properties, downloadedBy, analyticsId, ...rest } =
+          dbRes;
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ ...rest }),
+        };
+      } else {
+        const dbRes: Gpt3Prompt = (
+          await Gpt3PromptEntity.update(
+            {
+              entityId: gpt3Prompt.entityId,
+              workspaceId,
+              userId,
+              createdBy: userId,
+              version: prompRes.version + 1,
+              updatedAt: Date.now(),
+              ...gpt3Prompt,
+            },
+            {
+              returnValues: 'ALL_NEW',
+            }
+          )
+        ).Attributes;
+
+        // Update meilisearch
+        const meilisearchRes: MeiliSearchDocumentResponse =
+          await updateDocumentInMeiliSearch({
+            mid: dbRes.entityId,
+            title: dbRes.title,
+            description: dbRes.description,
+            category: dbRes.category,
+            tags: dbRes.tags,
+            showcase: dbRes.showcase,
+          });
+
+        const { prompt, properties, downloadedBy, analyticsId, ...rest } =
+          dbRes;
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ ...rest }),
+        };
+      }
+    }
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
   }
@@ -164,14 +303,40 @@ export const deletePromptHandler: ValidatedAPIGatewayProxyHandler<
   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
   const { id } = event.pathParameters;
   try {
-    const res = await Gpt3PromptEntity.delete({
-      entityId: id,
-      workspaceId,
-    });
-    return {
-      statusCode: 200,
-      body: JSON.stringify(res),
-    };
+    const deleteRes = (
+      await Gpt3PromptEntity.delete(
+        {
+          entityId: id,
+          workspaceId,
+        },
+        {
+          returnValues: 'ALL_OLD',
+        }
+      )
+    ).Attributes;
+
+    // Delete prompt analytics
+    const analyticsRes = (
+      await Gpt3PromptAnalyticsEntity.delete(
+        {
+          analyticsId: deleteRes.analyticsId,
+          promptId: id,
+        },
+        {
+          returnValues: 'ALL_OLD',
+        }
+      )
+    ).Attributes;
+
+    // Delete the prompt from MeiliSearch
+    const meilisearchRes = await deleteDocumentFromMeiliSearch(id);
+
+    if (deleteRes && analyticsRes && meilisearchRes)
+      return {
+        statusCode: 200,
+        body: JSON.stringify('Prompt deleted successfully'),
+      };
+    else throw createError(400, JSON.stringify('Error deleting prompt'));
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
   }
@@ -189,8 +354,9 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
     entityId: id,
     workspaceId,
   };
+
   try {
-    const prompt: any = (
+    const prompt: Gpt3Prompt = (
       await Gpt3PromptEntity.get({
         ...payload,
       })
@@ -214,10 +380,32 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
           }
         )
       ).Attributes;
-      return {
-        statusCode: 200,
-        body: JSON.stringify(res),
-      };
+
+      // Update analytics
+      const analyticsRes = await Gpt3PromptAnalyticsEntity.update(
+        {
+          analyticsId: res.analyticsId,
+          promptId: res.entityId,
+          createdBy: res.createdBy,
+          downloads: res.downloadedBy.length,
+        },
+        {
+          returnValues: 'ALL_NEW',
+        }
+      );
+
+      // update meilisearch
+      const meilisearchRes = await updateDocumentInMeiliSearch({
+        mid: res.entityId,
+        downloads: res.downloadedBy.length,
+      });
+
+      if (res && analyticsRes && meilisearchRes)
+        return {
+          statusCode: 200,
+          body: JSON.stringify(res),
+        };
+      else throw createError(400, JSON.stringify('Error downloading prompt'));
     }
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
@@ -230,7 +418,8 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
 > = async (event) => {
   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
   const { id } = event.pathParameters;
-  const { max_tokens, temperature, top_p, n } = event.body as any;
+  const { max_tokens, temperature, weight, iterations } =
+    event.body as unknown as Gpt3Prompt['properties'];
 
   // Get the prompt
   try {
@@ -247,27 +436,32 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
       model: properties.model,
       max_tokens: max_tokens ?? properties.max_tokens,
       temperature: temperature ?? properties.temperature,
-      top_p: top_p ?? properties.top_p,
-      n: n ?? properties.iterations,
+      top_p: weight ?? properties.top_p,
+      n: iterations ?? properties.iterations,
     };
 
     // Call the GPT3 API
-    const completion = await openai.createCompletion({
+    const completions: any = await openai.createCompletion({
       ...resultPayload,
     });
 
     // Remove other fields in choices array and return only the text, index
-    const choices = completion.data.choices.map((choice, index) => {
+    if (
+      completions &&
+      completions.data &&
+      completions.data.choices.length > 0
+    ) {
+      let choices = completions.data.choices.map((choice, index) => {
+        return {
+          index,
+          text: choice.text,
+        };
+      });
       return {
-        text: choice.text,
-        index,
+        statusCode: 200,
+        body: JSON.stringify(choices),
       };
-    });
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify(choices),
-    };
+    } else throw createError(400, JSON.stringify('Error fetching results'));
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
   }
@@ -344,6 +538,22 @@ export const sortPromptsHandler: ValidatedAPIGatewayProxyHandler<
     return {
       statusCode: 200,
       body: JSON.stringify(res),
+    };
+  } catch (e) {
+    throw createError(400, JSON.stringify(e.message));
+  }
+};
+
+// Search for a prompt
+export const searchPromptHandler: ValidatedAPIGatewayProxyHandler<
+  Gpt3Prompt
+> = async (event) => {
+  const { query } = event.queryStringParameters as any;
+  try {
+    const results = await searchDocumentFromMeiliSearch(query);
+    return {
+      statusCode: 200,
+      body: JSON.stringify(results),
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
