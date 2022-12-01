@@ -1,9 +1,12 @@
-import { initializeEntity } from '@mex/entity-utils';
+import { defaultEntityAttributes } from '@mex/entity-utils';
+import { Entity } from 'dynamodb-toolbox';
 import { smartcaptureTable } from '../service/DynamoDB';
+import { serializeConfig } from '../utils/helpers';
 
-export const CaptureVariableEntity = initializeEntity({
+export const CaptureVariableEntity = new Entity({
   name: 'captureVariable',
-  additionalAttributes: {
+  attributes: {
+    ...defaultEntityAttributes,
     entityId: {
       sortKey: true,
       type: 'string',
@@ -15,20 +18,42 @@ export const CaptureVariableEntity = initializeEntity({
   table: smartcaptureTable,
 } as const);
 
-export const CaptureLabelEntity = initializeEntity({
-  name: 'captureLabel',
-  additionalAttributes: {
-    entityId: {
-      sortKey: true,
+export const CaptureConfigEntity = new Entity({
+  name: 'captureConfig',
+  attributes: {
+    ...defaultEntityAttributes,
+    regex: {
       type: 'string',
       coerce: false,
-      prefix: 'LABEL#',
     },
-    variableId: { type: 'string', required: 'always', prefix: 'VARIABLE#' },
-    labelName: { type: 'string' },
-    path: { type: 'string', required: 'always' },
-    webPage: { type: 'string', required: 'always', map: 'ak' },
-    regex: { type: 'string', required: 'always' },
+    base: {
+      type: 'string',
+      map: 'ak',
+      coerce: false,
+    },
+    dataOrder: {
+      type: 'list',
+      hidden: true,
+      onUpdate: false,
+      default: (data: any) => {
+        if (Array.isArray(data.labels))
+          return serializeConfig(data.labels).order;
+        return undefined;
+      },
+    },
+    labels: {
+      type: 'map',
+      transform: (value) => {
+        if (Array.isArray(value)) {
+          return serializeConfig(value).data;
+        } else return value;
+      },
+      format: (value, data: any) => {
+        return data.dataOrder.map((key) => {
+          return value[key];
+        });
+      },
+    },
   },
   table: smartcaptureTable,
 } as const);

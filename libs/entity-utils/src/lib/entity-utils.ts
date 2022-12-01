@@ -1,7 +1,6 @@
 import DynamoDB from 'aws-sdk/clients/dynamodb';
 import { Entity, Table } from 'dynamodb-toolbox';
-import { AttributeDefinitions } from 'dynamodb-toolbox/dist/classes/Entity';
-import { TableDef, TableIndexes } from 'dynamodb-toolbox/dist/classes/Table';
+import { TableIndexes } from 'dynamodb-toolbox/dist/classes/Table';
 import { MAX_DYNAMO_BATCH_REQUEST } from './consts';
 import {
   BaseEntityParameters,
@@ -49,31 +48,32 @@ export const initializeTable = (tableConfig: {
   });
 };
 
-export const initializeEntity = (entityConfig: {
-  table: TableDef;
-  name: string;
-  additionalAttributes?: AttributeDefinitions;
-}) => {
-  const { table, name, additionalAttributes } = entityConfig;
-  return new Entity({
-    name: name,
-    attributes: {
-      workspaceId: { partitionKey: true, type: 'string' },
-      entityId: {
-        sortKey: true,
-        type: 'string',
-        coerce: false,
-      },
-      nodeId: { type: 'string', map: 'ak', coerce: false },
-      _source: { type: 'string', default: () => 'INTERNAL', hidden: true },
-      _status: { type: 'string', default: () => 'ACTIVE', hidden: true },
-      _ttl: { type: 'number', hidden: true },
-      userId: { type: 'string', required: true },
-      properties: { type: 'map' },
-      ...additionalAttributes,
-    },
-    table: table,
-  } as const);
+export const defaultEntityAttributes: {
+  workspaceId: { partitionKey: true; type: 'string' };
+  entityId: {
+    sortKey: true;
+    type: 'string';
+    coerce: false;
+  };
+  nodeId: { type: 'string'; map: 'ak'; coerce: false };
+  _source: { type: 'string'; default: () => 'INTERNAL'; hidden: true };
+  _status: { type: 'string'; default: () => 'ACTIVE'; hidden: true };
+  _ttl: { type: 'number'; hidden: true };
+  userId: { type: 'string'; required: true };
+  properties: { type: 'map' };
+} = {
+  workspaceId: { partitionKey: true, type: 'string' },
+  entityId: {
+    sortKey: true,
+    type: 'string',
+    coerce: false,
+  },
+  nodeId: { type: 'string', map: 'ak', coerce: false },
+  _source: { type: 'string', default: () => 'INTERNAL', hidden: true },
+  _status: { type: 'string', default: () => 'ACTIVE', hidden: true },
+  _ttl: { type: 'number', hidden: true },
+  userId: { type: 'string', required: true },
+  properties: { type: 'map' },
 };
 
 const extractEssentialFields = (request: any) => ({
@@ -135,6 +135,8 @@ export const executeBatchRequest = async <
                 returnValues: 'UPDATED_NEW',
               })
               .then((e) => {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                //@ts-ignore
                 const { modified, created } = e.Attributes;
                 return {
                   modified,
@@ -158,8 +160,6 @@ export const executeBatchRequest = async <
         ...acc,
         [result.status]: [
           ...acc[result.status],
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          //@ts-ignore
           result.value ?? result.reason ?? {},
         ],
       };

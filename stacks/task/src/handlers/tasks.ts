@@ -168,12 +168,10 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
     );
 
     await executeBatchRequest({
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //@ts-ignore
       associatedEntity: TaskEntity,
       workspaceId,
       request: batchReq,
-      _source: 'INTERNAL',
+      source: 'INTERNAL',
     });
 
     return {
@@ -212,12 +210,10 @@ export const restoreAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
     );
 
     await executeBatchRequest({
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //@ts-ignore
       associatedEntity: TaskEntity,
       workspaceId,
       request: batchReq,
-      _source: 'INTERNAL',
+      source: 'INTERNAL',
     });
 
     return {
@@ -279,12 +275,10 @@ export const batchUpdateHandler: ValidatedAPIGatewayProxyHandler<
       })
     );
     const batchRequestResult = await executeBatchRequest({
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //@ts-ignore
       associatedEntity: TaskEntity,
       workspaceId,
       request: req,
-      _source: 'INTERNAL',
+      source: 'INTERNAL',
     });
     return {
       statusCode: 200,

@@ -1,9 +1,11 @@
-import { initializeEntity } from '@mex/entity-utils';
+import { defaultEntityAttributes } from '@mex/entity-utils';
+import { Entity } from 'dynamodb-toolbox';
 import { <%= name %>Table } from '../service/DynamoDB';
 
-export const <%= pascal(name) %>Entity = initializeEntity({
+export const <%= pascal(name) %>Entity = new Entity({
   name: '<%= name %>',
-  additionalAttributes: {
+  attributes: {
+    ...defaultEntityAttributes,
     blockId: { type: 'string', required: 'always' },
   },
   table: <%= name %>Table,
