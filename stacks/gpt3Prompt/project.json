@@ -1,0 +1,54 @@
+{
+  "root": "stacks/gpt3Prompt",
+  "projectType": "application",
+  "sourceRoot": "stacks/gpt3Prompt/src",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/workspace:run-commands",
+      "options": {
+        "cwd": "stacks/gpt3Prompt",
+        "color": true,
+        "command": "sls package"
+      }
+    },
+    "serve": {
+      "executor": "@nrwl/workspace:run-commands",
+      "options": {
+        "cwd": "stacks/gpt3Prompt",
+        "color": true,
+        "command": "sls offline start"
+      }
+    },
+    "deploy": {
+      "executor": "@nrwl/workspace:run-commands",
+      "options": {
+        "cwd": "stacks/gpt3Prompt",
+        "color": true,
+        "command": "sls deploy --verbose"
+      }
+    },
+    "remove": {
+      "executor": "@nrwl/workspace:run-commands",
+      "options": {
+        "cwd": "stacks/gpt3Prompt",
+        "color": true,
+        "command": "sls remove"
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": ["stacks/gpt3Prompt/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/stacks/gpt3Prompt"],
+      "options": {
+        "jestConfig": "stacks/gpt3Prompt/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": ["stack"]
+}
