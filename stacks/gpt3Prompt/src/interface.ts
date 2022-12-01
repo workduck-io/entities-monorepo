@@ -56,9 +56,9 @@ export interface Gpt3PromptAnalytics {
   analyticsId: string;
   promptId: string;
   createdBy: string;
-  views: number;
-  likes: number;
-  downloads: number;
+  views: Array<string>;
+  likes: Array<string>;
+  downloadedBy: Array<string>;
 }
 
 export interface MeiliSearchDocument {

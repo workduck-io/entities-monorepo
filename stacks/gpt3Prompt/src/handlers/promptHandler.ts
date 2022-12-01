@@ -57,9 +57,9 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
           analyticsId: dbRes.analyticsId,
           promptId: dbRes.entityId,
           createdBy: dbRes.createdBy,
-          views: 1,
-          likes: 1,
-          downloads: dbRes.downloadedBy.length,
+          views: [`${userId}`],
+          likes: [`${userId}`],
+          downloadedBy: [`${userId}`],
         },
         {
           returnValues: 'ALL_NEW',
@@ -76,9 +76,9 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
         category: dbRes.category,
         tags: dbRes.tags,
         showcase: dbRes.showcase,
-        views: 1,
-        likes: 1,
-        downloads: 1,
+        views: analyticsRes.views.length,
+        likes: analyticsRes.likes.length,
+        downloads: analyticsRes.downloadedBy.length,
         createdBy: {
           name: userResponse.name,
           email: userResponse.email,
@@ -149,7 +149,7 @@ export const getAllPromptsHandler: ValidatedAPIGatewayProxyHandler<
   };
 };
 
-// Get thr analytics of a prompt
+// Get the analytics of a prompt
 export const getPromptAnalyticsHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
 > = async (event) => {
@@ -356,14 +356,14 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
   };
 
   try {
-    const prompt: Gpt3Prompt = (
+    const dbRes: Gpt3Prompt = (
       await Gpt3PromptEntity.get({
         ...payload,
       })
     ).Item;
 
     // Append the user id to the prompt dewndloadBy array and if already present, then return already downloaded
-    if (prompt.downloadedBy && prompt.downloadedBy.includes(userId)) {
+    if (dbRes.downloadedBy && dbRes.downloadedBy.includes(userId)) {
       return {
         statusCode: 200,
         body: JSON.stringify({
@@ -371,10 +371,10 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
         }),
       };
     } else {
-      prompt.downloadedBy.push(userId);
+      dbRes.downloadedBy.push(userId);
       const res = (
         await Gpt3PromptEntity.update(
-          { ...payload, ...prompt },
+          { ...payload, ...dbRes },
           {
             returnValues: 'ALL_NEW',
           }
@@ -387,7 +387,7 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
           analyticsId: res.analyticsId,
           promptId: res.entityId,
           createdBy: res.createdBy,
-          downloads: res.downloadedBy.length,
+          downloadedBy: res.downloadedBy,
         },
         {
           returnValues: 'ALL_NEW',
@@ -400,10 +400,12 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
         downloads: res.downloadedBy.length,
       });
 
+      // Remove prompt, properities from the response
+      const { prompt, properties, downloadedBy, analyticsId, ...rest } = res;
       if (res && analyticsRes && meilisearchRes)
         return {
           statusCode: 200,
-          body: JSON.stringify(res),
+          body: JSON.stringify({ ...rest }),
         };
       else throw createError(400, JSON.stringify('Error downloading prompt'));
     }
@@ -518,26 +520,35 @@ export const sortPromptsHandler: ValidatedAPIGatewayProxyHandler<
   const { sortBy } = event.queryStringParameters as any;
 
   try {
-    const res = (
+    const dbRes = (
       await Gpt3PromptEntity.query(workspaceId, {
         beginsWith: 'PROMPT_',
       })
     ).Items;
 
-    // if sortBy is downloads, then sort by downloadedBy array length
-    if (sortBy === 'downloads') {
-      res.sort((a: any, b: any) => {
-        return b.downloadedBy.length - a.downloadedBy.length;
-      });
-    } else {
-      res.sort((a: any, b: any) => {
-        return b[sortBy] - a[sortBy];
-      });
-    }
+    // Fetch analytics for all prompts and append to dbRes array
+    const response = await Promise.all(
+      dbRes.map(async (prompt: any) => {
+        const analytics = (
+          await Gpt3PromptAnalyticsEntity.query(`PROMPT_${prompt.entityId}`, {
+            beginsWith: 'PROMPT_ANALYTICS_',
+          })
+        ).Items[0];
+        // remove prompt, properties from the prompt object and append analytics
+        const { prompt: _, properties: __, analyticsId: ___, ...rest } = prompt;
+        return { ...rest, views: analytics.views, likes: analytics.likes };
+      })
+    );
+
+    response.sort((a: any, b: any) => {
+      console.log(b[sortBy]);
+
+      return b[sortBy].length - a[sortBy].length;
+    });
 
     return {
       statusCode: 200,
-      body: JSON.stringify(res),
+      body: JSON.stringify(response),
     };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
@@ -555,6 +566,106 @@ export const searchPromptHandler: ValidatedAPIGatewayProxyHandler<
       statusCode: 200,
       body: JSON.stringify(results),
     };
+  } catch (e) {
+    throw createError(400, JSON.stringify(e.message));
+  }
+};
+
+// Liked/Unliked, View/Unview for the prompt
+export const likedViewedPromptHandler: ValidatedAPIGatewayProxyHandler<
+  Gpt3Prompt
+> = async (event) => {
+  const { id } = event.pathParameters;
+  const userId = extractUserIdFromToken(event);
+  // allow likes, views one time per user
+  const { likes, views } = event.queryStringParameters as any;
+
+  try {
+    // Get analytics
+    const analyticsRes = (
+      await Gpt3PromptAnalyticsEntity.query(`PROMPT_${id}`, {
+        beginsWith: 'PROMPT_ANALYTICS_',
+      })
+    ).Items[0];
+
+    // If userId is present in likes array, then return already liked else add it
+    switch (likes) {
+      case 'true':
+        if (analyticsRes.likes.includes(userId))
+          return {
+            statusCode: 200,
+            body: JSON.stringify("You've already liked this prompt"),
+          };
+        else analyticsRes.likes.push(userId);
+
+        break;
+      case 'false':
+        if (analyticsRes.likes.includes(userId))
+          analyticsRes.likes = analyticsRes.likes.filter(
+            (like) => like !== userId
+          );
+        else
+          return {
+            statusCode: 200,
+            body: JSON.stringify("You've already unliked this prompt"),
+          };
+
+        break;
+    }
+
+    // switch case for views
+    switch (views) {
+      case 'true':
+        if (analyticsRes.views.includes(userId))
+          return {
+            statusCode: 200,
+            body: JSON.stringify("You've already viewed this prompt"),
+          };
+        else analyticsRes.views.push(userId);
+
+        break;
+      case 'false':
+        if (analyticsRes.views.includes(userId))
+          analyticsRes.views = analyticsRes.views.filter(
+            (view) => view !== userId
+          );
+        else
+          return {
+            statusCode: 200,
+            body: JSON.stringify("You've already unviewed this prompt"),
+          };
+
+        break;
+    }
+
+    const analyticsUpdateRes = (
+      await Gpt3PromptAnalyticsEntity.update(
+        {
+          analyticsId: analyticsRes.analyticsId,
+          promptId: analyticsRes.promptId,
+          createdBy: analyticsRes.createdBy,
+          views: analyticsRes.views,
+          likes: analyticsRes.likes,
+        },
+        {
+          returnValues: 'ALL_NEW',
+        }
+      )
+    ).Attributes;
+
+    // Update MeiliSearch document
+    const updateMeiliSearchRes = await updateDocumentInMeiliSearch({
+      mid: analyticsUpdateRes.promptId,
+      likes: analyticsUpdateRes.likes.length,
+      views: analyticsUpdateRes.views.length,
+    });
+
+    if (analyticsUpdateRes && updateMeiliSearchRes)
+      return {
+        statusCode: 200,
+        body: JSON.stringify("You've successfully updated the prompt"),
+      };
+    else throw createError(400, JSON.stringify('Error updating prompt'));
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
   }

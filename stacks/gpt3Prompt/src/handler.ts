@@ -12,6 +12,7 @@ import {
   getAllUserPromptsHandler,
   getPromptAnalyticsHandler,
   getPromptHandler,
+  likedViewedPromptHandler,
   resultPrompthandler,
   searchPromptHandler,
   sortPromptsHandler,
@@ -73,6 +74,11 @@ const routeHandlers = [
     method: HTTPMethod.GET,
     path: '/search',
     handler: searchPromptHandler,
+  },
+  {
+    method: HTTPMethod.POST,
+    path: '/extra/{id}',
+    handler: likedViewedPromptHandler,
   },
 ];
 

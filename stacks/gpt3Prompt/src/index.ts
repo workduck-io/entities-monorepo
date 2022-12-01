@@ -69,7 +69,7 @@ const main = {
     {
       httpApi: {
         method: 'GET',
-        path: '/categories',
+        path: '/analytics/{promptId}',
         authorizer: 'workduckAuthorizer',
       },
     },
@@ -77,6 +77,13 @@ const main = {
       httpApi: {
         method: 'GET',
         path: '/search',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'POST',
+        path: '/extra/{id}',
         authorizer: 'workduckAuthorizer',
       },
     },
