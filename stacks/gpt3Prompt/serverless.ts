@@ -1,5 +1,9 @@
 import Table from './infra/dynamodb/single-table';
 import functions from './src';
+import { baseServerlessConfiguration } from '../../serverless.base';
+import type { Serverless } from 'serverless/aws';
+import { combineMerge } from './utils/helpers';
+import merge from 'deepmerge';
 
 const gpt3PromptServerlessConfig = {
   service: 'gpt3Prompt',
@@ -51,22 +55,13 @@ const gpt3PromptServerlessConfig = {
   resources: {
     Resources: Table,
   },
-  provider: {
-    name: 'aws',
-    runtime: 'nodejs16.x',
-    memorySize: 512,
-    logRetentionInDays: 7,
-    apiGateway: {
-      minimumCompressionSize: 1024,
-    },
-    stage: 'local',
-    environment: {
-      AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
-      SLS_STAGE: '${self:custom.stage}',
-    },
-    region: 'us-east-1',
-  },
   functions,
 };
 
-module.exports = gpt3PromptServerlessConfig;
+const serverlessConfiguration = <Serverless>(
+  merge(baseServerlessConfiguration, gpt3PromptServerlessConfig, {
+    arrayMerge: combineMerge,
+  })
+);
+
+module.exports = serverlessConfiguration;

@@ -1,8 +1,8 @@
 export default {
-  SingleTableDesignDynamoDBTable: {
+  GPT3TableDesignDynamoDBTable: {
     Type: 'AWS::DynamoDB::Table',
     Properties: {
-      TableName: '${self:custom.stage}-entity-store',
+      TableName: '${self:custom.stage}-gpt3-store',
       AttributeDefinitions: [
         {
           AttributeName: 'pk',
