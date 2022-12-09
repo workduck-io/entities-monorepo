@@ -504,18 +504,16 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 
-// Get all prompts dwonloaded by the user
-export const getAllUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
+export const getAllPublicUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
 > = async (event) => {
   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
   const queryParams = event.queryStringParameters;
-  const currentUserId = extractUserIdFromToken(event);
   const userId = queryParams?.userId as string;
 
   let downloadedRes, createdRes;
   try {
-    if (userId && currentUserId !== userId) {
+    if (userId) {
       downloadedRes = (
         await Gpt3PromptEntity.query(workspaceId, {
           beginsWith: 'PROMPT_',
@@ -534,23 +532,56 @@ export const getAllUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
           ],
         })
       ).Items;
-    } else {
-      downloadedRes = (
-        await Gpt3PromptEntity.query(workspaceId, {
-          beginsWith: 'PROMPT_',
-          // @ts-ignore
-          filters: [{ attr: 'downloadedBy', contains: currentUserId }],
-        })
-      ).Items;
-
-      createdRes = (
-        await Gpt3PromptEntity.query(workspaceId, {
-          beginsWith: 'PROMPT_',
-          // @ts-ignore
-          filters: [{ attr: 'createdBy', eq: currentUserId }],
-        })
-      ).Items;
     }
+
+    const downloadedResFiltered = downloadedRes.map((downloadedPrompt: any) => {
+      const { prompt, properties, downloadedBy, analyticsId, ...rest } =
+        downloadedPrompt;
+      return rest;
+    });
+
+    const createdResFiltered = createdRes.map((createdPrompt: any) => {
+      const { prompt, properties, downloadedBy, analyticsId, ...rest } =
+        createdPrompt;
+      return rest;
+    });
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        downloaded: downloadedResFiltered,
+        created: createdResFiltered,
+      }),
+    };
+  } catch (e) {
+    throw createError(400, JSON.stringify(e.message));
+  }
+};
+
+// Get all prompts dwonloaded by the user
+export const getAllUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
+  Gpt3Prompt
+> = async (event) => {
+  const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
+  const currentUserId = extractUserIdFromToken(event);
+
+  let downloadedRes, createdRes;
+  try {
+    downloadedRes = (
+      await Gpt3PromptEntity.query(workspaceId, {
+        beginsWith: 'PROMPT_',
+        // @ts-ignore
+        filters: [{ attr: 'downloadedBy', contains: currentUserId }],
+      })
+    ).Items;
+
+    createdRes = (
+      await Gpt3PromptEntity.query(workspaceId, {
+        beginsWith: 'PROMPT_',
+        // @ts-ignore
+        filters: [{ attr: 'createdBy', eq: currentUserId }],
+      })
+    ).Items;
 
     const downloadedResFiltered = downloadedRes.map((downloadedPrompt: any) => {
       const { prompt, properties, downloadedBy, analyticsId, ...rest } =

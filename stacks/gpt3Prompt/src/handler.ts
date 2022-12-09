@@ -9,6 +9,7 @@ import {
   deletePromptHandler,
   downloadPromptHandler,
   getAllPromptsHandler,
+  getAllPublicUserPromptsHandler,
   getAllUserPromptsHandler,
   getPromptAnalyticsHandler,
   getPromptHandler,
@@ -59,6 +60,11 @@ const routeHandlers = [
     method: HTTPMethod.GET,
     path: '/allUserPrompts',
     handler: getAllUserPromptsHandler,
+  },
+  {
+    method: HTTPMethod.GET,
+    path: '/allPublicUserPrompts',
+    handler: getAllPublicUserPromptsHandler,
   },
   {
     method: HTTPMethod.GET,

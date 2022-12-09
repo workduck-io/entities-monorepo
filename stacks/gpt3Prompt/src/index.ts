@@ -62,6 +62,12 @@ const main = {
     {
       httpApi: {
         method: 'GET',
+        path: '/allPublicUserPrompts',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
         path: '/sortPrompts',
         authorizer: 'workduckAuthorizer',
       },
