@@ -2,7 +2,7 @@ import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { nanoid } from 'nanoid';
-import { getUserInfo, openai } from '../../utils/helpers';
+import { getUserInfo, openai, replaceVarWithVal } from '../../utils/helpers';
 import {
   addDocumentToMeiliSearch,
   deleteDocumentFromMeiliSearch,
@@ -34,6 +34,12 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
     version: 0,
     createdAt: Date.now(),
     updatedAt: Date.now(),
+    properties: gpt3Prompt.properties ?? {
+      model: 'text-davinci-002',
+      max_tokens: 250,
+      temperature: 0.7,
+      iterations: 3,
+    },
     ...gpt3Prompt,
   };
 
@@ -48,7 +54,7 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
           returnValues: 'ALL_NEW',
         }
       )
-    ).Attributes;
+    ).Attributes as Gpt3Prompt;
 
     // Analytics entry
     const analyticsRes: Gpt3PromptAnalytics = (
@@ -208,7 +214,7 @@ export const updatePromptHandler: ValidatedAPIGatewayProxyHandler<
         entityId: gpt3Prompt.entityId,
         workspaceId,
       })
-    ).Item;
+    ).Item as Gpt3Prompt;
 
     // userId should be the same as the one who created the prompt
     if (userId !== prompRes.createdBy)
@@ -235,7 +241,7 @@ export const updatePromptHandler: ValidatedAPIGatewayProxyHandler<
               returnValues: 'ALL_NEW',
             }
           )
-        ).Attributes;
+        ).Attributes as Gpt3Prompt;
 
         // Update meilisearch
         const meilisearchRes: MeiliSearchDocumentResponse =
@@ -270,7 +276,7 @@ export const updatePromptHandler: ValidatedAPIGatewayProxyHandler<
               returnValues: 'ALL_NEW',
             }
           )
-        ).Attributes;
+        ).Attributes as Gpt3Prompt;
 
         // Update meilisearch
         const meilisearchRes: MeiliSearchDocumentResponse =
@@ -360,7 +366,7 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
       await Gpt3PromptEntity.get({
         ...payload,
       })
-    ).Item;
+    ).Item as Gpt3Prompt;
 
     // Append the user id to the prompt dewndloadBy array and if already present, then return already downloaded
     if (dbRes.downloadedBy && dbRes.downloadedBy.includes(userId)) {
@@ -420,8 +426,15 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
 > = async (event) => {
   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
   const { id } = event.pathParameters;
-  const { max_tokens, temperature, weight, iterations } =
-    event.body as unknown as Gpt3Prompt['properties'];
+
+  const { options, variables, variablesValues } = event.body as unknown as {
+    options: Gpt3Prompt['properties'];
+    variables: Gpt3Prompt['variables'];
+    variablesValues: Record<string, string>;
+  };
+
+  // const { max_tokens, temperature, weight, iterations } =
+  //   event.body as unknown as Gpt3Prompt['properties'];
 
   // Get the prompt
   try {
@@ -433,37 +446,44 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
     ).Item;
 
     const { prompt, properties } = promptRes;
-    const resultPayload = {
-      prompt: prompt,
-      model: properties.model,
-      max_tokens: max_tokens ?? properties.max_tokens,
-      temperature: temperature ?? properties.temperature,
-      top_p: weight ?? properties.top_p,
-      n: iterations ?? properties.iterations,
-    };
 
-    // Call the GPT3 API
-    const completions: any = await openai.createCompletion({
-      ...resultPayload,
-    });
+    // Replace the variables with the values
+    const transformedPrompt = replaceVarWithVal(
+      prompt,
+      variables,
+      variablesValues
+    );
 
-    // Remove other fields in choices array and return only the text, index
-    if (
-      completions &&
-      completions.data &&
-      completions.data.choices.length > 0
-    ) {
-      let choices = completions.data.choices.map((choice, index) => {
-        return {
-          index,
-          text: choice.text,
-        };
-      });
-      return {
-        statusCode: 200,
-        body: JSON.stringify(choices),
+    if (transformedPrompt) {
+      const resultPayload = {
+        prompt: transformedPrompt,
+        model: properties.model,
+        max_tokens: options.max_tokens ?? properties.max_tokens,
+        temperature: options.temperature ?? properties.temperature,
+        top_p: options.weight ?? properties.top_p,
+        n: options.iterations ?? properties.iterations,
       };
-    } else throw createError(400, JSON.stringify('Error fetching results'));
+
+      // Call the GPT3 API
+      const completions: any = await openai.createCompletion({
+        ...resultPayload,
+      });
+      // Remove other fields in choices array and return only the text, index
+      if (
+        completions &&
+        completions.data &&
+        completions.data.choices.length > 0
+      ) {
+        let choices;
+        completions.data.choices.map((choice) => {
+          return choices.push(choice.text);
+        });
+        return {
+          statusCode: 200,
+          body: JSON.stringify(choices),
+        };
+      } else throw createError(400, JSON.stringify('Error fetching results'));
+    }
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
   }
@@ -541,8 +561,6 @@ export const sortPromptsHandler: ValidatedAPIGatewayProxyHandler<
     );
 
     response.sort((a: any, b: any) => {
-      console.log(b[sortBy]);
-
       return b[sortBy].length - a[sortBy].length;
     });
 

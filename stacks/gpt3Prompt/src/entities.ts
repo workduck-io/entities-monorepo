@@ -22,7 +22,6 @@ export const Gpt3PromptEntity = new Entity({
     tags: { type: 'list', required: true },
     createdAt: { type: 'number', required: false },
     updatedAt: { type: 'number', required: false },
-    input: { type: 'map', required: false },
     downloadedBy: { type: 'list', required: true },
     imageUrls: { type: 'list', required: false },
     version: { type: 'number', default: () => 0, required: false },

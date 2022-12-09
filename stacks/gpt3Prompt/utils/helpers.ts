@@ -62,3 +62,27 @@ export const getUserInfo = async (event: any) => {
     throw createError(400, 'Error getting user info');
   }
 };
+
+export const replaceVarWithVal = (
+  originalStr: string,
+  variables: Array<{ id: string; name: string }>,
+  variablesValues: Record<string, string>
+) => {
+  const regex = /(?<={).+?(?=\})/g; // find all variables ( matching format {*} )
+  const vars = originalStr.match(regex);
+  let result = originalStr;
+  // replace all variables with their values
+  if (vars) {
+    vars.forEach((v) => {
+      const variable = variables.find((variable) => variable.name === v);
+      if (variable) {
+        const value = variablesValues[variable.id];
+        result = result.replace(`{${v}}`, value);
+      }
+    });
+  }
+  // check if string contains "undefined"
+  if (result.includes('undefined'))
+    throw createError(400, 'Error replacing variables with values');
+  else return result;
+};

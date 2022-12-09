@@ -5,7 +5,7 @@ export interface Gpt3Prompt extends BaseEntityParameters {
   description: string;
   //Actual prompt
   prompt: string;
-  properties: {
+  properties?: {
     // model by default is text-davinci-003
     model: string;
     // maximum number of tokens to generate in the completion.
@@ -21,7 +21,11 @@ export interface Gpt3Prompt extends BaseEntityParameters {
   isPublic: boolean;
   tags: string[];
   // Variables input by the user
-  input?: GenericObject;
+  variables?: Array<{
+    id: string;
+    name: string;
+    type?: string;
+  }>;
   imageUrls?: string[];
   // showcase is a list of example output of the prompts that are showcased in this prompt
   showcase?: Array<string>;
@@ -38,7 +42,7 @@ export interface Gpt3PromptBody {
   title: string;
   description: string;
   prompt: string;
-  properties: {
+  properties?: {
     model: string;
     max_tokens: number;
     temperature: number;
@@ -47,7 +51,11 @@ export interface Gpt3PromptBody {
   category: string;
   isPublic: boolean;
   tags: string[];
-  input?: GenericObject;
+  variables?: Array<{
+    id: string;
+    name: string;
+    type?: string;
+  }>;
   imageUrls?: string[];
   showcase?: Array<string>;
 }

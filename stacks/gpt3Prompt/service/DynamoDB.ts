@@ -11,7 +11,7 @@ const DocumentClient = new DynamoDB.DocumentClient({
 
 export const gpt3PromptTable = new Table({
   // Specify table name (used by DynamoDB)
-  name: `${process.env.SLS_STAGE}-entity-store`,
+  name: `${process.env.SLS_STAGE}-gpt3-store`,
   // Define partition and sort keys
   partitionKey: 'pk',
   sortKey: 'sk',
