@@ -27,7 +27,6 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
   const payload = {
     userId,
     createdBy: userId,
-    downloadedBy: [`${userId}`],
     workspaceId,
     entityId: gpt3Prompt.entityId ?? nanoid(),
     analyticsId: nanoid(),
@@ -494,39 +493,74 @@ export const getAllUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
 > = async (event) => {
   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
-  const userId = extractUserIdFromToken(event);
-
+  const queryParams = event.queryStringParameters;
+  const currentUserId = extractUserIdFromToken(event);
+  const userId = queryParams?.userId as string;
   try {
-    const downloadedRes = (
-      await Gpt3PromptEntity.query(workspaceId, {
-        beginsWith: 'PROMPT_',
-        // @ts-ignore
-        filters: [{ attr: 'downloadedBy', contains: userId }],
-      })
-    ).Items;
+    if (userId && currentUserId !== userId) {
+      const downloadedRes = (
+        await Gpt3PromptEntity.query(workspaceId, {
+          beginsWith: 'PROMPT_',
+          // @ts-ignore
+          filters: [{ attr: 'downloadedBy', contains: userId }],
+        })
+      ).Items;
 
-    const createdRes = (
-      await Gpt3PromptEntity.query(workspaceId, {
-        beginsWith: 'PROMPT_',
-        // @ts-ignore
-        filters: [{ attr: 'createdBy', eq: userId }],
-      })
-    ).Items;
+      const createdRes = (
+        await Gpt3PromptEntity.query(workspaceId, {
+          beginsWith: 'PROMPT_',
+          // @ts-ignore
+          filters: [
+            { attr: 'createdBy', eq: userId },
+            { attr: 'isPublic', eq: true },
+          ],
+        })
+      ).Items;
 
-    // if promptId is present in createdRes, then remove it from downloadedRes
-    const res = downloadedRes.filter((prompt: any) => {
-      return !createdRes.find((createdPrompt: any) => {
-        return createdPrompt.entityId === prompt.entityId;
+      // if promptId is present in createdRes, then remove it from downloadedRes
+      const res = downloadedRes.filter((prompt: any) => {
+        return !createdRes.find((createdPrompt: any) => {
+          return createdPrompt.entityId === prompt.entityId;
+        });
       });
-    });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          downloaded: res,
+          created: createdRes,
+        }),
+      };
+    } else {
+      const downloadedRes = (
+        await Gpt3PromptEntity.query(workspaceId, {
+          beginsWith: 'PROMPT_',
+          // @ts-ignore
+          filters: [{ attr: 'downloadedBy', contains: currentUserId }],
+        })
+      ).Items;
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        downloaded: res,
-        created: createdRes,
-      }),
-    };
+      const createdRes = (
+        await Gpt3PromptEntity.query(workspaceId, {
+          beginsWith: 'PROMPT_',
+          // @ts-ignore
+          filters: [{ attr: 'createdBy', eq: currentUserId }],
+        })
+      ).Items;
+
+      // if promptId is present in createdRes, then remove it from downloadedRes
+      const res = downloadedRes.filter((prompt: any) => {
+        return !createdRes.find((createdPrompt: any) => {
+          return createdPrompt.entityId === prompt.entityId;
+        });
+      });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          downloaded: res,
+          created: createdRes,
+        }),
+      };
+    }
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
   }
