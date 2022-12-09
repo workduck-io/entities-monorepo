@@ -26,7 +26,7 @@ export interface Gpt3Prompt extends BaseEntityParameters {
     name: string;
     type?: string;
   }>;
-  imageUrls?: string[];
+  imageUrls?: Array<string>;
   // showcase is a list of example output of the prompts that are showcased in this prompt
   showcase?: Array<string>;
   analyticsId: string;

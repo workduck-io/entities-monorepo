@@ -29,6 +29,7 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
     createdBy: userId,
     workspaceId,
     entityId: gpt3Prompt.entityId ?? nanoid(),
+    downloadedBy: [],
     analyticsId: nanoid(),
     version: 0,
     createdAt: Date.now(),
@@ -63,8 +64,6 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
           promptId: dbRes.entityId,
           createdBy: dbRes.createdBy,
           views: [`${userId}`],
-          likes: [`${userId}`],
-          downloadedBy: [`${userId}`],
         },
         {
           returnValues: 'ALL_NEW',
@@ -81,9 +80,11 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
         category: dbRes.category,
         tags: dbRes.tags,
         showcase: dbRes.showcase,
-        views: analyticsRes.views.length,
-        likes: analyticsRes.likes.length,
-        downloads: analyticsRes.downloadedBy.length,
+        views: analyticsRes.views ? analyticsRes.views.length : 0,
+        likes: analyticsRes.likes ? analyticsRes.likes.length : 0,
+        downloads: analyticsRes.downloadedBy
+          ? analyticsRes.downloadedBy.length
+          : 0,
         createdBy: {
           name: userResponse.name,
           email: userResponse.email,
@@ -184,7 +185,7 @@ export const getPromptHandler: ValidatedAPIGatewayProxyHandler<
   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
   const { id } = event.pathParameters;
   try {
-    const { prompt, properties, downloadedBy, ...rest }: any = (
+    const { prompt, properties, downloadedBy, analyticsId, ...rest }: any = (
       await Gpt3PromptEntity.get({
         entityId: id,
         workspaceId,
@@ -368,52 +369,67 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
     ).Item as Gpt3Prompt;
 
     // Append the user id to the prompt dewndloadBy array and if already present, then return already downloaded
-    if (dbRes.downloadedBy && dbRes.downloadedBy.includes(userId)) {
+    if (dbRes.downloadedBy && dbRes.downloadedBy.includes(userId))
       return {
         statusCode: 200,
         body: JSON.stringify({
           message: 'Already downloaded',
         }),
       };
-    } else {
-      dbRes.downloadedBy.push(userId);
-      const res = (
-        await Gpt3PromptEntity.update(
-          { ...payload, ...dbRes },
-          {
-            returnValues: 'ALL_NEW',
-          }
-        )
-      ).Attributes;
+    // if userId is same as createdBy then return already downloaded
+    else if (dbRes.createdBy === userId)
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'You have created this prompt',
+        }),
+      };
+    // if dbRes.downloadedBy is undefined then set it to an array with the userId
+    else if (
+      !dbRes.downloadedBy ||
+      dbRes.downloadedBy === undefined ||
+      dbRes.downloadedBy === null ||
+      (Array.isArray(dbRes.downloadedBy) && dbRes.downloadedBy.length === 0)
+    )
+      dbRes.downloadedBy = [userId];
+    else dbRes.downloadedBy.push(userId);
 
-      // Update analytics
-      const analyticsRes = await Gpt3PromptAnalyticsEntity.update(
-        {
-          analyticsId: res.analyticsId,
-          promptId: res.entityId,
-          createdBy: res.createdBy,
-          downloadedBy: res.downloadedBy,
-        },
+    const res: Gpt3Prompt = (
+      await Gpt3PromptEntity.update(
+        { ...payload, ...dbRes },
         {
           returnValues: 'ALL_NEW',
         }
-      );
+      )
+    ).Attributes as Gpt3Prompt;
 
-      // update meilisearch
-      const meilisearchRes = await updateDocumentInMeiliSearch({
-        mid: res.entityId,
-        downloads: res.downloadedBy.length,
-      });
+    // Update analytics
+    const analyticsRes = await Gpt3PromptAnalyticsEntity.update(
+      {
+        analyticsId: res.analyticsId,
+        promptId: res.entityId,
+        createdBy: res.createdBy,
+        downloadedBy: res.downloadedBy,
+      },
+      {
+        returnValues: 'ALL_NEW',
+      }
+    );
 
-      // Remove prompt, properities from the response
-      const { prompt, properties, downloadedBy, analyticsId, ...rest } = res;
-      if (res && analyticsRes && meilisearchRes)
-        return {
-          statusCode: 200,
-          body: JSON.stringify({ ...rest }),
-        };
-      else throw createError(400, JSON.stringify('Error downloading prompt'));
-    }
+    // update meilisearch
+    const meilisearchRes = await updateDocumentInMeiliSearch({
+      mid: res.entityId,
+      downloads: res.downloadedBy ? res.downloadedBy.length : 0,
+    });
+
+    // Remove prompt, properities from the response
+    const { prompt, properties, downloadedBy, analyticsId, ...rest } = res;
+    if (res && analyticsRes && meilisearchRes)
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ ...rest }),
+      };
+    else throw createError(400, JSON.stringify('Error downloading prompt'));
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
   }
@@ -496,9 +512,11 @@ export const getAllUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
   const queryParams = event.queryStringParameters;
   const currentUserId = extractUserIdFromToken(event);
   const userId = queryParams?.userId as string;
+
+  let downloadedRes, createdRes;
   try {
     if (userId && currentUserId !== userId) {
-      const downloadedRes = (
+      downloadedRes = (
         await Gpt3PromptEntity.query(workspaceId, {
           beginsWith: 'PROMPT_',
           // @ts-ignore
@@ -506,7 +524,7 @@ export const getAllUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
         })
       ).Items;
 
-      const createdRes = (
+      createdRes = (
         await Gpt3PromptEntity.query(workspaceId, {
           beginsWith: 'PROMPT_',
           // @ts-ignore
@@ -516,22 +534,8 @@ export const getAllUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
           ],
         })
       ).Items;
-
-      // if promptId is present in createdRes, then remove it from downloadedRes
-      const res = downloadedRes.filter((prompt: any) => {
-        return !createdRes.find((createdPrompt: any) => {
-          return createdPrompt.entityId === prompt.entityId;
-        });
-      });
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          downloaded: res,
-          created: createdRes,
-        }),
-      };
     } else {
-      const downloadedRes = (
+      downloadedRes = (
         await Gpt3PromptEntity.query(workspaceId, {
           beginsWith: 'PROMPT_',
           // @ts-ignore
@@ -539,28 +543,34 @@ export const getAllUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
         })
       ).Items;
 
-      const createdRes = (
+      createdRes = (
         await Gpt3PromptEntity.query(workspaceId, {
           beginsWith: 'PROMPT_',
           // @ts-ignore
           filters: [{ attr: 'createdBy', eq: currentUserId }],
         })
       ).Items;
-
-      // if promptId is present in createdRes, then remove it from downloadedRes
-      const res = downloadedRes.filter((prompt: any) => {
-        return !createdRes.find((createdPrompt: any) => {
-          return createdPrompt.entityId === prompt.entityId;
-        });
-      });
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          downloaded: res,
-          created: createdRes,
-        }),
-      };
     }
+
+    const downloadedResFiltered = downloadedRes.map((downloadedPrompt: any) => {
+      const { prompt, properties, downloadedBy, analyticsId, ...rest } =
+        downloadedPrompt;
+      return rest;
+    });
+
+    const createdResFiltered = createdRes.map((createdPrompt: any) => {
+      const { prompt, properties, downloadedBy, analyticsId, ...rest } =
+        createdPrompt;
+      return rest;
+    });
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        downloaded: downloadedResFiltered,
+        created: createdResFiltered,
+      }),
+    };
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
   }
@@ -643,12 +653,19 @@ export const likedViewedPromptHandler: ValidatedAPIGatewayProxyHandler<
     // If userId is present in likes array, then return already liked else add it
     switch (likes) {
       case 'true':
-        if (analyticsRes.likes.includes(userId))
+        if (analyticsRes.likes && analyticsRes.likes.includes(userId))
           return {
             statusCode: 200,
             body: JSON.stringify("You've already liked this prompt"),
           };
-        else analyticsRes.likes.push(userId);
+        else if (
+          !analyticsRes.likes ||
+          analyticsRes.likes === undefined ||
+          analyticsRes.likes === null ||
+          (Array.isArray(analyticsRes.likes) && analyticsRes.likes.length === 0)
+        ) {
+          analyticsRes.likes = [userId];
+        } else analyticsRes.likes.push(userId);
 
         break;
       case 'false':
