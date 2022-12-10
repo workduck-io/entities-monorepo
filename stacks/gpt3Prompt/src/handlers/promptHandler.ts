@@ -15,6 +15,7 @@ import {
   Gpt3PromptAnalytics,
   Gpt3PromptBody,
   MeiliSearchDocumentResponse,
+  PromptDownloadState,
 } from '../interface';
 
 export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
@@ -373,7 +374,7 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
       return {
         statusCode: 200,
         body: JSON.stringify({
-          message: 'Already downloaded',
+          message: PromptDownloadState.DOWNLOADED,
         }),
       };
     // if userId is same as createdBy then return already downloaded
@@ -381,7 +382,7 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
       return {
         statusCode: 200,
         body: JSON.stringify({
-          message: 'You have created this prompt',
+          message: PromptDownloadState.USER_CREATED,
         }),
       };
     // if dbRes.downloadedBy is undefined then set it to an array with the userId
@@ -442,9 +443,8 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
   const { id } = event.pathParameters;
 
-  const { options, variables, variablesValues } = event.body as unknown as {
+  const { options, variablesValues } = event.body as unknown as {
     options: Gpt3Prompt['properties'];
-    variables: Gpt3Prompt['variables'];
     variablesValues: Record<string, string>;
   };
 
@@ -460,7 +460,7 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
       })
     ).Item;
 
-    const { prompt, properties } = promptRes;
+    const { prompt, properties, variables } = promptRes;
 
     // Replace the variables with the values
     const transformedPrompt = replaceVarWithVal(
@@ -480,16 +480,22 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
       };
 
       // Call the GPT3 API
-      const completions: any = await openai.createCompletion({
-        ...resultPayload,
-      });
+      let completions;
+      try {
+        completions = await openai.createCompletion({
+          ...resultPayload,
+        });
+      } catch (error) {
+        throw createError(400, JSON.stringify(error.message));
+      }
+
       // Remove other fields in choices array and return only the text, index
       if (
         completions &&
         completions.data &&
         completions.data.choices.length > 0
       ) {
-        let choices;
+        let choices = [];
         completions.data.choices.map((choice) => {
           return choices.push(choice.text);
         });

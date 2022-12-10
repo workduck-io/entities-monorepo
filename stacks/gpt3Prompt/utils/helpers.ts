@@ -65,24 +65,26 @@ export const getUserInfo = async (event: any) => {
 
 export const replaceVarWithVal = (
   originalStr: string,
-  variables: Array<{ id: string; name: string }>,
-  variablesValues: Record<string, string>
+  variables?: Array<{ id: string; default?: string }>,
+  variablesValues?: Record<string, string>
 ) => {
   const regex = /(?<={).+?(?=\})/g; // find all variables ( matching format {*} )
   const vars = originalStr.match(regex);
-  let result = originalStr;
-  // replace all variables with their values
-  if (vars) {
+  if (vars && !variables)
+    throw new Error(
+      `Variables are present in promptInput but variables are not present in input`
+    );
+  else if (vars) {
     vars.forEach((v) => {
-      const variable = variables.find((variable) => variable.name === v);
-      if (variable) {
-        const value = variablesValues[variable.id];
-        result = result.replace(`{${v}}`, value);
-      }
+      const value =
+        variablesValues?.[v] ||
+        variables.find((variable) => variable.id === v)?.default;
+      if (!value)
+        throw new Error(
+          `Variable ${v} is not present in variablesValues or default value is not present in variables`
+        );
+      originalStr = originalStr.replace(`{${v}}`, value);
     });
   }
-  // check if string contains "undefined"
-  if (result.includes('undefined'))
-    throw createError(400, 'Error replacing variables with values');
-  else return result;
+  return originalStr;
 };

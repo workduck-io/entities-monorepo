@@ -23,8 +23,7 @@ export interface Gpt3Prompt extends BaseEntityParameters {
   // Variables input by the user
   variables?: Array<{
     id: string;
-    name: string;
-    type?: string;
+    default?: string;
   }>;
   imageUrls?: Array<string>;
   // showcase is a list of example output of the prompts that are showcased in this prompt
@@ -53,8 +52,7 @@ export interface Gpt3PromptBody {
   tags: string[];
   variables?: Array<{
     id: string;
-    name: string;
-    type?: string;
+    default?: string;
   }>;
   imageUrls?: string[];
   showcase?: Array<string>;
@@ -67,6 +65,13 @@ export interface Gpt3PromptAnalytics {
   views: Array<string>;
   likes: Array<string>;
   downloadedBy: Array<string>;
+}
+
+// Enums for the prompt download state
+export enum PromptDownloadState {
+  DOWNLOADED = 'DOWNLOADED',
+  USER_CREATED = 'USER_CREATED',
+  NOT_DOWNLOADED = 'NOT_DOWNLOADED',
 }
 
 export interface MeiliSearchDocument {

@@ -17,6 +17,7 @@ export const Gpt3PromptEntity = new Entity({
     description: { type: 'string', required: true },
     prompt: { type: 'string', required: true },
     properties: { type: 'map', required: true },
+    variables: { type: 'list', required: false },
     category: { type: 'string', required: true },
     isPublic: { type: 'boolean', required: true },
     tags: { type: 'list', required: true },
