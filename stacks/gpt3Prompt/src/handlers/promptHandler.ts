@@ -58,7 +58,7 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
     ).Attributes as Gpt3Prompt;
 
     // Analytics entry
-    const analyticsRes: Gpt3PromptAnalytics = (
+    const analyticsRes: any = (
       await Gpt3PromptAnalyticsEntity.update(
         {
           analyticsId: dbRes.analyticsId,
@@ -424,7 +424,7 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
     });
 
     // Remove prompt, properities from the response
-    const { prompt, properties, downloadedBy, analyticsId, ...rest } = res;
+    const { prompt, properties, analyticsId, ...rest } = res;
     if (res && analyticsRes && meilisearchRes)
       return {
         statusCode: 200,
@@ -681,7 +681,7 @@ export const likedViewedPromptHandler: ValidatedAPIGatewayProxyHandler<
 
   try {
     // Get analytics
-    const analyticsRes = (
+    const analyticsRes: any = (
       await Gpt3PromptAnalyticsEntity.query(`PROMPT_${id}`, {
         beginsWith: 'PROMPT_ANALYTICS_',
       })
@@ -706,11 +706,11 @@ export const likedViewedPromptHandler: ValidatedAPIGatewayProxyHandler<
 
         break;
       case 'false':
-        if (analyticsRes.likes.includes(userId))
+        if (analyticsRes.likes.includes(userId)) {
           analyticsRes.likes = analyticsRes.likes.filter(
             (like) => like !== userId
           );
-        else
+        } else
           return {
             statusCode: 200,
             body: JSON.stringify("You've already unliked this prompt"),
@@ -744,7 +744,7 @@ export const likedViewedPromptHandler: ValidatedAPIGatewayProxyHandler<
         break;
     }
 
-    const analyticsUpdateRes = (
+    const analyticsUpdateRes: any = (
       await Gpt3PromptAnalyticsEntity.update(
         {
           analyticsId: analyticsRes.analyticsId,
@@ -762,16 +762,16 @@ export const likedViewedPromptHandler: ValidatedAPIGatewayProxyHandler<
     // Update MeiliSearch document
     const updateMeiliSearchRes = await updateDocumentInMeiliSearch({
       mid: analyticsUpdateRes.promptId,
-      likes: analyticsUpdateRes.likes.length,
-      views: analyticsUpdateRes.views.length,
+      likes: analyticsUpdateRes.likes ? analyticsUpdateRes.likes.length : 0,
+      views: analyticsUpdateRes.views ? analyticsUpdateRes.views.length : 0,
     });
 
-    if (analyticsUpdateRes && updateMeiliSearchRes)
+    if (analyticsUpdateRes && updateMeiliSearchRes) {
       return {
         statusCode: 200,
-        body: JSON.stringify("You've successfully updated the prompt"),
+        body: JSON.stringify(analyticsUpdateRes),
       };
-    else throw createError(400, JSON.stringify('Error updating prompt'));
+    } else throw createError(400, JSON.stringify('Error updating prompt'));
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
   }
