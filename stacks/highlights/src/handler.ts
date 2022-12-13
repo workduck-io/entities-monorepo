@@ -11,6 +11,7 @@ import {
   getAllEntitiesOfURLHandler,
   getAllEntitiesOfWorkspaceHandler,
   getHandler,
+  getMultipleHandler,
 } from './handlers/highlights';
 
 const routeHandlers = [
@@ -45,6 +46,12 @@ const routeHandlers = [
     method: HTTPMethod.POST,
     path: '/',
     handler: createHandler,
+  },
+
+  {
+    method: HTTPMethod.POST,
+    path: '/multiple',
+    handler: getMultipleHandler,
   },
 ];
 

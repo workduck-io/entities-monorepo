@@ -12,6 +12,13 @@ const main = {
     },
     {
       httpApi: {
+        method: 'POST',
+        path: '/multiple',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
         method: 'GET',
         path: '/{entityId}',
         authorizer: 'workduckAuthorizer',
