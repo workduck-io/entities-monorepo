@@ -84,7 +84,7 @@ export const getMultipleHandler: ValidatedAPIGatewayProxyHandler<any> = async (
     if (!res) throw createError(404, 'Item not found');
     return {
       statusCode: 200,
-      body: JSON.stringify(res.Responses[highlightsTable.name]),
+      body: JSON.stringify(res?.Responses?.[highlightsTable.name] ?? []),
     };
   } catch (e) {
     throw createError(e.statusCode ?? 400, JSON.stringify(e.message));
