@@ -18,6 +18,8 @@ import {
   PromptDownloadState,
 } from '../interface';
 
+import { Categories } from 'stacks/gpt3Prompt/utils/consts';
+
 export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
 > = async (event) => {
@@ -775,4 +777,20 @@ export const likedViewedPromptHandler: ValidatedAPIGatewayProxyHandler<
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
   }
+};
+
+// Get all categories for the prompt
+export const getCategoriesHandler: ValidatedAPIGatewayProxyHandler<
+  Gpt3Prompt
+> = async (event) => {
+  const categories = {
+    id: 1,
+    title: 'Categories',
+    content: Categories,
+  };
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify(categories),
+  };
 };

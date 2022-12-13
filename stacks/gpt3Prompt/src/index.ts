@@ -93,6 +93,13 @@ const main = {
         authorizer: 'workduckAuthorizer',
       },
     },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/allCategories',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
   ],
 };
 

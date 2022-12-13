@@ -11,6 +11,7 @@ import {
   getAllPromptsHandler,
   getAllPublicUserPromptsHandler,
   getAllUserPromptsHandler,
+  getCategoriesHandler,
   getPromptAnalyticsHandler,
   getPromptHandler,
   likedViewedPromptHandler,
@@ -85,6 +86,11 @@ const routeHandlers = [
     method: HTTPMethod.POST,
     path: '/extra/{id}',
     handler: likedViewedPromptHandler,
+  },
+  {
+    method: HTTPMethod.GET,
+    path: '/allCategories',
+    handler: getCategoriesHandler,
   },
 ];
 
