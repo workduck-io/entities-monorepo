@@ -14,6 +14,7 @@ import {
   getCategoriesHandler,
   getPromptAnalyticsHandler,
   getPromptHandler,
+  homeDashboardHandler,
   likedViewedPromptHandler,
   resultPrompthandler,
   searchPromptHandler,
@@ -78,7 +79,7 @@ const routeHandlers = [
     handler: getPromptAnalyticsHandler,
   },
   {
-    method: HTTPMethod.GET,
+    method: HTTPMethod.POST,
     path: '/search',
     handler: searchPromptHandler,
   },
@@ -91,6 +92,11 @@ const routeHandlers = [
     method: HTTPMethod.GET,
     path: '/allCategories',
     handler: getCategoriesHandler,
+  },
+  {
+    method: HTTPMethod.GET,
+    path: '/home',
+    handler: homeDashboardHandler,
   },
 ];
 

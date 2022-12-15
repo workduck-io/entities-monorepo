@@ -1,9 +1,13 @@
 import { createError } from '@middy/util';
 import { MeiliSearch } from 'meilisearch';
 import {
+  CATEGORIES,
+  FilterKey,
   MeiliSearchDocument,
   MeiliSearchDocumentResponse,
   MeiliSearchResponse,
+  SortKey,
+  SortOrder,
 } from '../src/interface';
 
 export const meilisearchClient = new MeiliSearch({
@@ -62,15 +66,64 @@ export const deleteDocumentFromMeiliSearch = async (
   }
 };
 
-// Search document from meilisearch
-export const searchDocumentFromMeiliSearch = async (query: string) => {
+// Search, Filtering and sorting document from meilisearch
+export const searchDocumentFromMeiliSearch = async (
+  query?: string,
+  filters?: { [key in FilterKey]: Array<CATEGORIES> },
+  sort?: {
+    [key in SortKey]: SortOrder;
+  },
+  limit?: number
+) => {
   try {
+    const filterString = filters
+      ? Object.keys(filters).length > 0
+        ? Object.keys(filters).filter((key) => filters[key].length > 0).length >
+          0
+          ? Object.keys(filters)
+              .filter((key) => filters[key].length > 0)
+              .map((key) => {
+                return filters[key].map((value) => `${key} = ${value}`);
+              })
+              .flat()
+              .join(' OR ')
+          : ''
+        : ''
+      : '';
+
+    const sortString = sort
+      ? Object.keys(sort).length > 0
+        ? [`${Object.keys(sort)[0]}:${Object.values(sort)[0]}`]
+        : []
+      : [];
+
     return (
-      (await meilisearchClient.index('gpt3Prompt').search(query, {
-        limit: 10000,
+      (await meilisearchClient.index('gpt3Prompt').search(query ? query : '', {
+        limit: limit || 1000,
+        filter: filterString || '',
+        sort: sortString || [],
       })) as MeiliSearchResponse
     ).hits;
   } catch (e) {
     throw createError(400, 'Error searching document from meilisearch');
+  }
+};
+
+export const sortFromMeiliSearch = async (
+  sortkey: SortKey,
+  sortOrder: SortOrder,
+  filter?: string,
+  limit?: number
+) => {
+  try {
+    return (
+      (await meilisearchClient.index('gpt3Prompt').search('', {
+        sort: [`${sortkey}:${sortOrder}`],
+        filter: filter || '',
+        limit: limit || 1000,
+      })) as MeiliSearchResponse
+    ).hits;
+  } catch (e) {
+    throw createError(400, 'Error sorting document from meilisearch');
   }
 };
