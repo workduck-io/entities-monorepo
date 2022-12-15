@@ -68,7 +68,6 @@ export const getMultipleHandler: ValidatedAPIGatewayProxyHandler<any> = async (
       )
     )
       .map((result) => {
-        console.log(result);
         return result.status === 'fulfilled' && result.value
           ? HighlightsEntity.getBatch({
               workspaceId: result.value.pk,
