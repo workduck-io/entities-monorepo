@@ -6,35 +6,35 @@ const main = {
     {
       httpApi: {
         method: 'POST',
-        path: '/prompt',
+        path: '/',
         authorizer: 'workduckAuthorizer',
       },
     },
     {
       httpApi: {
         method: 'GET',
-        path: '/allPrompts',
+        path: '/all',
         authorizer: 'workduckAuthorizer',
       },
     },
     {
       httpApi: {
         method: 'GET',
-        path: '/prompt/{id}',
+        path: '/{id}',
         authorizer: 'workduckAuthorizer',
       },
     },
     {
       httpApi: {
         method: 'PUT',
-        path: '/prompt',
+        path: '/',
         authorizer: 'workduckAuthorizer',
       },
     },
     {
       httpApi: {
         method: 'DELETE',
-        path: '/prompt/{id}',
+        path: '/{id}',
         authorizer: 'workduckAuthorizer',
       },
     },
@@ -55,21 +55,14 @@ const main = {
     {
       httpApi: {
         method: 'GET',
-        path: '/allUserPrompts',
+        path: '/allUser',
         authorizer: 'workduckAuthorizer',
       },
     },
     {
       httpApi: {
         method: 'GET',
-        path: '/allPublicUserPrompts',
-      },
-    },
-    {
-      httpApi: {
-        method: 'GET',
-        path: '/sortPrompts',
-        authorizer: 'workduckAuthorizer',
+        path: '/allPublicUser',
       },
     },
     {

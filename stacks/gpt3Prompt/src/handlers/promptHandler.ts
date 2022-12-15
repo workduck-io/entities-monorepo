@@ -626,47 +626,6 @@ export const getAllUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 
-// Sort all prompts based on the views, downloads, likes, recentlty created
-export const sortPromptsHandler: ValidatedAPIGatewayProxyHandler<
-  Gpt3Prompt
-> = async (event) => {
-  const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
-  const { sortBy } = event.queryStringParameters as any;
-
-  try {
-    const dbRes = (
-      await Gpt3PromptEntity.query(workspaceId, {
-        beginsWith: 'PROMPT_',
-      })
-    ).Items;
-
-    // Fetch analytics for all prompts and append to dbRes array
-    const response = await Promise.all(
-      dbRes.map(async (prompt: any) => {
-        const analytics = (
-          await Gpt3PromptAnalyticsEntity.query(`PROMPT_${prompt.entityId}`, {
-            beginsWith: 'PROMPT_ANALYTICS_',
-          })
-        ).Items[0];
-        // remove prompt, properties from the prompt object and append analytics
-        const { prompt: _, properties: __, analyticsId: ___, ...rest } = prompt;
-        return { ...rest, views: analytics.views, likes: analytics.likes };
-      })
-    );
-
-    response.sort((a: any, b: any) => {
-      return b[sortBy].length - a[sortBy].length;
-    });
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify(response),
-    };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
-  }
-};
-
 // Search for a prompt
 export const searchPromptHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
