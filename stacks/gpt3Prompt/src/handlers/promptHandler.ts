@@ -99,6 +99,7 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
         },
         createdAt: dbRes.createdAt,
         updatedAt: dbRes.updatedAt,
+        imageUrls: dbRes.imageUrls,
       });
 
     // Remove prompt, properities from the response
@@ -263,6 +264,7 @@ export const updatePromptHandler: ValidatedAPIGatewayProxyHandler<
             showcase: [],
             createdAt: dbRes.createdAt,
             updatedAt: dbRes.updatedAt,
+            imageUrl: dbRes.imageUrls,
           });
 
         const { prompt, properties, downloadedBy, analyticsId, ...rest } =
@@ -300,6 +302,7 @@ export const updatePromptHandler: ValidatedAPIGatewayProxyHandler<
             showcase: dbRes.showcase,
             createdAt: dbRes.createdAt,
             updatedAt: dbRes.updatedAt,
+            imageUrl: dbRes.imageUrls,
           });
 
         const { prompt, properties, downloadedBy, analyticsId, ...rest } =
@@ -782,11 +785,26 @@ export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
 > = async (event) => {
   const userId = extractUserIdFromToken(event);
   let homePrompts: any = {
-    todayPrompts: [],
-    mostDownloadedPrompts: [],
-    popularWeeklyPrompts: [],
-    trendingPrompts: [],
-    userRecentPrompts: [],
+    todayPrompts: {
+      title: `Today's Pick`,
+      content: [],
+    },
+    mostDownloadedPrompts: {
+      title: 'Most Downloaded',
+      content: [],
+    },
+    popularWeeklyPrompts: {
+      title: 'Popular Weekly',
+      content: [],
+    },
+    trendingPrompts: {
+      title: 'Trending Prompts',
+      content: [],
+    },
+    userRecentPrompts: {
+      title: 'Your Recent Prompts',
+      content: [],
+    },
   };
 
   let currentTime = Date.now();
@@ -811,10 +829,10 @@ export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
     sortFromMeiliSearch(SortKey.CREATED_AT, SortOrder.DESC, filterUser, 20),
   ]);
 
-  homePrompts.todayPrompts = todayPrompts;
-  homePrompts.mostDownloadedPrompts = mostDownloadedPrompts;
-  homePrompts.popularWeeklyPrompts = popularWeeklyPrompts;
-  homePrompts.userRecentPrompts = userRecentPrompts;
+  homePrompts.todayPrompts.content = todayPrompts;
+  homePrompts.mostDownloadedPrompts.content = mostDownloadedPrompts;
+  homePrompts.popularWeeklyPrompts.content = popularWeeklyPrompts;
+  homePrompts.userRecentPrompts.content = userRecentPrompts;
 
   let weightedScore = getAllPrompts.map((prompt: any) => {
     let score = prompt.likes * 1 + prompt.views * 0.5 + prompt.downloads * 0.25;
@@ -825,7 +843,7 @@ export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
   });
 
   // Sort the prompts based on the weighted score
-  homePrompts.trendingPrompts = weightedScore.sort(
+  homePrompts.trendingPrompts.content = weightedScore.sort(
     (a: any, b: any) => b.score - a.score
   );
 

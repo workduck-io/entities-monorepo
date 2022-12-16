@@ -99,6 +99,7 @@ export interface MeiliSearchDocument {
   downloads: number;
   createdAt: number;
   updatedAt: number;
+  imageUrls?: string[];
 }
 
 export interface MeiliSearchDocumentResponse {
