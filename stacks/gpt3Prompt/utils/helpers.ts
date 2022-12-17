@@ -88,3 +88,9 @@ export const replaceVarWithVal = (
   }
   return originalStr;
 };
+
+export const pickAttributes = (obj: any, attributes: string[]) => {
+  return attributes.reduce((acc: any, curr: any) => {
+    return { ...acc, [curr]: obj[curr] };
+  }, {});
+};

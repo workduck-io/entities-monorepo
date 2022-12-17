@@ -2,7 +2,12 @@ import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { nanoid } from 'nanoid';
-import { getUserInfo, openai, replaceVarWithVal } from '../../utils/helpers';
+import {
+  getUserInfo,
+  openai,
+  pickAttributes,
+  replaceVarWithVal,
+} from '../../utils/helpers';
 import {
   addDocumentToMeiliSearch,
   deleteDocumentFromMeiliSearch,
@@ -80,26 +85,25 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
     // Meilisearch entry
     const meilisearchRes: MeiliSearchDocumentResponse =
       await addDocumentToMeiliSearch({
+        ...pickAttributes(dbRes, [
+          'title',
+          'description',
+          'category',
+          'tags',
+          'showcase',
+          'createdAt',
+          'updatedAt',
+          'imageUrls',
+        ]),
+        createdBy: {
+          ...pickAttributes(userResponse, ['id', 'name', 'email', 'alias']),
+        },
         mid: dbRes.entityId,
-        title: dbRes.title,
-        description: dbRes.description,
-        category: dbRes.category,
-        tags: dbRes.tags,
-        showcase: dbRes.showcase,
         views: analyticsRes.views ? analyticsRes.views.length : 0,
         likes: analyticsRes.likes ? analyticsRes.likes.length : 0,
         downloads: analyticsRes.downloadedBy
           ? analyticsRes.downloadedBy.length
           : 0,
-        createdBy: {
-          id: userResponse.id,
-          name: userResponse.name,
-          email: userResponse.email,
-          alias: userResponse.alias,
-        },
-        createdAt: dbRes.createdAt,
-        updatedAt: dbRes.updatedAt,
-        imageUrls: dbRes.imageUrls,
       });
 
     // Remove prompt, properities from the response
@@ -256,15 +260,17 @@ export const updatePromptHandler: ValidatedAPIGatewayProxyHandler<
         // Update meilisearch
         const meilisearchRes: MeiliSearchDocumentResponse =
           await updateDocumentInMeiliSearch({
+            ...pickAttributes(dbRes, [
+              'title',
+              'description',
+              'category',
+              'tags',
+              'createdAt',
+              'updatedAt',
+              'imageUrls',
+            ]),
             mid: dbRes.entityId,
-            title: dbRes.title,
-            description: dbRes.description,
-            category: dbRes.category,
-            tags: dbRes.tags,
             showcase: [],
-            createdAt: dbRes.createdAt,
-            updatedAt: dbRes.updatedAt,
-            imageUrl: dbRes.imageUrls,
           });
 
         const { prompt, properties, downloadedBy, analyticsId, ...rest } =
@@ -294,15 +300,17 @@ export const updatePromptHandler: ValidatedAPIGatewayProxyHandler<
         // Update meilisearch
         const meilisearchRes: MeiliSearchDocumentResponse =
           await updateDocumentInMeiliSearch({
+            ...pickAttributes(dbRes, [
+              'title',
+              'description',
+              'category',
+              'tags',
+              'showcase',
+              'createdAt',
+              'updatedAt',
+              'imageUrls',
+            ]),
             mid: dbRes.entityId,
-            title: dbRes.title,
-            description: dbRes.description,
-            category: dbRes.category,
-            tags: dbRes.tags,
-            showcase: dbRes.showcase,
-            createdAt: dbRes.createdAt,
-            updatedAt: dbRes.updatedAt,
-            imageUrl: dbRes.imageUrls,
           });
 
         const { prompt, properties, downloadedBy, analyticsId, ...rest } =
@@ -728,11 +736,13 @@ export const likedViewedPromptHandler: ValidatedAPIGatewayProxyHandler<
     const analyticsUpdateRes: any = (
       await Gpt3PromptAnalyticsEntity.update(
         {
-          analyticsId: analyticsRes.analyticsId,
-          promptId: analyticsRes.promptId,
-          createdBy: analyticsRes.createdBy,
-          views: analyticsRes.views,
-          likes: analyticsRes.likes,
+          ...pickAttributes(analyticsRes, [
+            'analyticsId',
+            'promptId',
+            'createdBy',
+            'views',
+            'likes',
+          ]),
         },
         {
           returnValues: 'ALL_NEW',
