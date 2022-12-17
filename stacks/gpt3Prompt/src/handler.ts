@@ -14,37 +14,37 @@ import {
   getCategoriesHandler,
   getPromptAnalyticsHandler,
   getPromptHandler,
+  homeDashboardHandler,
   likedViewedPromptHandler,
   resultPrompthandler,
   searchPromptHandler,
-  sortPromptsHandler,
   updatePromptHandler,
 } from './handlers/promptHandler';
 
 const routeHandlers = [
   {
     method: HTTPMethod.POST,
-    path: '/prompt',
+    path: '/',
     handler: createPromptHandler,
   },
   {
     method: HTTPMethod.GET,
-    path: '/allPrompts',
+    path: '/all',
     handler: getAllPromptsHandler,
   },
   {
     method: HTTPMethod.GET,
-    path: '/prompt/{id}',
+    path: '/{id}',
     handler: getPromptHandler,
   },
   {
     method: HTTPMethod.PUT,
-    path: '/prompt',
+    path: '/',
     handler: updatePromptHandler,
   },
   {
     method: HTTPMethod.DELETE,
-    path: '/prompt/{id}',
+    path: '/{id}',
     handler: deletePromptHandler,
   },
   {
@@ -59,18 +59,13 @@ const routeHandlers = [
   },
   {
     method: HTTPMethod.GET,
-    path: '/allUserPrompts',
+    path: '/allUser',
     handler: getAllUserPromptsHandler,
   },
   {
     method: HTTPMethod.GET,
-    path: '/allPublicUserPrompts',
+    path: '/allPublicUser',
     handler: getAllPublicUserPromptsHandler,
-  },
-  {
-    method: HTTPMethod.GET,
-    path: '/sortPrompts',
-    handler: sortPromptsHandler,
   },
   {
     method: HTTPMethod.GET,
@@ -78,7 +73,7 @@ const routeHandlers = [
     handler: getPromptAnalyticsHandler,
   },
   {
-    method: HTTPMethod.GET,
+    method: HTTPMethod.POST,
     path: '/search',
     handler: searchPromptHandler,
   },
@@ -91,6 +86,11 @@ const routeHandlers = [
     method: HTTPMethod.GET,
     path: '/allCategories',
     handler: getCategoriesHandler,
+  },
+  {
+    method: HTTPMethod.GET,
+    path: '/home',
+    handler: homeDashboardHandler,
   },
 ];
 

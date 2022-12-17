@@ -74,6 +74,13 @@ export enum PromptDownloadState {
   NOT_DOWNLOADED = 'NOT_DOWNLOADED',
 }
 
+/**
+ * MeiliSearch Document for the prompt entity, this is the document that is indexed in MeiliSearch.
+ * Searchable fields are title, description, category, tags, showcase, createdBy.name, createdBy.email, createdBy.alias
+ * Filterable fields are category, tags, createdAt, updatedAt, createdBy.id
+ * Sortable fields are views, likes, downloads, createdAt, updatedAt
+ */
+
 export interface MeiliSearchDocument {
   mid: string;
   title: string;
@@ -82,6 +89,7 @@ export interface MeiliSearchDocument {
   tags: Array<string>;
   showcase: Array<string>;
   createdBy: {
+    id: string;
     name: string;
     email: string;
     alias: string;
@@ -89,6 +97,9 @@ export interface MeiliSearchDocument {
   views: number;
   likes: number;
   downloads: number;
+  createdAt: number;
+  updatedAt: number;
+  imageUrls?: string[];
 }
 
 export interface MeiliSearchDocumentResponse {
@@ -106,4 +117,44 @@ export interface MeiliSearchResponse {
   processingTimeMs: number;
   query: string;
   estimatedTotalHits: number;
+}
+
+export type CATEGORIES =
+  | 'LinkedIn'
+  | 'Gmail'
+  | 'Content'
+  | 'Finance'
+  | 'Food'
+  | 'Health'
+  | 'Lifestyle'
+  | 'News'
+  | 'Productivity'
+  | 'Shopping';
+
+export enum FilterKey {
+  CATEGORY = 'category',
+  TAGS = 'tags',
+}
+
+export enum SortKey {
+  LIKES = 'likes',
+  VIEWS = 'views',
+  DOWNLOADS = 'downloads',
+  CREATED_AT = 'createdAt',
+  UPDATED_AT = 'updatedAt',
+}
+
+export enum SortOrder {
+  ASC = 'asc',
+  DESC = 'desc',
+}
+
+export interface FilterSortBody {
+  filter?: {
+    [FilterKey.CATEGORY]?: CATEGORIES;
+    [FilterKey.TAGS]?: string[];
+  };
+  sort?: {
+    [key in SortKey]?: SortOrder;
+  };
 }

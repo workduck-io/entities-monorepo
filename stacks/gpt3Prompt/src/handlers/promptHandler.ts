@@ -2,20 +2,28 @@ import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { nanoid } from 'nanoid';
-import { getUserInfo, openai, replaceVarWithVal } from '../../utils/helpers';
+import {
+  getUserInfo,
+  openai,
+  pickAttributes,
+  replaceVarWithVal,
+} from '../../utils/helpers';
 import {
   addDocumentToMeiliSearch,
   deleteDocumentFromMeiliSearch,
+  getAllDocuments,
   searchDocumentFromMeiliSearch,
+  sortFromMeiliSearch,
   updateDocumentInMeiliSearch,
 } from '../../utils/meiliSearchHelper';
 import { Gpt3PromptAnalyticsEntity, Gpt3PromptEntity } from '../entities';
 import {
   Gpt3Prompt,
-  Gpt3PromptAnalytics,
   Gpt3PromptBody,
   MeiliSearchDocumentResponse,
   PromptDownloadState,
+  SortKey,
+  SortOrder,
 } from '../interface';
 
 import { Categories } from 'stacks/gpt3Prompt/utils/consts';
@@ -66,7 +74,7 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
           analyticsId: dbRes.analyticsId,
           promptId: dbRes.entityId,
           createdBy: dbRes.createdBy,
-          views: [`${userId}`],
+          views: [`${dbRes.userId}`],
         },
         {
           returnValues: 'ALL_NEW',
@@ -77,22 +85,25 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
     // Meilisearch entry
     const meilisearchRes: MeiliSearchDocumentResponse =
       await addDocumentToMeiliSearch({
+        ...pickAttributes(dbRes, [
+          'title',
+          'description',
+          'category',
+          'tags',
+          'showcase',
+          'createdAt',
+          'updatedAt',
+          'imageUrls',
+        ]),
+        createdBy: {
+          ...pickAttributes(userResponse, ['id', 'name', 'email', 'alias']),
+        },
         mid: dbRes.entityId,
-        title: dbRes.title,
-        description: dbRes.description,
-        category: dbRes.category,
-        tags: dbRes.tags,
-        showcase: dbRes.showcase,
         views: analyticsRes.views ? analyticsRes.views.length : 0,
         likes: analyticsRes.likes ? analyticsRes.likes.length : 0,
         downloads: analyticsRes.downloadedBy
           ? analyticsRes.downloadedBy.length
           : 0,
-        createdBy: {
-          name: userResponse.name,
-          email: userResponse.email,
-          alias: userResponse.alias,
-        },
       });
 
     // Remove prompt, properities from the response
@@ -249,11 +260,16 @@ export const updatePromptHandler: ValidatedAPIGatewayProxyHandler<
         // Update meilisearch
         const meilisearchRes: MeiliSearchDocumentResponse =
           await updateDocumentInMeiliSearch({
+            ...pickAttributes(dbRes, [
+              'title',
+              'description',
+              'category',
+              'tags',
+              'createdAt',
+              'updatedAt',
+              'imageUrls',
+            ]),
             mid: dbRes.entityId,
-            title: dbRes.title,
-            description: dbRes.description,
-            category: dbRes.category,
-            tags: dbRes.tags,
             showcase: [],
           });
 
@@ -284,12 +300,17 @@ export const updatePromptHandler: ValidatedAPIGatewayProxyHandler<
         // Update meilisearch
         const meilisearchRes: MeiliSearchDocumentResponse =
           await updateDocumentInMeiliSearch({
+            ...pickAttributes(dbRes, [
+              'title',
+              'description',
+              'category',
+              'tags',
+              'showcase',
+              'createdAt',
+              'updatedAt',
+              'imageUrls',
+            ]),
             mid: dbRes.entityId,
-            title: dbRes.title,
-            description: dbRes.description,
-            category: dbRes.category,
-            tags: dbRes.tags,
-            showcase: dbRes.showcase,
           });
 
         const { prompt, properties, downloadedBy, analyticsId, ...rest } =
@@ -422,6 +443,7 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
     // update meilisearch
     const meilisearchRes = await updateDocumentInMeiliSearch({
       mid: res.entityId,
+      updatedAt: res.updatedAt,
       downloads: res.downloadedBy ? res.downloadedBy.length : 0,
     });
 
@@ -615,54 +637,19 @@ export const getAllUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 
-// Sort all prompts based on the views, downloads, likes, recentlty created
-export const sortPromptsHandler: ValidatedAPIGatewayProxyHandler<
-  Gpt3Prompt
-> = async (event) => {
-  const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
-  const { sortBy } = event.queryStringParameters as any;
-
-  try {
-    const dbRes = (
-      await Gpt3PromptEntity.query(workspaceId, {
-        beginsWith: 'PROMPT_',
-      })
-    ).Items;
-
-    // Fetch analytics for all prompts and append to dbRes array
-    const response = await Promise.all(
-      dbRes.map(async (prompt: any) => {
-        const analytics = (
-          await Gpt3PromptAnalyticsEntity.query(`PROMPT_${prompt.entityId}`, {
-            beginsWith: 'PROMPT_ANALYTICS_',
-          })
-        ).Items[0];
-        // remove prompt, properties from the prompt object and append analytics
-        const { prompt: _, properties: __, analyticsId: ___, ...rest } = prompt;
-        return { ...rest, views: analytics.views, likes: analytics.likes };
-      })
-    );
-
-    response.sort((a: any, b: any) => {
-      return b[sortBy].length - a[sortBy].length;
-    });
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify(response),
-    };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
-  }
-};
-
 // Search for a prompt
 export const searchPromptHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
 > = async (event) => {
-  const { query } = event.queryStringParameters as any;
+  const { query, filters, sort, limit } = event.body as any;
+
   try {
-    const results = await searchDocumentFromMeiliSearch(query);
+    const results = await searchDocumentFromMeiliSearch(
+      query,
+      filters,
+      sort,
+      limit
+    );
     return {
       statusCode: 200,
       body: JSON.stringify(results),
@@ -749,11 +736,13 @@ export const likedViewedPromptHandler: ValidatedAPIGatewayProxyHandler<
     const analyticsUpdateRes: any = (
       await Gpt3PromptAnalyticsEntity.update(
         {
-          analyticsId: analyticsRes.analyticsId,
-          promptId: analyticsRes.promptId,
-          createdBy: analyticsRes.createdBy,
-          views: analyticsRes.views,
-          likes: analyticsRes.likes,
+          ...pickAttributes(analyticsRes, [
+            'analyticsId',
+            'promptId',
+            'createdBy',
+            'views',
+            'likes',
+          ]),
         },
         {
           returnValues: 'ALL_NEW',
@@ -793,4 +782,87 @@ export const getCategoriesHandler: ValidatedAPIGatewayProxyHandler<
     statusCode: 200,
     body: JSON.stringify(categories),
   };
+};
+
+// Home Page Dashboard for the prompt
+// Today's Prompt - Get the prompt with the latest createdAt within the last 24 hours
+// Most Downloaded Prompt - Get the prompt with the most downloads
+// Popular Weekly Prompt - Get the prompt with the most views within the last 7 days
+// Trending Prompts - Get the prompt with the weighted score of likes, views and downloads in descending order
+// Weighted Score = (likes * 1) + (views * 0.5) + (downloads * 0.25)
+export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
+  Gpt3Prompt
+> = async (event) => {
+  const userId = extractUserIdFromToken(event);
+  let homePrompts: any = {
+    todayPrompts: {
+      title: `Today's Pick`,
+      content: [],
+    },
+    mostDownloadedPrompts: {
+      title: 'Most Downloaded',
+      content: [],
+    },
+    popularWeeklyPrompts: {
+      title: 'Popular Weekly',
+      content: [],
+    },
+    trendingPrompts: {
+      title: 'Trending Prompts',
+      content: [],
+    },
+    userRecentPrompts: {
+      title: 'Your Recent Prompts',
+      content: [],
+    },
+  };
+
+  let currentTime = Date.now();
+  let last24Hours = currentTime - 24 * 60 * 60 * 1000;
+  let last7Days = currentTime - 7 * 24 * 60 * 60 * 1000;
+  let filter24H = `${SortKey.CREATED_AT} >= ${last24Hours} AND ${SortKey.CREATED_AT} <= ${currentTime}`;
+  let filter7D = `${SortKey.CREATED_AT} >= ${last7Days} AND ${SortKey.CREATED_AT} <= ${currentTime}`;
+  let filterUser = `createdBy.id = ${userId}`;
+
+  // Make parallel requests for todayPrompts, mostDownloadedPrompts, popularWeeklyPrompts and trendingPrompts
+  const [
+    getAllPrompts,
+    mostDownloadedPrompts,
+    popularWeeklyPrompts,
+    todayPrompts,
+    userRecentPrompts,
+  ]: any = await Promise.all([
+    getAllDocuments(),
+    sortFromMeiliSearch(SortKey.DOWNLOADS, SortOrder.DESC),
+    sortFromMeiliSearch(SortKey.VIEWS, SortOrder.DESC, filter7D, 20),
+    sortFromMeiliSearch(SortKey.CREATED_AT, SortOrder.DESC, filter24H, 20),
+    sortFromMeiliSearch(SortKey.CREATED_AT, SortOrder.DESC, filterUser, 20),
+  ]);
+
+  homePrompts.todayPrompts.content = todayPrompts;
+  homePrompts.mostDownloadedPrompts.content = mostDownloadedPrompts;
+  homePrompts.popularWeeklyPrompts.content = popularWeeklyPrompts;
+  homePrompts.userRecentPrompts.content = userRecentPrompts;
+
+  let weightedScore = getAllPrompts.map((prompt: any) => {
+    let score = prompt.likes * 1 + prompt.views * 0.5 + prompt.downloads * 0.25;
+    return {
+      ...prompt,
+      score,
+    };
+  });
+
+  // Sort the prompts based on the weighted score
+  homePrompts.trendingPrompts.content = weightedScore.sort(
+    (a: any, b: any) => b.score - a.score
+  );
+
+  try {
+    return {
+      statusCode: 200,
+      body: JSON.stringify(homePrompts),
+    };
+  } catch (error) {
+    throw createError(400, JSON.stringify(error.message));
+  }
 };
