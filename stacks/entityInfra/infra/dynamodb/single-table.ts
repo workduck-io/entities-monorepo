@@ -53,6 +53,26 @@ export default {
             WriteCapacityUnits: '10',
           },
         },
+        {
+          IndexName: 'sk-ak-index',
+          KeySchema: [
+            {
+              AttributeName: 'sk',
+              KeyType: 'HASH',
+            },
+            {
+              AttributeName: 'ak',
+              KeyType: 'RANGE',
+            },
+          ],
+          Projection: {
+            ProjectionType: 'KEYS_ONLY',
+          },
+          ProvisionedThroughput: {
+            ReadCapacityUnits: '5',
+            WriteCapacityUnits: '5',
+          },
+        },
       ],
     },
   },

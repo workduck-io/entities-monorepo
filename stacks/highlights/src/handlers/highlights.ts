@@ -2,6 +2,7 @@ import { entityFilter } from '@mex/entity-utils';
 import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
+import { highlightsTable } from '../../service/DynamoDB';
 import { HighlightsEntity } from '../entities';
 import { Highlights } from '../interface';
 
@@ -45,6 +46,44 @@ export const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
     return {
       statusCode: 200,
       body: JSON.stringify(res),
+    };
+  } catch (e) {
+    throw createError(e.statusCode ?? 400, JSON.stringify(e.message));
+  }
+};
+
+export const getMultipleHandler: ValidatedAPIGatewayProxyHandler<any> = async (
+  event
+) => {
+  try {
+    const body = event.body;
+    const highlightList = (
+      await Promise.allSettled(
+        body.ids.map(async (id: string) => {
+          const res = await HighlightsEntity.query(id, {
+            index: 'sk-ak-index',
+          });
+          return res.Items.find(Boolean); // Safely return the first element of array;
+        })
+      )
+    )
+      .map((result) => {
+        return result.status === 'fulfilled' && result.value
+          ? HighlightsEntity.getBatch({
+              workspaceId: result.value.pk,
+              entityId: result.value.sk,
+            })
+          : undefined;
+      })
+      .filter((result) => result !== undefined);
+    const res = highlightList.length
+      ? await highlightsTable.batchGet(highlightList)
+      : {};
+
+    if (!res) throw createError(404, 'Item not found');
+    return {
+      statusCode: 200,
+      body: JSON.stringify(res?.Responses?.[highlightsTable.name] ?? []),
     };
   } catch (e) {
     throw createError(e.statusCode ?? 400, JSON.stringify(e.message));
