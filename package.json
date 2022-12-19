@@ -102,6 +102,7 @@
     "meilisearch": "^0.29.1",
     "nanoid": "^4.0.0",
     "openai": "^3.1.0",
+    "serverless-dotenv-plugin": "^4.0.2",
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
     "tslib": "^2.0.0"
