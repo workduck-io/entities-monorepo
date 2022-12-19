@@ -12,6 +12,7 @@ import {
 
 export const meilisearchClient = new MeiliSearch({
   host: process.env.MEILISEARCH_HOST,
+  apiKey: process.env.MEILI_MASTER_KEY,
 });
 
 // Get all document from meilisearch
