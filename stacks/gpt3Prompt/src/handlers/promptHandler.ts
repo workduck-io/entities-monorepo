@@ -925,20 +925,24 @@ export const createUserAuthHandler: ValidatedAPIGatewayProxyHandler<
   any
 > = async (event) => {
   const userId = extractUserIdFromToken(event);
-  let payload;
+  const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
+  let payload = {
+    userId,
+    workspaceId,
+    auth: {},
+  };
 
   const userInfoRes: UserApiInfo = (
     await Gpt3PromptUserEntity.get({
       userId,
-      workspaceId: process.env.DEFAULT_WORKSPACE_ID,
+      workspaceId,
     })
   ).Item as UserApiInfo;
 
   if (userInfoRes) {
     if (event.body && event.body.authToken) {
       payload = {
-        userId,
-        workspaceId: process.env.DEFAULT_WORKSPACE_ID,
+        ...payload,
         auth: {
           authData: {
             accessToken: event.body.authToken,
@@ -948,15 +952,13 @@ export const createUserAuthHandler: ValidatedAPIGatewayProxyHandler<
       };
     } else {
       payload = {
-        userId,
-        workspaceId: process.env.DEFAULT_WORKSPACE_ID,
+        ...payload,
         auth: userInfoRes.auth,
       };
     }
   } else {
     payload = {
-      userId,
-      workspaceId: process.env.DEFAULT_WORKSPACE_ID,
+      ...payload,
       auth: {
         authData: {
           accessToken: null,
@@ -982,7 +984,7 @@ export const createUserAuthHandler: ValidatedAPIGatewayProxyHandler<
   if (userRes) {
     return {
       statusCode: 200,
-      body: JSON.stringify("User's auth info updated"),
+      body: JSON.stringify(userRes),
     };
   } else throw createError(400, JSON.stringify('User not found'));
 };
