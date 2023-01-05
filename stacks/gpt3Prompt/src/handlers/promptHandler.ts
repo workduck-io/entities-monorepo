@@ -24,6 +24,8 @@ import {
   Gpt3PromptBody,
   MeiliSearchDocumentResponse,
   PromptDownloadState,
+  SortKey,
+  SortOrder,
   UserApiInfo,
 } from '../interface';
 
@@ -684,4 +686,156 @@ export const getAllPromptsProviderHandler: ValidatedAPIGatewayProxyHandler<
     statusCode: 200,
     body: JSON.stringify(providers),
   };
+};
+
+// Home Page Dashboard for the prompt
+// Today's Prompt - Get the prompt with the latest createdAt within the last 24 hours
+// Most Downloaded Prompt - Get the prompt with the most downloads
+// Popular Weekly Prompt - Get the prompt with the most views within the last 7 days
+// Trending Prompts - Get the prompt with the weighted score of likes, views and downloads in descending order
+// Weighted Score = (likes * 1) + (views * 0.5) + (downloads * 0.25)
+export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
+  Gpt3Prompt
+> = async (event) => {
+  const userId = extractUserIdFromToken(event);
+  let homePrompts: any = {
+    todayPrompts: {
+      title: `Today's Pick`,
+      content: [],
+    },
+    mostDownloadedPrompts: {
+      title: 'Most Downloaded',
+      content: [],
+    },
+    popularWeeklyPrompts: {
+      title: 'Popular Weekly',
+      content: [],
+    },
+    trendingPrompts: {
+      title: 'Trending Prompts',
+      content: [],
+    },
+    userRecentPrompts: {
+      title: 'Your Recent Prompts',
+      content: [],
+    },
+  };
+
+  let currentTime = Date.now();
+  let last24Hours = currentTime - 24 * 60 * 60 * 1000;
+  let last7Days = currentTime - 7 * 24 * 60 * 60 * 1000;
+  let filter24H = `${SortKey.CREATED_AT} >= ${last24Hours} AND ${SortKey.CREATED_AT} <= ${currentTime}`;
+  let filter7D = `${SortKey.CREATED_AT} >= ${last7Days} AND ${SortKey.CREATED_AT} <= ${currentTime}`;
+  let filterUser = `createdBy.id = ${userId}`;
+
+  // Make parallel requests for todayPrompts, mostDownloadedPrompts, popularWeeklyPrompts and trendingPrompts
+  const [
+    getAllPrompts,
+    mostDownloadedPrompts,
+    popularWeeklyPrompts,
+    todayPrompts,
+    userRecentPrompts,
+  ]: any = await Promise.all([
+    getAllDocuments(),
+    sortFromMeiliSearch(SortKey.DOWNLOADS, SortOrder.DESC),
+    sortFromMeiliSearch(SortKey.VIEWS, SortOrder.DESC, filter7D, 20),
+    sortFromMeiliSearch(SortKey.CREATED_AT, SortOrder.DESC, filter24H, 20),
+    sortFromMeiliSearch(SortKey.CREATED_AT, SortOrder.DESC, filterUser, 20),
+  ]);
+
+  homePrompts.todayPrompts.content = todayPrompts;
+  homePrompts.mostDownloadedPrompts.content = mostDownloadedPrompts;
+  homePrompts.popularWeeklyPrompts.content = popularWeeklyPrompts;
+  homePrompts.userRecentPrompts.content = userRecentPrompts;
+
+  let weightedScore = getAllPrompts.map((prompt: any) => {
+    let score = prompt.likes * 1 + prompt.views * 0.5 + prompt.downloads * 0.25;
+    return {
+      ...prompt,
+      score,
+    };
+  });
+
+  // Sort the prompts based on the weighted score
+  homePrompts.trendingPrompts.content = weightedScore.sort(
+    (a: any, b: any) => b.score - a.score
+  );
+
+  try {
+    return {
+      statusCode: 200,
+      body: JSON.stringify(homePrompts),
+    };
+  } catch (error) {
+    throw createError(400, JSON.stringify(error.message));
+  }
+};
+
+// User Auth Info for the prompt
+// OpenAI API Key with usage limits
+// It will be used both for create user auth and update user auth
+export const createUserAuthHandler: ValidatedAPIGatewayProxyHandler<
+  any
+> = async (event) => {
+  const userId = extractUserIdFromToken(event);
+  let payload;
+
+  const userInfoRes: UserApiInfo = (
+    await Gpt3PromptUserEntity.get({
+      userId,
+      workspaceId: process.env.DEFAULT_WORKSPACE_ID,
+    })
+  ).Item as UserApiInfo;
+
+  if (userInfoRes) {
+    if (event.body && event.body.authToken) {
+      payload = {
+        userId,
+        workspaceId: process.env.DEFAULT_WORKSPACE_ID,
+        auth: {
+          authData: {
+            accessToken: event.body.authToken,
+          },
+          authMetadata: userInfoRes.auth.authMetadata,
+        },
+      };
+    } else {
+      payload = {
+        userId,
+        workspaceId: process.env.DEFAULT_WORKSPACE_ID,
+        auth: userInfoRes.auth,
+      };
+    }
+  } else {
+    payload = {
+      userId,
+      workspaceId: process.env.DEFAULT_WORKSPACE_ID,
+      auth: {
+        authData: {
+          accessToken: null,
+        },
+        authMetadata: {
+          provider: 'openai',
+          limit: 5,
+          usage: 0,
+        },
+      },
+    };
+  }
+
+  const userRes = (
+    await Gpt3PromptUserEntity.update(
+      { ...payload },
+      {
+        returnValues: 'ALL_NEW',
+      }
+    )
+  ).Attributes;
+
+  if (userRes) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify("User's auth info updated"),
+    };
+  } else throw createError(400, JSON.stringify('User not found'));
 };

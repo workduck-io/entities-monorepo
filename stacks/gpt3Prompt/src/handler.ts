@@ -6,6 +6,7 @@ import {
 } from '@workduck-io/lambda-routing';
 import {
   createPromptHandler,
+  createUserAuthHandler,
   deletePromptHandler,
   downloadPromptHandler,
   getAllPromptsHandler,
