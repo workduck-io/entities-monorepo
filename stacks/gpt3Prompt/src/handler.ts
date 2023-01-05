@@ -6,6 +6,7 @@ import {
 } from '@workduck-io/lambda-routing';
 import {
   createPromptHandler,
+  createUserAuthHandler,
   deletePromptHandler,
   downloadPromptHandler,
   getAllPromptsHandler,
@@ -91,6 +92,11 @@ const routeHandlers = [
     method: HTTPMethod.GET,
     path: '/home',
     handler: homeDashboardHandler,
+  },
+  {
+    method: HTTPMethod.POST,
+    path: '/user',
+    handler: createUserAuthHandler,
   },
 ];
 

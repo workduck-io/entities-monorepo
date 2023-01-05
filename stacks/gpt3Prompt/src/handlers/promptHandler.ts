@@ -4,7 +4,7 @@ import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { nanoid } from 'nanoid';
 import {
   getUserInfo,
-  openai,
+  openaiInstance,
   pickAttributes,
   replaceVarWithVal,
 } from '../../utils/helpers';
@@ -16,7 +16,11 @@ import {
   sortFromMeiliSearch,
   updateDocumentInMeiliSearch,
 } from '../../utils/meiliSearchHelper';
-import { Gpt3PromptAnalyticsEntity, Gpt3PromptEntity } from '../entities';
+import {
+  Gpt3PromptAnalyticsEntity,
+  Gpt3PromptEntity,
+  Gpt3PromptUserEntity,
+} from '../entities';
 import {
   Gpt3Prompt,
   Gpt3PromptBody,
@@ -24,6 +28,7 @@ import {
   PromptDownloadState,
   SortKey,
   SortOrder,
+  UserApiInfo,
 } from '../interface';
 
 import { Categories } from 'stacks/gpt3Prompt/utils/consts';
@@ -465,6 +470,7 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
 > = async (event) => {
   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
+  const userId = extractUserIdFromToken(event);
   const { id } = event.pathParameters;
 
   const { options, variablesValues } = event.body as unknown as {
@@ -472,10 +478,6 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
     variablesValues: Record<string, string>;
   };
 
-  // const { max_tokens, temperature, weight, iterations } =
-  //   event.body as unknown as Gpt3Prompt['properties'];
-
-  // Get the prompt
   try {
     const promptRes: any = (
       await Gpt3PromptEntity.get({
@@ -483,6 +485,37 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
         workspaceId,
       })
     ).Item;
+
+    const userAuthInfo: UserApiInfo = (
+      await Gpt3PromptUserEntity.get({
+        userId,
+        workspaceId,
+      })
+    ).Item as UserApiInfo;
+
+    let apikey: string = '';
+    let userFlag: boolean = false;
+    let userToken = userAuthInfo.auth?.authData.accessToken;
+
+    if (userToken !== undefined && userToken !== null && userToken !== '') {
+      apikey = userAuthInfo.auth?.authData.accessToken;
+      userFlag = true;
+    } else {
+      // If the user has not set the access token, then use the default one with check for the limit
+      if (userAuthInfo.auth?.authMetadata.limit > 0) {
+        apikey = process.env.OPENAI_API_KEY;
+      } else if (userAuthInfo.auth?.authMetadata.limit <= 0) {
+        return {
+          statusCode: 402,
+          body: JSON.stringify("You've reached your limit for the month"),
+        };
+      } else {
+        return {
+          statusCode: 402,
+          body: JSON.stringify('You need to set up your OpenAI API key'),
+        };
+      }
+    }
 
     const { prompt, properties, variables } = promptRes;
 
@@ -506,7 +539,7 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
       // Call the GPT3 API
       let completions;
       try {
-        completions = await openai.createCompletion({
+        completions = await openaiInstance(apikey).createCompletion({
           ...resultPayload,
         });
       } catch (error) {
@@ -523,6 +556,24 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
         completions.data.choices.map((choice) => {
           return choices.push(choice.text);
         });
+
+        await Gpt3PromptUserEntity.update({
+          userId,
+          workspaceId,
+          auth: {
+            authData: userAuthInfo.auth?.authData,
+            authMetadata: {
+              ...userAuthInfo.auth?.authMetadata,
+              limit: userFlag
+                ? userAuthInfo.auth?.authMetadata.limit
+                : userAuthInfo.auth?.authMetadata.limit === 0
+                ? 0
+                : userAuthInfo.auth?.authMetadata.limit - 1,
+              usage: userAuthInfo.auth?.authMetadata.usage + 1,
+            },
+          },
+        });
+
         return {
           statusCode: 200,
           body: JSON.stringify(choices),
@@ -865,4 +916,73 @@ export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
   } catch (error) {
     throw createError(400, JSON.stringify(error.message));
   }
+};
+
+// User Auth Info for the prompt
+// OpenAI API Key with usage limits
+// It will be used both for create user auth and update user auth
+export const createUserAuthHandler: ValidatedAPIGatewayProxyHandler<
+  any
+> = async (event) => {
+  const userId = extractUserIdFromToken(event);
+  let payload;
+
+  const userInfoRes: UserApiInfo = (
+    await Gpt3PromptUserEntity.get({
+      userId,
+      workspaceId: process.env.DEFAULT_WORKSPACE_ID,
+    })
+  ).Item as UserApiInfo;
+
+  if (userInfoRes) {
+    if (event.body && event.body.authToken) {
+      payload = {
+        userId,
+        workspaceId: process.env.DEFAULT_WORKSPACE_ID,
+        auth: {
+          authData: {
+            accessToken: event.body.authToken,
+          },
+          authMetadata: userInfoRes.auth.authMetadata,
+        },
+      };
+    } else {
+      payload = {
+        userId,
+        workspaceId: process.env.DEFAULT_WORKSPACE_ID,
+        auth: userInfoRes.auth,
+      };
+    }
+  } else {
+    payload = {
+      userId,
+      workspaceId: process.env.DEFAULT_WORKSPACE_ID,
+      auth: {
+        authData: {
+          accessToken: null,
+        },
+        authMetadata: {
+          provider: 'openai',
+          limit: 5,
+          usage: 0,
+        },
+      },
+    };
+  }
+
+  const userRes = (
+    await Gpt3PromptUserEntity.update(
+      { ...payload },
+      {
+        returnValues: 'ALL_NEW',
+      }
+    )
+  ).Attributes;
+
+  if (userRes) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify("User's auth info updated"),
+    };
+  } else throw createError(400, JSON.stringify('User not found'));
 };

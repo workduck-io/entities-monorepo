@@ -100,6 +100,13 @@ const main = {
         authorizer: 'workduckAuthorizer',
       },
     },
+    {
+      httpApi: {
+        method: 'POST',
+        path: '/user',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
   ],
 };
 

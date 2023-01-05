@@ -60,3 +60,15 @@ export const Gpt3PromptAnalyticsEntity = new Entity({
   table: gpt3PromptTable,
   timestamps: false,
 } as const);
+
+// User openai API key usage entity
+export const Gpt3PromptUserEntity = new Entity({
+  name: 'gpt3PromptUser',
+  attributes: {
+    userId: { partitionKey: true, type: 'string' },
+    workspaceId: { sortKey: true, type: 'string' },
+    auth: { type: 'map' },
+  },
+  timestamps: false,
+  table: gpt3PromptTable,
+} as const);

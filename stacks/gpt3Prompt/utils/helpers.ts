@@ -41,9 +41,9 @@ export const getRegion = () => {
   }
 };
 
-export const openai = new OpenAIApi(
-  new Configuration({ apiKey: process.env.OPENAI_API_KEY })
-);
+export const openaiInstance = (apiKey: string) => {
+  return new OpenAIApi(new Configuration({ apiKey }));
+};
 
 export const getUserInfo = async (event: any) => {
   try {
