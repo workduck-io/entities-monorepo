@@ -40,7 +40,7 @@ const gpt3PromptServerlessConfig = {
     },
     customDomain: {
       http: {
-        basePath: 'gpt3Prompt',
+        basePath: 'prompt',
       },
     },
     autoswagger: {

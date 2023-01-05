@@ -2,6 +2,7 @@ import type { Serverless } from 'serverless/aws';
 
 export const baseServerlessConfiguration: Partial<Serverless> = {
   frameworkVersion: '3',
+  useDotenv: true,
   package: {
     individually: true,
     excludeDevDependencies: true,
@@ -9,6 +10,7 @@ export const baseServerlessConfiguration: Partial<Serverless> = {
   plugins: [
     '@workduck-io/serverless-auto-swagger',
     'serverless-esbuild',
+    'serverless-dotenv-plugin',
     'serverless-dynamodb-local',
     'serverless-offline',
     'serverless-domain-manager',
