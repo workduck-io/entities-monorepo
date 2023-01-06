@@ -841,3 +841,24 @@ export const createUserAuthHandler: ValidatedAPIGatewayProxyHandler<
     };
   } else throw createError(400, JSON.stringify('User not found'));
 };
+
+export const getUserAuthHandler: ValidatedAPIGatewayProxyHandler<any> = async (
+  event
+) => {
+  const userId = extractUserIdFromToken(event);
+  const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
+
+  const userInfoRes: UserApiInfo = (
+    await Gpt3PromptUserEntity.get({
+      userId,
+      workspaceId,
+    })
+  ).Item as UserApiInfo;
+
+  if (userInfoRes) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify(userInfoRes),
+    };
+  } else throw createError(400, JSON.stringify('User not found'));
+};
