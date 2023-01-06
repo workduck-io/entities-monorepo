@@ -45,13 +45,14 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
     createdBy: userId,
     workspaceId,
     entityId: gpt3Prompt.entityId ?? nanoid(),
+    prompt: gpt3Prompt.prompt + '. Generate results in markdown',
     downloadedBy: [],
     analyticsId: nanoid(),
     version: 0,
     createdAt: Date.now(),
     updatedAt: Date.now(),
     properties: gpt3Prompt.properties ?? {
-      model: 'text-davinci-002',
+      model: 'text-davinci-003',
       max_tokens: 250,
       temperature: 0.7,
       iterations: 3,
@@ -985,6 +986,27 @@ export const createUserAuthHandler: ValidatedAPIGatewayProxyHandler<
     return {
       statusCode: 200,
       body: JSON.stringify(userRes),
+    };
+  } else throw createError(400, JSON.stringify('User not found'));
+};
+
+export const getUserAuthHandler: ValidatedAPIGatewayProxyHandler<any> = async (
+  event
+) => {
+  const userId = extractUserIdFromToken(event);
+  const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
+
+  const userInfoRes: UserApiInfo = (
+    await Gpt3PromptUserEntity.get({
+      userId,
+      workspaceId,
+    })
+  ).Item as UserApiInfo;
+
+  if (userInfoRes) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify(userInfoRes),
     };
   } else throw createError(400, JSON.stringify('User not found'));
 };

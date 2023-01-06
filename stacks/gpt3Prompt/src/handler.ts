@@ -15,6 +15,7 @@ import {
   getCategoriesHandler,
   getPromptAnalyticsHandler,
   getPromptHandler,
+  getUserAuthHandler,
   homeDashboardHandler,
   likedViewedPromptHandler,
   resultPrompthandler,
@@ -95,8 +96,13 @@ const routeHandlers = [
   },
   {
     method: HTTPMethod.POST,
-    path: '/user',
+    path: '/userAuth',
     handler: createUserAuthHandler,
+  },
+  {
+    method: HTTPMethod.GET,
+    path: '/userAuth',
+    handler: getUserAuthHandler,
   },
 ];
 

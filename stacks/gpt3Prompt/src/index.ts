@@ -103,7 +103,14 @@ const main = {
     {
       httpApi: {
         method: 'POST',
-        path: '/user',
+        path: '/userAuth',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/userAuth',
         authorizer: 'workduckAuthorizer',
       },
     },
