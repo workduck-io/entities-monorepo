@@ -818,7 +818,7 @@ export const createUserAuthHandler: ValidatedAPIGatewayProxyHandler<
         },
         authMetadata: {
           provider: 'openai',
-          limit: 5,
+          limit: 10,
           usage: 0,
         },
       },
@@ -860,5 +860,36 @@ export const getUserAuthHandler: ValidatedAPIGatewayProxyHandler<any> = async (
       statusCode: 200,
       body: JSON.stringify(userInfoRes),
     };
-  } else throw createError(400, JSON.stringify('User not found'));
+  } else {
+    const payload = {
+      userId,
+      workspaceId,
+      auth: {
+        authData: {
+          accessToken: null,
+        },
+        authMetadata: {
+          provider: 'openai',
+          limit: 10,
+          usage: 0,
+        },
+      },
+    };
+
+    const userRes = (
+      await Gpt3PromptUserEntity.update(
+        { ...payload },
+        {
+          returnValues: 'ALL_NEW',
+        }
+      )
+    ).Attributes;
+
+    if (userRes) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify(userRes),
+      };
+    } else throw createError(400, JSON.stringify('Error creating user'));
+  }
 };
