@@ -26,12 +26,12 @@ export const createUserAuthHandler: ValidatedAPIGatewayProxyHandler<
   ).Item as UserApiInfo;
 
   if (userInfoRes) {
-    if (event.body && event.body.authToken) {
+    if (event.body) {
       payload = {
         ...payload,
         auth: {
           authData: {
-            accessToken: event.body.authToken,
+            accessToken: event.body.accessToken,
           },
           authMetadata: userInfoRes.auth.authMetadata,
         },
@@ -72,7 +72,7 @@ export const createUserAuthHandler: ValidatedAPIGatewayProxyHandler<
       statusCode: 200,
       body: JSON.stringify(userRes),
     };
-  } else throw createError(400, JSON.stringify('User not found'));
+  } else throw createError(400, 'User not found');
 };
 
 export const getUserAuthHandler: ValidatedAPIGatewayProxyHandler<any> = async (
@@ -123,6 +123,6 @@ export const getUserAuthHandler: ValidatedAPIGatewayProxyHandler<any> = async (
         statusCode: 200,
         body: JSON.stringify(userRes),
       };
-    } else throw createError(400, JSON.stringify('Error creating user'));
+    } else throw createError(400, 'Error creating user');
   }
 };

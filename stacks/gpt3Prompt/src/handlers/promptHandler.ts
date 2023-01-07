@@ -117,7 +117,7 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
       };
     else throw createError(400, 'Error creating prompt');
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
@@ -144,7 +144,7 @@ export const getAllPromptsHandler: ValidatedAPIGatewayProxyHandler<
         })
       ).Items;
     } catch (e) {
-      throw createError(400, JSON.stringify(e.message));
+      throw createError(400, e.message);
     }
   } else {
     try {
@@ -154,7 +154,7 @@ export const getAllPromptsHandler: ValidatedAPIGatewayProxyHandler<
         })
       ).Items;
     } catch (e) {
-      throw createError(400, JSON.stringify(e.message));
+      throw createError(400, e.message);
     }
   }
 
@@ -188,7 +188,7 @@ export const getPromptHandler: ValidatedAPIGatewayProxyHandler<
       body: JSON.stringify(rest),
     };
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
@@ -300,7 +300,7 @@ export const updatePromptHandler: ValidatedAPIGatewayProxyHandler<
       }
     }
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
@@ -344,9 +344,9 @@ export const deletePromptHandler: ValidatedAPIGatewayProxyHandler<
         statusCode: 200,
         body: JSON.stringify('Prompt deleted successfully'),
       };
-    else throw createError(400, JSON.stringify('Error deleting prompt'));
+    else throw createError(400, 'Error deleting prompt');
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
@@ -432,9 +432,9 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
         statusCode: 200,
         body: JSON.stringify({ ...rest }),
       };
-    else throw createError(400, JSON.stringify('Error downloading prompt'));
+    else throw createError(400, 'Error downloading prompt');
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
@@ -516,7 +516,7 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
           ...resultPayload,
         });
       } catch (error) {
-        throw createError(400, JSON.stringify(error.message));
+        throw createError(400, error.response.statusText);
       }
 
       // Remove other fields in choices array and return only the text, index
@@ -551,10 +551,10 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
           statusCode: 200,
           body: JSON.stringify(choices),
         };
-      } else throw createError(400, JSON.stringify('Error fetching results'));
+      } else throw createError(400, 'Error fetching results');
     }
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
@@ -608,7 +608,7 @@ export const getAllPublicUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
       }),
     };
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
@@ -657,7 +657,7 @@ export const getAllUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
       }),
     };
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 

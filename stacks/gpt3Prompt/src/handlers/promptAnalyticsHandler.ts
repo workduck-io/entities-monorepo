@@ -32,7 +32,7 @@ export const getPromptAnalyticsHandler: ValidatedAPIGatewayProxyHandler<
       body: JSON.stringify(response.Items[0]),
     };
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
@@ -155,9 +155,9 @@ export const likedViewedPromptHandler: ValidatedAPIGatewayProxyHandler<
         statusCode: 200,
         body: JSON.stringify(analyticsUpdateRes),
       };
-    } else throw createError(400, JSON.stringify('Error updating prompt'));
+    } else throw createError(400, 'Error updating prompt');
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
@@ -240,7 +240,7 @@ export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
       body: JSON.stringify(homePrompts),
     };
   } catch (error) {
-    throw createError(400, JSON.stringify(error.message));
+    throw createError(400, error.message);
   }
 };
 
@@ -262,6 +262,6 @@ export const searchPromptHandler: ValidatedAPIGatewayProxyHandler<
       body: JSON.stringify(results),
     };
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
