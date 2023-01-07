@@ -40,3 +40,16 @@ export const Categories = [
     name: 'Shopping',
   },
 ];
+
+export const PromptProviders = [
+  {
+    promptGroupId: 'OPENAI',
+    authConfig: {
+      authURL: 'https://beta.openai.com/account/api-keys',
+    },
+    icon: 'https://cdn.workduck.io/assets/openai.svg',
+    name: 'OpenAI',
+    description:
+      'Some of the things you can do with OpenAI technologies include - Build intelligent chatbots or virtual assistants that can understand and respond to natural language input. Develop intelligent systems that can process and analyze large amounts of data to make predictions or recommendations. Use machine learning algorithms to build intelligent systems that can perform tasks like image or speech recognition. Explore and research the capabilities and limitations of artificial intelligence and machine learning. Overall, there are many potential applications for OpenAI technologies, ranging from commercial to research and educational.',
+  },
+];

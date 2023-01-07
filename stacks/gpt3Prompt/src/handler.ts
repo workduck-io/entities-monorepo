@@ -6,22 +6,29 @@ import {
 } from '@workduck-io/lambda-routing';
 import {
   createPromptHandler,
-  createUserAuthHandler,
   deletePromptHandler,
   downloadPromptHandler,
   getAllPromptsHandler,
+  getAllPromptsProviderHandler,
   getAllPublicUserPromptsHandler,
   getAllUserPromptsHandler,
-  getCategoriesHandler,
-  getPromptAnalyticsHandler,
   getPromptHandler,
-  getUserAuthHandler,
-  homeDashboardHandler,
-  likedViewedPromptHandler,
   resultPrompthandler,
-  searchPromptHandler,
   updatePromptHandler,
 } from './handlers/promptHandler';
+
+import {
+  getPromptAnalyticsHandler,
+  likedViewedPromptHandler,
+  homeDashboardHandler,
+  getCategoriesHandler,
+  searchPromptHandler,
+} from './handlers/promptAnalyticsHandler';
+
+import {
+  createUserAuthHandler,
+  getUserAuthHandler,
+} from './handlers/promptUserHandler';
 
 const routeHandlers = [
   {
@@ -33,6 +40,16 @@ const routeHandlers = [
     method: HTTPMethod.GET,
     path: '/all',
     handler: getAllPromptsHandler,
+  },
+  {
+    method: HTTPMethod.GET,
+    path: '/allUser',
+    handler: getAllUserPromptsHandler,
+  },
+  {
+    method: HTTPMethod.GET,
+    path: '/allPublicUser',
+    handler: getAllPublicUserPromptsHandler,
   },
   {
     method: HTTPMethod.GET,
@@ -58,16 +75,6 @@ const routeHandlers = [
     method: HTTPMethod.POST,
     path: '/result/{id}',
     handler: resultPrompthandler,
-  },
-  {
-    method: HTTPMethod.GET,
-    path: '/allUser',
-    handler: getAllUserPromptsHandler,
-  },
-  {
-    method: HTTPMethod.GET,
-    path: '/allPublicUser',
-    handler: getAllPublicUserPromptsHandler,
   },
   {
     method: HTTPMethod.GET,
@@ -103,6 +110,11 @@ const routeHandlers = [
     method: HTTPMethod.GET,
     path: '/userAuth',
     handler: getUserAuthHandler,
+  },
+  {
+    method: HTTPMethod.GET,
+    path: '/providers',
+    handler: getAllPromptsProviderHandler,
   },
 ];
 

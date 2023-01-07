@@ -114,6 +114,13 @@ const main = {
         authorizer: 'workduckAuthorizer',
       },
     },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/providers',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
   ],
 };
 
