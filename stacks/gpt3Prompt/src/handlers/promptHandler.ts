@@ -8,6 +8,7 @@ import {
   pickAttributes,
   removeAtrributes,
   replaceVarWithVal,
+  replaceVarWithValForPreview,
 } from '../../utils/helpers';
 import {
   addDocumentToMeiliSearch,
@@ -23,11 +24,12 @@ import {
   Gpt3Prompt,
   Gpt3PromptBody,
   MeiliSearchDocumentResponse,
+  PreviewPromptBody,
   PromptDownloadState,
   UserApiInfo,
 } from '../interface';
 
-import { PromptProviders } from '../../utils/consts';
+import { PromptProviders, defaultGPT3Props } from '../../utils/consts';
 
 export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
@@ -440,6 +442,98 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 
+// Preview of a prompt
+export const previewPromptHandler: ValidatedAPIGatewayProxyHandler<
+  PreviewPromptBody
+> = async (event) => {
+  const { prompt, variables, options } = event.body;
+  const userId = extractUserIdFromToken(event);
+  const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
+  const userAuthInfo: UserApiInfo = (
+    await Gpt3PromptUserEntity.get({
+      userId,
+      workspaceId,
+    })
+  ).Item as UserApiInfo;
+
+  let apikey = '';
+  let userFlag = false;
+  const userToken = userAuthInfo.auth?.authData.accessToken;
+
+  if (userToken !== undefined && userToken !== null && userToken !== '') {
+    apikey = userAuthInfo.auth?.authData.accessToken;
+    userFlag = true;
+  } else {
+    // If the user has not set the access token, then use the default one with check for the limit
+    if (userAuthInfo.auth?.authMetadata.limit > 0) {
+      apikey = process.env.OPENAI_API_KEY;
+    } else if (userAuthInfo.auth?.authMetadata.limit <= 0) {
+      return {
+        statusCode: 402,
+        body: JSON.stringify("You've reached your limit for the month"),
+      };
+    } else {
+      return {
+        statusCode: 402,
+        body: JSON.stringify('You need to set up your OpenAI API key'),
+      };
+    }
+  }
+
+  if (prompt.length) {
+    try {
+      const mutatedPrompt = replaceVarWithValForPreview(prompt, variables);
+      const resultPayload = {
+        prompt: mutatedPrompt,
+        n: options.iterations ?? defaultGPT3Props.iterations,
+        model: defaultGPT3Props.model,
+        max_tokens: options.max_tokens ?? defaultGPT3Props.max_tokens,
+        temperature: options.temperature ?? defaultGPT3Props.temperature,
+        top_p: options.weight ?? defaultGPT3Props.top_p,
+      };
+
+      const completions = await openaiInstance(apikey).createCompletion({
+        ...resultPayload,
+      });
+      if (
+        completions &&
+        completions.data &&
+        completions.data.choices.length > 0
+      ) {
+        const choices = [];
+        completions.data.choices.map((choice) => {
+          return choices.push(choice.text);
+        });
+
+        await Gpt3PromptUserEntity.update({
+          userId,
+          workspaceId,
+          auth: {
+            authData: userAuthInfo.auth?.authData,
+            authMetadata: {
+              ...userAuthInfo.auth?.authMetadata,
+              limit: userFlag
+                ? userAuthInfo.auth?.authMetadata.limit
+                : userAuthInfo.auth?.authMetadata.limit === 0
+                ? 0
+                : userAuthInfo.auth?.authMetadata.limit - 1,
+              usage: userAuthInfo.auth?.authMetadata.usage + 1,
+            },
+          },
+        });
+
+        return {
+          statusCode: 200,
+          body: JSON.stringify(choices),
+        };
+      } else throw createError(400, JSON.stringify('Error fetching results'));
+    } catch (error) {
+      throw createError(400, JSON.stringify(error.message));
+    }
+
+    // Remove other fields in choices array and return only the text, index
+  }
+};
 // Results of a prompt
 export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt

@@ -89,6 +89,23 @@ export const replaceVarWithVal = (
   return originalStr;
 };
 
+export const replaceVarWithValForPreview = (
+  originalStr: string,
+  variablesValues: Array<{ id: string; default?: string }>
+) => {
+  const regex = /(?<={).+?(?=\})/g; // find all variables ( matching format {*} )
+  const vars = originalStr.match(regex);
+  if (vars) {
+    vars.forEach((v) => {
+      variablesValues.forEach((item) => {
+        if (item.id === v)
+          originalStr = originalStr.replace(`{${v}}`, item.default);
+      });
+    });
+  }
+  return originalStr;
+};
+
 export const pickAttributes = (obj: any, attributes: string[]) => {
   return attributes.reduce((acc: any, curr: any) => {
     return { ...acc, [curr]: obj[curr] };

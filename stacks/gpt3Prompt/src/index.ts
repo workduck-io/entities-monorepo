@@ -97,6 +97,19 @@ const main = {
       httpApi: {
         method: 'GET',
         path: '/home',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/recents',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'POST',
+        path: '/preview',
         authorizer: 'workduckAuthorizer',
       },
     },

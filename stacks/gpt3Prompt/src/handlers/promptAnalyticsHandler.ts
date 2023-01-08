@@ -170,8 +170,7 @@ export const likedViewedPromptHandler: ValidatedAPIGatewayProxyHandler<
 export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
 > = async (event) => {
-  const userId = extractUserIdFromToken(event);
-  let homePrompts: any = {
+  const homePrompts: any = {
     todayPrompts: {
       title: `Today's Pick`,
       content: [],
@@ -186,10 +185,6 @@ export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
     },
     trendingPrompts: {
       title: 'Trending Prompts',
-      content: [],
-    },
-    userRecentPrompts: {
-      title: 'Your Recent Prompts',
       content: [],
     },
   };
@@ -207,22 +202,20 @@ export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
     mostDownloadedPrompts,
     popularWeeklyPrompts,
     todayPrompts,
-    userRecentPrompts,
   ]: any = await Promise.all([
     getAllDocuments(),
     sortFromMeiliSearch(SortKey.DOWNLOADS, SortOrder.DESC),
     sortFromMeiliSearch(SortKey.VIEWS, SortOrder.DESC, filter7D, 20),
     sortFromMeiliSearch(SortKey.CREATED_AT, SortOrder.DESC, filter24H, 20),
-    sortFromMeiliSearch(SortKey.CREATED_AT, SortOrder.DESC, filterUser, 20),
   ]);
 
   homePrompts.todayPrompts.content = todayPrompts;
   homePrompts.mostDownloadedPrompts.content = mostDownloadedPrompts;
   homePrompts.popularWeeklyPrompts.content = popularWeeklyPrompts;
-  homePrompts.userRecentPrompts.content = userRecentPrompts;
 
-  let weightedScore = getAllPrompts.map((prompt: any) => {
-    let score = prompt.likes * 1 + prompt.views * 0.5 + prompt.downloads * 0.25;
+  const weightedScore = getAllPrompts.map((prompt: any) => {
+    const score =
+      prompt.likes * 1 + prompt.views * 0.5 + prompt.downloads * 0.25;
     return {
       ...prompt,
       score,
@@ -244,6 +237,31 @@ export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 
+export const recentPromptsHandler: ValidatedAPIGatewayProxyHandler<
+  Gpt3Prompt
+> = async (event) => {
+  try {
+    const userId = extractUserIdFromToken(event);
+
+    const recentPrompts = {
+      title: 'Your Recent Prompts',
+      content: [],
+    };
+
+    const filterUser = `createdBy.id = ${userId}`;
+    const userRecentPrompts = await sortFromMeiliSearch(
+      SortKey.CREATED_AT,
+      SortOrder.DESC,
+      filterUser,
+      20
+    );
+    recentPrompts.content = userRecentPrompts;
+
+    return { statusCode: 200, body: JSON.stringify(recentPrompts) };
+  } catch (error) {
+    throw createError(400, error.message);
+  }
+};
 // Search for a prompt
 export const searchPromptHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt

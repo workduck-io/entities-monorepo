@@ -180,3 +180,23 @@ export interface UserApiInfo {
     };
   };
 }
+
+export interface PreviewPromptBody {
+  options?: {
+    // model by default is text-davinci-003
+    model: string;
+    // maximum number of tokens to generate in the completion.
+    max_tokens: number;
+    // 0.9 for more creative applications, and 0 (argmax sampling) for ones with a well-defined answer.
+    temperature: number;
+    // completions to generate for each prompt.
+    iterations: number;
+    // Weigtt of the prompt in the completion. 0 (default) is a standard prompt, the higher the weight, the original prompt is diluted.
+    weight: number;
+  };
+  prompt: string;
+  variables?: Array<{
+    id: string;
+    default?: string;
+  }>;
+}
