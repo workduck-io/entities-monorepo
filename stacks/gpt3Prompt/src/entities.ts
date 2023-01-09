@@ -28,6 +28,7 @@ export const Gpt3PromptEntity = new Entity({
     version: { type: 'number', default: () => 0, required: false },
     showcase: { type: 'list', required: false },
     analyticsId: { type: 'string', required: true },
+    default: { type: 'boolean', required: false },
   },
   timestamps: false,
   table: gpt3PromptTable,

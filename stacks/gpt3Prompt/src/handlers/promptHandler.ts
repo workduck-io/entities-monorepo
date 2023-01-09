@@ -6,6 +6,7 @@ import {
   getUserInfo,
   openaiInstance,
   pickAttributes,
+  removeAtrributes,
   replaceVarWithVal,
 } from '../../utils/helpers';
 import {
@@ -36,6 +37,7 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
   const gpt3Prompt: Gpt3PromptBody = event.body;
 
   const payload = {
+    ...gpt3Prompt,
     userId,
     createdBy: userId,
     workspaceId,
@@ -52,7 +54,7 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
       temperature: 0.7,
       iterations: 3,
     },
-    ...gpt3Prompt,
+    default: gpt3Prompt.default ?? false,
   };
 
   try {
@@ -637,23 +639,35 @@ export const getAllUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
       })
     ).Items;
 
-    const downloadedResFiltered = downloadedRes.map((downloadedPrompt: any) => {
-      const { prompt, properties, downloadedBy, analyticsId, ...rest } =
-        downloadedPrompt;
-      return rest;
-    });
+    defaultRes = (
+      await Gpt3PromptEntity.query(workspaceId, {
+        beginsWith: 'PROMPT_',
+        // @ts-ignore
+        filters: [{ attr: 'default', eq: true }],
+      })
+    ).Items;
 
-    const createdResFiltered = createdRes.map((createdPrompt: any) => {
-      const { prompt, properties, downloadedBy, analyticsId, ...rest } =
-        createdPrompt;
-      return rest;
-    });
+    const removeAtrribute = [
+      'prompt',
+      'properties',
+      'downloadedBy',
+      'analyticsId',
+      'workspaceId',
+    ];
+
+    const downloadedResFiltered = removeAtrributes(
+      downloadedRes,
+      removeAtrribute
+    );
+    const createdResFiltered = removeAtrributes(createdRes, removeAtrribute);
+    const defaultResFiltered = removeAtrributes(defaultRes, removeAtrribute);
 
     return {
       statusCode: 200,
       body: JSON.stringify({
         downloaded: downloadedResFiltered,
         created: createdResFiltered,
+        default: defaultResFiltered,
       }),
     };
   } catch (e) {
