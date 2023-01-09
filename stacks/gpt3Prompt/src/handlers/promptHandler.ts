@@ -4,29 +4,29 @@ import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import { nanoid } from 'nanoid';
 import {
   getUserInfo,
-  openai,
+  openaiInstance,
   pickAttributes,
   replaceVarWithVal,
 } from '../../utils/helpers';
 import {
   addDocumentToMeiliSearch,
   deleteDocumentFromMeiliSearch,
-  getAllDocuments,
-  searchDocumentFromMeiliSearch,
-  sortFromMeiliSearch,
   updateDocumentInMeiliSearch,
 } from '../../utils/meiliSearchHelper';
-import { Gpt3PromptAnalyticsEntity, Gpt3PromptEntity } from '../entities';
+import {
+  Gpt3PromptAnalyticsEntity,
+  Gpt3PromptEntity,
+  Gpt3PromptUserEntity,
+} from '../entities';
 import {
   Gpt3Prompt,
   Gpt3PromptBody,
   MeiliSearchDocumentResponse,
   PromptDownloadState,
-  SortKey,
-  SortOrder,
+  UserApiInfo,
 } from '../interface';
 
-import { Categories } from 'stacks/gpt3Prompt/utils/consts';
+import { PromptProviders } from '../../utils/consts';
 
 export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
@@ -40,13 +40,14 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
     createdBy: userId,
     workspaceId,
     entityId: gpt3Prompt.entityId ?? nanoid(),
+    prompt: gpt3Prompt.prompt + '. Generate results in markdown',
     downloadedBy: [],
     analyticsId: nanoid(),
     version: 0,
     createdAt: Date.now(),
     updatedAt: Date.now(),
     properties: gpt3Prompt.properties ?? {
-      model: 'text-davinci-002',
+      model: 'text-davinci-003',
       max_tokens: 250,
       temperature: 0.7,
       iterations: 3,
@@ -116,7 +117,7 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
       };
     else throw createError(400, 'Error creating prompt');
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
@@ -143,7 +144,7 @@ export const getAllPromptsHandler: ValidatedAPIGatewayProxyHandler<
         })
       ).Items;
     } catch (e) {
-      throw createError(400, JSON.stringify(e.message));
+      throw createError(400, e.message);
     }
   } else {
     try {
@@ -153,7 +154,7 @@ export const getAllPromptsHandler: ValidatedAPIGatewayProxyHandler<
         })
       ).Items;
     } catch (e) {
-      throw createError(400, JSON.stringify(e.message));
+      throw createError(400, e.message);
     }
   }
 
@@ -167,29 +168,6 @@ export const getAllPromptsHandler: ValidatedAPIGatewayProxyHandler<
     statusCode: 200,
     body: JSON.stringify(prompts),
   };
-};
-
-// Get the analytics of a prompt
-export const getPromptAnalyticsHandler: ValidatedAPIGatewayProxyHandler<
-  Gpt3Prompt
-> = async (event) => {
-  const promptId = event.pathParameters?.promptId;
-
-  try {
-    const response = await Gpt3PromptAnalyticsEntity.query(
-      `PROMPT_${promptId}`,
-      {
-        beginsWith: 'PROMPT_ANALYTICS_',
-      }
-    );
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify(response.Items[0]),
-    };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
-  }
 };
 
 // Get a single prompt
@@ -210,7 +188,7 @@ export const getPromptHandler: ValidatedAPIGatewayProxyHandler<
       body: JSON.stringify(rest),
     };
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
@@ -322,7 +300,7 @@ export const updatePromptHandler: ValidatedAPIGatewayProxyHandler<
       }
     }
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
@@ -366,9 +344,9 @@ export const deletePromptHandler: ValidatedAPIGatewayProxyHandler<
         statusCode: 200,
         body: JSON.stringify('Prompt deleted successfully'),
       };
-    else throw createError(400, JSON.stringify('Error deleting prompt'));
+    else throw createError(400, 'Error deleting prompt');
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
@@ -454,9 +432,9 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
         statusCode: 200,
         body: JSON.stringify({ ...rest }),
       };
-    else throw createError(400, JSON.stringify('Error downloading prompt'));
+    else throw createError(400, 'Error downloading prompt');
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
@@ -465,6 +443,7 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
 > = async (event) => {
   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
+  const userId = extractUserIdFromToken(event);
   const { id } = event.pathParameters;
 
   const { options, variablesValues } = event.body as unknown as {
@@ -472,10 +451,6 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
     variablesValues: Record<string, string>;
   };
 
-  // const { max_tokens, temperature, weight, iterations } =
-  //   event.body as unknown as Gpt3Prompt['properties'];
-
-  // Get the prompt
   try {
     const promptRes: any = (
       await Gpt3PromptEntity.get({
@@ -483,6 +458,37 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
         workspaceId,
       })
     ).Item;
+
+    const userAuthInfo: UserApiInfo = (
+      await Gpt3PromptUserEntity.get({
+        userId,
+        workspaceId,
+      })
+    ).Item as UserApiInfo;
+
+    let apikey: string = '';
+    let userFlag: boolean = false;
+    let userToken = userAuthInfo.auth?.authData.accessToken;
+
+    if (userToken !== undefined && userToken !== null && userToken !== '') {
+      apikey = userAuthInfo.auth?.authData.accessToken;
+      userFlag = true;
+    } else {
+      // If the user has not set the access token, then use the default one with check for the limit
+      if (userAuthInfo.auth?.authMetadata.limit > 0) {
+        apikey = process.env.OPENAI_API_KEY;
+      } else if (userAuthInfo.auth?.authMetadata.limit <= 0) {
+        return {
+          statusCode: 402,
+          body: JSON.stringify("You've reached your limit for the month"),
+        };
+      } else {
+        return {
+          statusCode: 402,
+          body: JSON.stringify('You need to set up your OpenAI API key'),
+        };
+      }
+    }
 
     const { prompt, properties, variables } = promptRes;
 
@@ -506,11 +512,11 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
       // Call the GPT3 API
       let completions;
       try {
-        completions = await openai.createCompletion({
+        completions = await openaiInstance(apikey).createCompletion({
           ...resultPayload,
         });
       } catch (error) {
-        throw createError(400, JSON.stringify(error.message));
+        throw createError(400, error.response.statusText);
       }
 
       // Remove other fields in choices array and return only the text, index
@@ -523,14 +529,32 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
         completions.data.choices.map((choice) => {
           return choices.push(choice.text);
         });
+
+        await Gpt3PromptUserEntity.update({
+          userId,
+          workspaceId,
+          auth: {
+            authData: userAuthInfo.auth?.authData,
+            authMetadata: {
+              ...userAuthInfo.auth?.authMetadata,
+              limit: userFlag
+                ? userAuthInfo.auth?.authMetadata.limit
+                : userAuthInfo.auth?.authMetadata.limit === 0
+                ? 0
+                : userAuthInfo.auth?.authMetadata.limit - 1,
+              usage: userAuthInfo.auth?.authMetadata.usage + 1,
+            },
+          },
+        });
+
         return {
           statusCode: 200,
           body: JSON.stringify(choices),
         };
-      } else throw createError(400, JSON.stringify('Error fetching results'));
+      } else throw createError(400, 'Error fetching results');
     }
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
@@ -584,7 +608,7 @@ export const getAllPublicUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
       }),
     };
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
@@ -595,7 +619,7 @@ export const getAllUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
   const currentUserId = extractUserIdFromToken(event);
 
-  let downloadedRes, createdRes;
+  let downloadedRes, createdRes, defaultRes;
   try {
     downloadedRes = (
       await Gpt3PromptEntity.query(workspaceId, {
@@ -633,236 +657,17 @@ export const getAllUserPromptsHandler: ValidatedAPIGatewayProxyHandler<
       }),
     };
   } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
+    throw createError(400, e.message);
   }
 };
 
-// Search for a prompt
-export const searchPromptHandler: ValidatedAPIGatewayProxyHandler<
-  Gpt3Prompt
+// Get all prompts provider
+export const getAllPromptsProviderHandler: ValidatedAPIGatewayProxyHandler<
+  any
 > = async (event) => {
-  const { query, filters, sort, limit } = event.body as any;
-
-  try {
-    const results = await searchDocumentFromMeiliSearch(
-      query,
-      filters,
-      sort,
-      limit
-    );
-    return {
-      statusCode: 200,
-      body: JSON.stringify(results),
-    };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
-  }
-};
-
-// Liked/Unliked, View/Unview for the prompt
-export const likedViewedPromptHandler: ValidatedAPIGatewayProxyHandler<
-  Gpt3Prompt
-> = async (event) => {
-  const { id } = event.pathParameters;
-  const userId = extractUserIdFromToken(event);
-  // allow likes, views one time per user
-  const { likes, views } = event.queryStringParameters as any;
-
-  try {
-    // Get analytics
-    const analyticsRes: any = (
-      await Gpt3PromptAnalyticsEntity.query(`PROMPT_${id}`, {
-        beginsWith: 'PROMPT_ANALYTICS_',
-      })
-    ).Items[0];
-
-    // If userId is present in likes array, then return already liked else add it
-    switch (likes) {
-      case 'true':
-        if (analyticsRes.likes && analyticsRes.likes.includes(userId))
-          return {
-            statusCode: 200,
-            body: JSON.stringify("You've already liked this prompt"),
-          };
-        else if (
-          !analyticsRes.likes ||
-          analyticsRes.likes === undefined ||
-          analyticsRes.likes === null ||
-          (Array.isArray(analyticsRes.likes) && analyticsRes.likes.length === 0)
-        ) {
-          analyticsRes.likes = [userId];
-        } else analyticsRes.likes.push(userId);
-
-        break;
-      case 'false':
-        if (analyticsRes.likes.includes(userId)) {
-          analyticsRes.likes = analyticsRes.likes.filter(
-            (like) => like !== userId
-          );
-        } else
-          return {
-            statusCode: 200,
-            body: JSON.stringify("You've already unliked this prompt"),
-          };
-
-        break;
-    }
-
-    // switch case for views
-    switch (views) {
-      case 'true':
-        if (analyticsRes.views.includes(userId))
-          return {
-            statusCode: 200,
-            body: JSON.stringify("You've already viewed this prompt"),
-          };
-        else analyticsRes.views.push(userId);
-
-        break;
-      case 'false':
-        if (analyticsRes.views.includes(userId))
-          analyticsRes.views = analyticsRes.views.filter(
-            (view) => view !== userId
-          );
-        else
-          return {
-            statusCode: 200,
-            body: JSON.stringify("You've already unviewed this prompt"),
-          };
-
-        break;
-    }
-
-    const analyticsUpdateRes: any = (
-      await Gpt3PromptAnalyticsEntity.update(
-        {
-          ...pickAttributes(analyticsRes, [
-            'analyticsId',
-            'promptId',
-            'createdBy',
-            'views',
-            'likes',
-          ]),
-        },
-        {
-          returnValues: 'ALL_NEW',
-        }
-      )
-    ).Attributes;
-
-    // Update MeiliSearch document
-    const updateMeiliSearchRes = await updateDocumentInMeiliSearch({
-      mid: analyticsUpdateRes.promptId,
-      likes: analyticsUpdateRes.likes ? analyticsUpdateRes.likes.length : 0,
-      views: analyticsUpdateRes.views ? analyticsUpdateRes.views.length : 0,
-    });
-
-    if (analyticsUpdateRes && updateMeiliSearchRes) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify(analyticsUpdateRes),
-      };
-    } else throw createError(400, JSON.stringify('Error updating prompt'));
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
-  }
-};
-
-// Get all categories for the prompt
-export const getCategoriesHandler: ValidatedAPIGatewayProxyHandler<
-  Gpt3Prompt
-> = async (event) => {
-  const categories = {
-    id: 1,
-    title: 'Categories',
-    content: Categories,
-  };
-
+  const providers = PromptProviders;
   return {
     statusCode: 200,
-    body: JSON.stringify(categories),
+    body: JSON.stringify(providers),
   };
-};
-
-// Home Page Dashboard for the prompt
-// Today's Prompt - Get the prompt with the latest createdAt within the last 24 hours
-// Most Downloaded Prompt - Get the prompt with the most downloads
-// Popular Weekly Prompt - Get the prompt with the most views within the last 7 days
-// Trending Prompts - Get the prompt with the weighted score of likes, views and downloads in descending order
-// Weighted Score = (likes * 1) + (views * 0.5) + (downloads * 0.25)
-export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
-  Gpt3Prompt
-> = async (event) => {
-  const userId = extractUserIdFromToken(event);
-  let homePrompts: any = {
-    todayPrompts: {
-      title: `Today's Pick`,
-      content: [],
-    },
-    mostDownloadedPrompts: {
-      title: 'Most Downloaded',
-      content: [],
-    },
-    popularWeeklyPrompts: {
-      title: 'Popular Weekly',
-      content: [],
-    },
-    trendingPrompts: {
-      title: 'Trending Prompts',
-      content: [],
-    },
-    userRecentPrompts: {
-      title: 'Your Recent Prompts',
-      content: [],
-    },
-  };
-
-  let currentTime = Date.now();
-  let last24Hours = currentTime - 24 * 60 * 60 * 1000;
-  let last7Days = currentTime - 7 * 24 * 60 * 60 * 1000;
-  let filter24H = `${SortKey.CREATED_AT} >= ${last24Hours} AND ${SortKey.CREATED_AT} <= ${currentTime}`;
-  let filter7D = `${SortKey.CREATED_AT} >= ${last7Days} AND ${SortKey.CREATED_AT} <= ${currentTime}`;
-  let filterUser = `createdBy.id = ${userId}`;
-
-  // Make parallel requests for todayPrompts, mostDownloadedPrompts, popularWeeklyPrompts and trendingPrompts
-  const [
-    getAllPrompts,
-    mostDownloadedPrompts,
-    popularWeeklyPrompts,
-    todayPrompts,
-    userRecentPrompts,
-  ]: any = await Promise.all([
-    getAllDocuments(),
-    sortFromMeiliSearch(SortKey.DOWNLOADS, SortOrder.DESC),
-    sortFromMeiliSearch(SortKey.VIEWS, SortOrder.DESC, filter7D, 20),
-    sortFromMeiliSearch(SortKey.CREATED_AT, SortOrder.DESC, filter24H, 20),
-    sortFromMeiliSearch(SortKey.CREATED_AT, SortOrder.DESC, filterUser, 20),
-  ]);
-
-  homePrompts.todayPrompts.content = todayPrompts;
-  homePrompts.mostDownloadedPrompts.content = mostDownloadedPrompts;
-  homePrompts.popularWeeklyPrompts.content = popularWeeklyPrompts;
-  homePrompts.userRecentPrompts.content = userRecentPrompts;
-
-  let weightedScore = getAllPrompts.map((prompt: any) => {
-    let score = prompt.likes * 1 + prompt.views * 0.5 + prompt.downloads * 0.25;
-    return {
-      ...prompt,
-      score,
-    };
-  });
-
-  // Sort the prompts based on the weighted score
-  homePrompts.trendingPrompts.content = weightedScore.sort(
-    (a: any, b: any) => b.score - a.score
-  );
-
-  try {
-    return {
-      statusCode: 200,
-      body: JSON.stringify(homePrompts),
-    };
-  } catch (error) {
-    throw createError(400, JSON.stringify(error.message));
-  }
 };

@@ -100,6 +100,27 @@ const main = {
         authorizer: 'workduckAuthorizer',
       },
     },
+    {
+      httpApi: {
+        method: 'POST',
+        path: '/userAuth',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/userAuth',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/providers',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
   ],
 };
 

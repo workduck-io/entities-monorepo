@@ -1,4 +1,4 @@
-import { BaseEntityParameters, GenericObject } from '@mex/entity-utils';
+import { BaseEntityParameters } from '@mex/entity-utils';
 
 export interface Gpt3Prompt extends BaseEntityParameters {
   title: string;
@@ -156,5 +156,25 @@ export interface FilterSortBody {
   };
   sort?: {
     [key in SortKey]?: SortOrder;
+  };
+}
+
+// User Auth Info for open api and usage/limit
+export interface UserApiInfo {
+  userId: string;
+  workspaceId: string;
+  auth: {
+    authData?: {
+      accessToken: string;
+    };
+    authMetadata?: {
+      provider: string;
+      // how many times the user has used the api
+      usage: number;
+      // when the api usage will be limited for free usage
+      limit: number;
+      // when the api usage will be reset
+      reset?: number;
+    };
   };
 }
