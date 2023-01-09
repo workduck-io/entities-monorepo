@@ -170,6 +170,8 @@ export const likedViewedPromptHandler: ValidatedAPIGatewayProxyHandler<
 export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
 > = async (event) => {
+  let userId;
+  if (event.headers.authorization) userId = extractUserIdFromToken(event);
   const homePrompts: any = {
     todayPrompts: {
       title: `Today's Pick`,
@@ -185,6 +187,10 @@ export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
     },
     trendingPrompts: {
       title: 'Trending Prompts',
+      content: [],
+    },
+    userRecentPrompts: {
+      title: 'Your Recent Prompts',
       content: [],
     },
   };
@@ -213,6 +219,16 @@ export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
   homePrompts.mostDownloadedPrompts.content = mostDownloadedPrompts;
   homePrompts.popularWeeklyPrompts.content = popularWeeklyPrompts;
 
+  if (userId) {
+    const userRecentPrompts = await sortFromMeiliSearch(
+      SortKey.CREATED_AT,
+      SortOrder.DESC,
+      filterUser,
+      20
+    );
+    homePrompts.userRecentPrompts.content = userRecentPrompts;
+  }
+
   const weightedScore = getAllPrompts.map((prompt: any) => {
     const score =
       prompt.likes * 1 + prompt.views * 0.5 + prompt.downloads * 0.25;
@@ -237,31 +253,6 @@ export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 
-export const recentPromptsHandler: ValidatedAPIGatewayProxyHandler<
-  Gpt3Prompt
-> = async (event) => {
-  try {
-    const userId = extractUserIdFromToken(event);
-
-    const recentPrompts = {
-      title: 'Your Recent Prompts',
-      content: [],
-    };
-
-    const filterUser = `createdBy.id = ${userId}`;
-    const userRecentPrompts = await sortFromMeiliSearch(
-      SortKey.CREATED_AT,
-      SortOrder.DESC,
-      filterUser,
-      20
-    );
-    recentPrompts.content = userRecentPrompts;
-
-    return { statusCode: 200, body: JSON.stringify(recentPrompts) };
-  } catch (error) {
-    throw createError(400, error.message);
-  }
-};
 // Search for a prompt
 export const searchPromptHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt

@@ -441,99 +441,6 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
     throw createError(400, e.message);
   }
 };
-
-// Preview of a prompt
-export const previewPromptHandler: ValidatedAPIGatewayProxyHandler<
-  PreviewPromptBody
-> = async (event) => {
-  const { prompt, variables, options } = event.body;
-  const userId = extractUserIdFromToken(event);
-  const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
-  const userAuthInfo: UserApiInfo = (
-    await Gpt3PromptUserEntity.get({
-      userId,
-      workspaceId,
-    })
-  ).Item as UserApiInfo;
-
-  let apikey = '';
-  let userFlag = false;
-  const userToken = userAuthInfo.auth?.authData.accessToken;
-
-  if (userToken !== undefined && userToken !== null && userToken !== '') {
-    apikey = userAuthInfo.auth?.authData.accessToken;
-    userFlag = true;
-  } else {
-    // If the user has not set the access token, then use the default one with check for the limit
-    if (userAuthInfo.auth?.authMetadata.limit > 0) {
-      apikey = process.env.OPENAI_API_KEY;
-    } else if (userAuthInfo.auth?.authMetadata.limit <= 0) {
-      return {
-        statusCode: 402,
-        body: JSON.stringify("You've reached your limit for the month"),
-      };
-    } else {
-      return {
-        statusCode: 402,
-        body: JSON.stringify('You need to set up your OpenAI API key'),
-      };
-    }
-  }
-
-  if (prompt.length) {
-    try {
-      const mutatedPrompt = replaceVarWithValForPreview(prompt, variables);
-      const resultPayload = {
-        prompt: mutatedPrompt,
-        n: options.iterations ?? defaultGPT3Props.iterations,
-        model: defaultGPT3Props.model,
-        max_tokens: options.max_tokens ?? defaultGPT3Props.max_tokens,
-        temperature: options.temperature ?? defaultGPT3Props.temperature,
-        top_p: options.weight ?? defaultGPT3Props.top_p,
-      };
-
-      const completions = await openaiInstance(apikey).createCompletion({
-        ...resultPayload,
-      });
-      if (
-        completions &&
-        completions.data &&
-        completions.data.choices.length > 0
-      ) {
-        const choices = [];
-        completions.data.choices.map((choice) => {
-          return choices.push(choice.text);
-        });
-
-        await Gpt3PromptUserEntity.update({
-          userId,
-          workspaceId,
-          auth: {
-            authData: userAuthInfo.auth?.authData,
-            authMetadata: {
-              ...userAuthInfo.auth?.authMetadata,
-              limit: userFlag
-                ? userAuthInfo.auth?.authMetadata.limit
-                : userAuthInfo.auth?.authMetadata.limit === 0
-                ? 0
-                : userAuthInfo.auth?.authMetadata.limit - 1,
-              usage: userAuthInfo.auth?.authMetadata.usage + 1,
-            },
-          },
-        });
-
-        return {
-          statusCode: 200,
-          body: JSON.stringify(choices),
-        };
-      } else throw createError(400, JSON.stringify('Error fetching results'));
-    } catch (error) {
-      throw createError(400, JSON.stringify(error.message));
-    }
-
-    // Remove other fields in choices array and return only the text, index
-  }
-};
 // Results of a prompt
 export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
@@ -541,19 +448,32 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
   const userId = extractUserIdFromToken(event);
   const { id } = event.pathParameters;
-
-  const { options, variablesValues } = event.body as unknown as {
-    options: Gpt3Prompt['properties'];
-    variablesValues: Record<string, string>;
-  };
-
+  let options: Gpt3Prompt['properties'],
+    variablesValues: Record<string, string>,
+    promptRes,
+    transformedPrompt;
+  let properties = null;
   try {
-    const promptRes: any = (
-      await Gpt3PromptEntity.get({
-        entityId: id,
-        workspaceId,
-      })
-    ).Item;
+    if (id === 'preview') {
+      const body = event.body as any;
+      const { prompt, variables } = event.body;
+      options = body.options;
+      transformedPrompt = replaceVarWithValForPreview(prompt, variables);
+    } else {
+      options = event.body as unknown as Gpt3Prompt['properties'];
+      variablesValues = event.body as unknown as Record<string, string>;
+      promptRes = (
+        await Gpt3PromptEntity.get({
+          entityId: id,
+          workspaceId,
+        })
+      ).Item;
+      const { prompt, variables } = promptRes;
+      properties = promptRes.properties;
+
+      // Replace the variables with the values
+      transformedPrompt = replaceVarWithVal(prompt, variables, variablesValues);
+    }
 
     const userAuthInfo: UserApiInfo = (
       await Gpt3PromptUserEntity.get({
@@ -586,23 +506,30 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
       }
     }
 
-    const { prompt, properties, variables } = promptRes;
-
-    // Replace the variables with the values
-    const transformedPrompt = replaceVarWithVal(
-      prompt,
-      variables,
-      variablesValues
-    );
-
     if (transformedPrompt) {
       const resultPayload = {
         prompt: transformedPrompt,
-        model: properties.model,
-        max_tokens: options.max_tokens ?? properties.max_tokens,
-        temperature: options.temperature ?? properties.temperature,
-        top_p: options.weight ?? properties.top_p,
-        n: options.iterations ?? properties.iterations,
+        model: properties ? properties.model : defaultGPT3Props.model,
+        max_tokens: options
+          ? options.max_tokens
+          : properties
+          ? properties.max_tokens
+          : defaultGPT3Props.max_tokens,
+        temperature: options
+          ? options.temperature
+          : properties
+          ? properties.temperature
+          : defaultGPT3Props.temperature,
+        top_p: options
+          ? options.weight
+          : properties
+          ? properties.top_p
+          : defaultGPT3Props.top_p,
+        n: options
+          ? options.iterations
+          : properties
+          ? properties.iterations
+          : defaultGPT3Props.iterations,
       };
 
       // Call the GPT3 API

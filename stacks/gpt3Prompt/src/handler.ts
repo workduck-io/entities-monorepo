@@ -13,7 +13,6 @@ import {
   getAllPublicUserPromptsHandler,
   getAllUserPromptsHandler,
   getPromptHandler,
-  previewPromptHandler,
   resultPrompthandler,
   updatePromptHandler,
 } from './handlers/promptHandler';
@@ -24,7 +23,6 @@ import {
   homeDashboardHandler,
   getCategoriesHandler,
   searchPromptHandler,
-  recentPromptsHandler,
 } from './handlers/promptAnalyticsHandler';
 
 import {
@@ -79,11 +77,6 @@ const routeHandlers = [
     handler: resultPrompthandler,
   },
   {
-    method: HTTPMethod.POST,
-    path: '/preview',
-    handler: previewPromptHandler,
-  },
-  {
     method: HTTPMethod.GET,
     path: '/analytics/{promptId}',
     handler: getPromptAnalyticsHandler,
@@ -122,11 +115,6 @@ const routeHandlers = [
     method: HTTPMethod.GET,
     path: '/providers',
     handler: getAllPromptsProviderHandler,
-  },
-  {
-    method: HTTPMethod.GET,
-    path: '/recents',
-    handler: recentPromptsHandler,
   },
 ];
 
