@@ -194,9 +194,9 @@ export const homeDashboardHandler: ValidatedAPIGatewayProxyHandler<
     },
   };
 
-  let currentTime = Date.now();
-  let last24Hours = currentTime - 24 * 60 * 60 * 1000;
-  let last7Days = currentTime - 7 * 24 * 60 * 60 * 1000;
+  const currentTime = Date.now();
+  const last24Hours = currentTime - 24 * 60 * 60 * 1000;
+  const last7Days = currentTime - 7 * 24 * 60 * 60 * 1000;
   let filter24H = `${SortKey.CREATED_AT} >= ${last24Hours} AND ${SortKey.CREATED_AT} <= ${currentTime}`;
   let filter7D = `${SortKey.CREATED_AT} >= ${last7Days} AND ${SortKey.CREATED_AT} <= ${currentTime}`;
   let filterUser = `createdBy.id = ${userId}`;
