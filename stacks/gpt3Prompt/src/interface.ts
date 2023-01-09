@@ -34,6 +34,7 @@ export interface Gpt3Prompt extends BaseEntityParameters {
   downloadedBy: Array<string>;
   createdAt?: number;
   updatedAt?: number;
+  default?: string;
 }
 
 export interface Gpt3PromptBody {
@@ -56,6 +57,7 @@ export interface Gpt3PromptBody {
   }>;
   imageUrls?: string[];
   showcase?: Array<string>;
+  default?: string;
 }
 
 export interface Gpt3PromptAnalytics {

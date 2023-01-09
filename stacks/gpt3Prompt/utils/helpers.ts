@@ -94,3 +94,12 @@ export const pickAttributes = (obj: any, attributes: string[]) => {
     return { ...acc, [curr]: obj[curr] };
   }, {});
 };
+
+export const removeAtrributes = (array: any, attributes: string[]) => {
+  return array.map((obj: any) => {
+    attributes.forEach((attribute) => {
+      delete obj[attribute];
+    });
+    return obj;
+  });
+};
