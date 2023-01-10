@@ -50,12 +50,7 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
     version: 0,
     createdAt: Date.now(),
     updatedAt: Date.now(),
-    properties: gpt3Prompt.properties ?? {
-      model: 'text-davinci-003',
-      max_tokens: 250,
-      temperature: 0.7,
-      iterations: 3,
-    },
+    properties: gpt3Prompt.properties ?? defaultGPT3Props,
     default: gpt3Prompt.default ?? false,
   };
 
