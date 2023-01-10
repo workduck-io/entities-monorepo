@@ -97,7 +97,6 @@ const main = {
       httpApi: {
         method: 'GET',
         path: '/home',
-        authorizer: 'workduckAuthorizer',
       },
     },
     {

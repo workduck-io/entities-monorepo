@@ -8,6 +8,7 @@ import {
   pickAttributes,
   removeAtrributes,
   replaceVarWithVal,
+  replaceVarWithValForPreview,
 } from '../../utils/helpers';
 import {
   addDocumentToMeiliSearch,
@@ -23,11 +24,12 @@ import {
   Gpt3Prompt,
   Gpt3PromptBody,
   MeiliSearchDocumentResponse,
+  PreviewPromptBody,
   PromptDownloadState,
   UserApiInfo,
 } from '../interface';
 
-import { PromptProviders } from '../../utils/consts';
+import { PromptProviders, defaultGPT3Props } from '../../utils/consts';
 
 export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
@@ -48,12 +50,7 @@ export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
     version: 0,
     createdAt: Date.now(),
     updatedAt: Date.now(),
-    properties: gpt3Prompt.properties ?? {
-      model: 'text-davinci-003',
-      max_tokens: 250,
-      temperature: 0.7,
-      iterations: 3,
-    },
+    properties: gpt3Prompt.properties ?? defaultGPT3Props,
     default: gpt3Prompt.default ?? false,
   };
 
@@ -439,7 +436,6 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
     throw createError(400, e.message);
   }
 };
-
 // Results of a prompt
 export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
@@ -447,19 +443,34 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
   const userId = extractUserIdFromToken(event);
   const { id } = event.pathParameters;
-
-  const { options, variablesValues } = event.body as unknown as {
-    options: Gpt3Prompt['properties'];
-    variablesValues: Record<string, string>;
-  };
+  let options: Gpt3Prompt['properties'],
+    variablesValues: Record<string, string>,
+    promptRes,
+    transformedPrompt;
+  let properties = null;
 
   try {
-    const promptRes: any = (
-      await Gpt3PromptEntity.get({
-        entityId: id,
-        workspaceId,
-      })
-    ).Item;
+    if (id === 'preview') {
+      const body = event.body as any;
+      const { prompt, variables } = event.body;
+      options = body.options;
+      transformedPrompt = replaceVarWithValForPreview(prompt, variables);
+    } else {
+      options = event.body as unknown as Gpt3Prompt['properties'];
+      variablesValues = event.body as unknown as Record<string, string>;
+
+      promptRes = (
+        await Gpt3PromptEntity.get({
+          entityId: id,
+          workspaceId,
+        })
+      ).Item;
+      const { prompt, variables } = promptRes;
+      properties = promptRes.properties;
+
+      // Replace the variables with the values
+      transformedPrompt = replaceVarWithVal(prompt, variables, variablesValues);
+    }
 
     const userAuthInfo: UserApiInfo = (
       await Gpt3PromptUserEntity.get({
@@ -492,23 +503,30 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
       }
     }
 
-    const { prompt, properties, variables } = promptRes;
-
-    // Replace the variables with the values
-    const transformedPrompt = replaceVarWithVal(
-      prompt,
-      variables,
-      variablesValues
-    );
-
     if (transformedPrompt) {
       const resultPayload = {
         prompt: transformedPrompt,
-        model: properties.model,
-        max_tokens: options.max_tokens ?? properties.max_tokens,
-        temperature: options.temperature ?? properties.temperature,
-        top_p: options.weight ?? properties.top_p,
-        n: options.iterations ?? properties.iterations,
+        model: properties ? properties.model : defaultGPT3Props.model,
+        max_tokens: options
+          ? options.max_tokens
+          : properties
+          ? properties.max_tokens
+          : defaultGPT3Props.max_tokens,
+        temperature: options
+          ? options.temperature
+          : properties
+          ? properties.temperature
+          : defaultGPT3Props.temperature,
+        top_p: options
+          ? options.weight
+          : properties
+          ? properties.top_p
+          : defaultGPT3Props.top_p,
+        n: options
+          ? options.iterations
+          : properties
+          ? properties.iterations
+          : defaultGPT3Props.iterations,
       };
 
       // Call the GPT3 API

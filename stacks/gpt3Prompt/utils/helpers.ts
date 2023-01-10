@@ -89,17 +89,43 @@ export const replaceVarWithVal = (
   return originalStr;
 };
 
+export const replaceVarWithValForPreview = (
+  originalStr: string,
+  variablesValues: Array<{ id: string; default?: string }>
+) => {
+  const regex = /(?<={).+?(?=\})/g; // find all variables ( matching format {*} )
+  const vars = originalStr.match(regex);
+  if (vars) {
+    vars.forEach((v) => {
+      variablesValues.forEach((item) => {
+        if (item.id === v)
+          originalStr = originalStr.replace(`{${v}}`, item.default);
+      });
+    });
+  }
+  return originalStr;
+};
+
 export const pickAttributes = (obj: any, attributes: string[]) => {
   return attributes.reduce((acc: any, curr: any) => {
     return { ...acc, [curr]: obj[curr] };
   }, {});
 };
 
-export const removeAtrributes = (array: any, attributes: string[]) => {
-  return array.map((obj: any) => {
-    attributes.forEach((attribute) => {
-      delete obj[attribute];
+export const removeAtrributes = (data: any, attributes: string[]) => {
+  if (Array.isArray(data)) {
+    return data.map((obj: any) => {
+      attributes.forEach((attribute) => {
+        delete obj[attribute];
+      });
+      return obj;
     });
-    return obj;
-  });
+  } else if (typeof data === 'object') {
+    attributes.forEach((attribute) => {
+      delete data[attribute];
+    });
+    return data;
+  } else {
+    return data;
+  }
 };
