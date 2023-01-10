@@ -49,7 +49,6 @@ const main = {
       httpApi: {
         method: 'POST',
         path: '/result/{id}',
-        timeout: 15,
         authorizer: 'workduckAuthorizer',
       },
     },
