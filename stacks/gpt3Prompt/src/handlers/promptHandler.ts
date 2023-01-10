@@ -453,6 +453,7 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
     promptRes,
     transformedPrompt;
   let properties = null;
+
   try {
     if (id === 'preview') {
       const body = event.body as any;
@@ -462,6 +463,7 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
     } else {
       options = event.body as unknown as Gpt3Prompt['properties'];
       variablesValues = event.body as unknown as Record<string, string>;
+
       promptRes = (
         await Gpt3PromptEntity.get({
           entityId: id,

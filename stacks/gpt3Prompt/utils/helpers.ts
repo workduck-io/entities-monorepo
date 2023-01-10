@@ -112,11 +112,20 @@ export const pickAttributes = (obj: any, attributes: string[]) => {
   }, {});
 };
 
-export const removeAtrributes = (array: any, attributes: string[]) => {
-  return array.map((obj: any) => {
-    attributes.forEach((attribute) => {
-      delete obj[attribute];
+export const removeAtrributes = (data: any, attributes: string[]) => {
+  if (Array.isArray(data)) {
+    return data.map((obj: any) => {
+      attributes.forEach((attribute) => {
+        delete obj[attribute];
+      });
+      return obj;
     });
-    return obj;
-  });
+  } else if (typeof data === 'object') {
+    attributes.forEach((attribute) => {
+      delete data[attribute];
+    });
+    return data;
+  } else {
+    return data;
+  }
 };
