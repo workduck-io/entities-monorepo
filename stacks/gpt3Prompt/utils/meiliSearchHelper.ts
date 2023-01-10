@@ -11,8 +11,14 @@ import {
 } from '../src/interface';
 
 export const meilisearchClient = new MeiliSearch({
-  host: process.env.MEILISEARCH_HOST,
-  apiKey: process.env.MEILI_MASTER_KEY,
+  host:
+    process.env.SLS_STAGE === 'local'
+      ? process.env.MEILISEARCH_HOST_LOCAL
+      : process.env.MEILISEARCH_HOST,
+  apiKey:
+    process.env.SLS_STAGE === 'local'
+      ? process.env.MEILI_MASTER_KEY_LOCAL
+      : process.env.MEILI_MASTER_KEY,
 });
 
 // Get all document from meilisearch

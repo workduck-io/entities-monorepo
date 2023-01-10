@@ -24,12 +24,11 @@ import {
   Gpt3Prompt,
   Gpt3PromptBody,
   MeiliSearchDocumentResponse,
-  PreviewPromptBody,
   PromptDownloadState,
   UserApiInfo,
 } from '../interface';
 
-import { PromptProviders, defaultGPT3Props } from '../../utils/consts';
+import { defaultGPT3Props, PromptProviders } from '../../utils/consts';
 
 export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt

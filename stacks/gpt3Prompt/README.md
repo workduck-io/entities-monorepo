@@ -11,7 +11,8 @@ Run `nx test gpt3Prompt` to execute the unit tests via [Jest](https://jestjs.io)
 1.  Create a .env file in the root of the project with the following variables:
 
     - OPENAI_API_KEY
-    - MEILISEARCH_HOST (for local: http://localhost:7700)
+    - MEILISEARCH_HOST_LOCAL (for local: http://localhost:7700)
+    - MEILI_MASTER_KEY_LOCAL (for local: masterKey)
     - DEFAULT_WORKSPACE_ID (for local: WORKSPACE_4KHaz8aziCUiPgctCLtki)
 
 2.  MeiliSearch Setup
@@ -35,8 +36,10 @@ Run `nx test gpt3Prompt` to execute the unit tests via [Jest](https://jestjs.io)
             curl -L https://install.meilisearch.com | sh
 
           # Launch Meilisearch
-          ./meilisearch
+          ./meilisearch --master-key="masterKey"
         ```
+
+        Set same meilisearch master key in .env file that you passed above.
 
     2.  Configure MeiliSearch for searchable, filtering and sorting attributes.
         Docs -
