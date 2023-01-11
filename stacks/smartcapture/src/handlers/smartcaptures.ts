@@ -72,10 +72,12 @@ export const getVariableHandler: ValidatedAPIGatewayProxyHandler<
       })
     ).Item;
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify(res),
-    };
+    if (res)
+      return {
+        statusCode: 200,
+        body: JSON.stringify(res),
+      };
+    else throw new Error();
   } catch (e) {
     throw createError(400, JSON.stringify(e.message));
   }
