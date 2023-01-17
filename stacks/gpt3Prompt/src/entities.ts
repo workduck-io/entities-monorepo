@@ -73,3 +73,18 @@ export const Gpt3PromptUserEntity = new Entity({
   timestamps: false,
   table: gpt3PromptTable,
 } as const);
+
+// User Map with Prompt for genearting response
+export const Gpt3PromptShowcaseEntity = new Entity({
+  name: 'gpt3PromptUserMap',
+  attributes: {
+    promptId: { partitionKey: true, type: 'string' },
+    userId: {
+      sortKey: true,
+      type: 'string',
+    },
+    savedResponse: { type: 'map', required: true },
+  },
+  timestamps: false,
+  table: gpt3PromptTable,
+});

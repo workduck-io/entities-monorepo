@@ -56,7 +56,7 @@ export const PromptProviders = [
 
 export const defaultGPT3Props = {
   model: 'text-davinci-003',
-  max_tokens: 250,
+  max_tokens: 1000,
   temperature: 0.7,
   iterations: 3,
   top_p: 1,

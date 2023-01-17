@@ -17,6 +17,9 @@ const gpt3PromptServerlessConfig = {
     'serverless-offline',
     'serverless-prune-plugin',
   ],
+  provider: {
+    memorySize: 256,
+  },
   custom: {
     stage: '${opt:stage, self:provider.stage}',
     'serverless-offline': {

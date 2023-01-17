@@ -24,12 +24,11 @@ import {
   Gpt3Prompt,
   Gpt3PromptBody,
   MeiliSearchDocumentResponse,
-  PreviewPromptBody,
   PromptDownloadState,
   UserApiInfo,
 } from '../interface';
 
-import { PromptProviders, defaultGPT3Props } from '../../utils/consts';
+import { defaultGPT3Props, PromptProviders } from '../../utils/consts';
 
 export const createPromptHandler: ValidatedAPIGatewayProxyHandler<
   Gpt3Prompt
@@ -437,9 +436,9 @@ export const downloadPromptHandler: ValidatedAPIGatewayProxyHandler<
   }
 };
 // Results of a prompt
-export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
-  Gpt3Prompt
-> = async (event) => {
+export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<any> = async (
+  event
+) => {
   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
   const userId = extractUserIdFromToken(event);
   const { id } = event.pathParameters;
@@ -456,8 +455,11 @@ export const resultPrompthandler: ValidatedAPIGatewayProxyHandler<
       options = body.options;
       transformedPrompt = replaceVarWithValForPreview(prompt, variables);
     } else {
-      options = event.body as unknown as Gpt3Prompt['properties'];
-      variablesValues = event.body as unknown as Record<string, string>;
+      options = event.body.options;
+      variablesValues = event.body.variablesValues as unknown as Record<
+        string,
+        string
+      >;
 
       promptRes = (
         await Gpt3PromptEntity.get({
