@@ -200,3 +200,9 @@ export interface PreviewPromptBody {
     default?: string;
   }>;
 }
+
+export interface PreviewPromptResponse {
+  promptId: string;
+  userId: string;
+  savedResponse: Record<string, string>;
+}

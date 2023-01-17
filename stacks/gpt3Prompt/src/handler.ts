@@ -18,10 +18,10 @@ import {
 } from './handlers/promptHandler';
 
 import {
-  getPromptAnalyticsHandler,
-  likedViewedPromptHandler,
-  homeDashboardHandler,
   getCategoriesHandler,
+  getPromptAnalyticsHandler,
+  homeDashboardHandler,
+  likedViewedPromptHandler,
   searchPromptHandler,
 } from './handlers/promptAnalyticsHandler';
 
@@ -29,6 +29,12 @@ import {
   createUserAuthHandler,
   getUserAuthHandler,
 } from './handlers/promptUserHandler';
+
+import {
+  createPromptResponseHandler,
+  deletePromptResponseHandler,
+  getPromptResponseHandler,
+} from './handlers/promptShowCaseHandler';
 
 const routeHandlers = [
   {
@@ -115,6 +121,21 @@ const routeHandlers = [
     method: HTTPMethod.GET,
     path: '/providers',
     handler: getAllPromptsProviderHandler,
+  },
+  {
+    method: HTTPMethod.POST,
+    path: '/saveResult',
+    handler: createPromptResponseHandler,
+  },
+  {
+    method: HTTPMethod.GET,
+    path: '/saveResult/{id}',
+    handler: getPromptResponseHandler,
+  },
+  {
+    method: HTTPMethod.DELETE,
+    path: '/saveResult/{id}/{resultId}',
+    handler: deletePromptResponseHandler,
   },
 ];
 

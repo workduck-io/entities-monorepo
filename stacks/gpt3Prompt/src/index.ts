@@ -120,6 +120,27 @@ const main = {
         authorizer: 'workduckAuthorizer',
       },
     },
+    {
+      httpApi: {
+        method: 'POST',
+        path: '/saveResult',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/saveResult/{id}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'DELETE',
+        path: '/saveResult/{id}/{resultId}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
   ],
 };
 
