@@ -91,7 +91,10 @@ export const getPromptResponseHandler: ValidatedAPIGatewayProxyHandler<
       body: JSON.stringify(res),
     };
   } else {
-    throw createError(400, 'Response not found');
+    return {
+      statusCode: 200,
+      body: JSON.stringify({}),
+    };
   }
 };
 
@@ -134,8 +137,7 @@ export const deletePromptResponseHandler: ValidatedAPIGatewayProxyHandler<
     ).Attributes;
 
     return {
-      statusCode: 200,
-      body: JSON.stringify(updateRes),
+      statusCode: 204,
     };
   } else {
     throw createError(400, 'Response not found');
