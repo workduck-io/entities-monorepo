@@ -1,9 +1,8 @@
 import merge from 'deepmerge';
-import { Smartcapture } from '../src/interface';
 
 export const combineMerge = (target, source, options) => {
   const destination = target.slice();
-
+  const text = {};
   source.forEach((item, index) => {
     if (typeof destination[index] === 'undefined') {
       destination[index] = options.cloneUnlessOtherwiseSpecified(item, options);
@@ -14,19 +13,6 @@ export const combineMerge = (target, source, options) => {
     }
   });
   return destination;
-};
-
-export const serializeLabel = (labels) => {
-  const map = new Map<string, Smartcapture[]>();
-  labels.map((label) => {
-    const labelArr = map.get(label.webPage);
-    if (labelArr) {
-      labelArr.push(label);
-      map.set(label.webPage, labelArr);
-    } else map.set(label.webPage, [label]);
-  });
-
-  return Object.fromEntries(map);
 };
 
 export const serializeConfig = (config) => {

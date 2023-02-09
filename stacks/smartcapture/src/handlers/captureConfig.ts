@@ -1,25 +1,42 @@
 import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
-import { InferEntityItem } from 'dynamodb-toolbox';
+import { ENTITYSOURCE } from '../../utils/consts';
+import { smartcaptureTable } from '../../service/DynamoDB';
 import { serializeConfig, serializeConfigDelete } from '../../utils/helpers';
-import { CaptureConfigEntity } from '../entities';
+import { CaptureConfigEntity, CaptureVariableLabelEntity } from '../entities';
+import { Label } from '../interface';
 
-export const createConfigHandler: ValidatedAPIGatewayProxyHandler<
-  InferEntityItem<typeof CaptureConfigEntity>
-> = async (event) => {
+export const createConfigHandler: ValidatedAPIGatewayProxyHandler<any> = async (
+  event
+) => {
   const workspaceId = extractWorkspaceId(event);
   const userId = extractUserIdFromToken(event);
   const config = event.body;
-
+  const labels = config.labels as Label[];
+  const allTransacts = [];
+  const configTransaction = await CaptureConfigEntity.putTransaction({
+    ...config,
+    workspaceId,
+    _source: ENTITYSOURCE.EXTERNAL,
+    userId,
+  });
+  for (const label of labels) {
+    if (label.variableId) {
+      allTransacts.push(
+        await CaptureVariableLabelEntity.putTransaction({
+          labelId: label.id,
+          labelName: label.name,
+          variableId: label.variableId,
+          userId,
+          base: config.base,
+        })
+      );
+    }
+  }
+  allTransacts.push(configTransaction);
   try {
-    await CaptureConfigEntity.put({
-      ...config,
-      workspaceId,
-      _source: 'EXTERNAL',
-      userId,
-    });
-
+    await smartcaptureTable.transactWrite(allTransacts);
     return {
       statusCode: 204,
     };
@@ -40,7 +57,7 @@ export const updateConfigHandler: ValidatedAPIGatewayProxyHandler<any> = async (
     ...config,
     config: { $set: updateObject },
     workspaceId,
-    _source: 'EXTERNAL',
+    _source: ENTITYSOURCE.EXTERNAL,
     userId,
   };
 
@@ -67,7 +84,7 @@ export const deleteLabelHandler: ValidatedAPIGatewayProxyHandler<any> = async (
       $set: serializeConfigDelete(config.labels),
     },
     workspaceId,
-    _source: 'EXTERNAL',
+    _source: ENTITYSOURCE.EXTERNAL,
     userId,
   };
   try {

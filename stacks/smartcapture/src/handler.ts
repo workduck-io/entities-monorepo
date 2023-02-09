@@ -19,7 +19,7 @@ import {
   deleteVariableHandler,
   getAllVariablesHandler,
   getVariableHandler,
-} from './handlers/smartcaptures';
+} from './handlers/captureVariable';
 
 const configRouteHandlers = [
   {
