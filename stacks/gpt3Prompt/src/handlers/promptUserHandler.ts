@@ -68,6 +68,7 @@ export const createUserAuthHandler: ValidatedAPIGatewayProxyHandler<
   ).Attributes;
 
   if (userRes) {
+    delete userRes.workspaceId;
     return {
       statusCode: 200,
       body: JSON.stringify(userRes),
@@ -89,6 +90,7 @@ export const getUserAuthHandler: ValidatedAPIGatewayProxyHandler<any> = async (
   ).Item as UserApiInfo;
 
   if (userInfoRes) {
+    delete userInfoRes.workspaceId;
     return {
       statusCode: 200,
       body: JSON.stringify(userInfoRes),
@@ -119,6 +121,7 @@ export const getUserAuthHandler: ValidatedAPIGatewayProxyHandler<any> = async (
     ).Attributes;
 
     if (userRes) {
+      delete userRes.workspaceId;
       return {
         statusCode: 200,
         body: JSON.stringify(userRes),
