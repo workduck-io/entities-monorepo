@@ -1,17 +1,20 @@
 import { entityFilter } from '@mex/entity-utils';
-import { extractApiVersion, extractWorkspaceId } from '@mex/gen-utils';
-import { createError } from '@middy/util';
-import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
+import {
+  extractApiVersion,
+  extractWorkspaceId,
+  InternalError,
+} from '@mex/gen-utils';
+import { ValidatedAPIGatewayProxyEvent } from '@workduck-io/lambda-routing';
 import { ViewEntity } from '../entities';
 import { View } from '../interface';
 
-export const createViewHandler: ValidatedAPIGatewayProxyHandler<View> = async (
-  event
-) => {
-  const workspaceId = extractWorkspaceId(event);
+@InternalError()
+class ViewHandler {
+  async createViewHandler(event: ValidatedAPIGatewayProxyEvent<View>) {
+    const workspaceId = extractWorkspaceId(event);
 
-  const view = event.body;
-  try {
+    const view = event.body;
+
     const res = (
       await ViewEntity.update(
         { ...view, workspaceId },
@@ -24,15 +27,9 @@ export const createViewHandler: ValidatedAPIGatewayProxyHandler<View> = async (
       statusCode: 200,
       body: JSON.stringify(res),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const getViewHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  try {
+  async getViewHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
     const res = (
@@ -45,15 +42,9 @@ export const getViewHandler: ValidatedAPIGatewayProxyHandler<
       statusCode: 200,
       body: JSON.stringify(res),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const deleteViewHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  try {
+  async deleteViewHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
     await ViewEntity.delete({
@@ -63,15 +54,11 @@ export const deleteViewHandler: ValidatedAPIGatewayProxyHandler<
     return {
       statusCode: 204,
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const getAllViewsOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  try {
+  async getAllViewsOfWorkspaceHandler(
+    event: ValidatedAPIGatewayProxyEvent<undefined>
+  ) {
     const workspaceId = extractWorkspaceId(event);
     const apiVersion = extractApiVersion(event);
     const res = (
@@ -84,7 +71,7 @@ export const getAllViewsOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
       statusCode: 200,
       body: JSON.stringify(res),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
+}
+
+export const viewHandler = new ViewHandler();

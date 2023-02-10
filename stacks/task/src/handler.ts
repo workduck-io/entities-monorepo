@@ -4,69 +4,54 @@ import {
   createLambdaEventMapping,
   HTTPMethod,
 } from '@workduck-io/lambda-routing';
-import {
-  batchUpdateHandler,
-  createHandler,
-  deleteAllEntitiesOfNodeHandler,
-  deleteHandler,
-  getAllEntitiesOfNodeHandler,
-  getAllEntitiesOfWorkspaceHandler,
-  getEntityOfMultipleNodesHandler,
-  getHandler,
-  restoreAllEntitiesOfNodeHandler,
-} from './handlers/tasks';
-import {
-  createViewHandler,
-  deleteViewHandler,
-  getAllViewsOfWorkspaceHandler,
-  getViewHandler,
-} from './handlers/view';
+import { taskHandler } from './handlers/tasks';
+import { viewHandler } from './handlers/view';
 
 const taskRouteHandlers = [
   {
     method: HTTPMethod.POST,
     path: '/',
-    handler: createHandler,
+    handler: taskHandler.createHandler,
+  },
+  {
+    method: HTTPMethod.GET,
+    path: '/{entityId}',
+    handler: taskHandler.getHandler,
   },
   {
     method: HTTPMethod.POST,
     path: '/batch/update',
-    handler: batchUpdateHandler,
-  },
-  {
-    method: HTTPMethod.GET,
-    path: '/{entityId}',
-    handler: getHandler,
+    handler: taskHandler.batchUpdateHandler,
   },
   {
     method: HTTPMethod.POST,
     path: '/batch/get',
-    handler: getEntityOfMultipleNodesHandler,
+    handler: taskHandler.getEntityOfMultipleNodesHandler,
   },
   {
     method: HTTPMethod.DELETE,
     path: '/all/node/{nodeId}',
-    handler: deleteAllEntitiesOfNodeHandler,
+    handler: taskHandler.deleteAllEntitiesOfNodeHandler,
   },
   {
     method: HTTPMethod.POST,
     path: '/all/node/{nodeId}',
-    handler: restoreAllEntitiesOfNodeHandler,
+    handler: taskHandler.restoreAllEntitiesOfNodeHandler,
   },
   {
     method: HTTPMethod.DELETE,
     path: '/{entityId}',
-    handler: deleteHandler,
+    handler: taskHandler.deleteHandler,
   },
   {
     method: HTTPMethod.GET,
     path: '/all/workspace',
-    handler: getAllEntitiesOfWorkspaceHandler,
+    handler: taskHandler.getAllEntitiesOfWorkspaceHandler,
   },
   {
     method: HTTPMethod.GET,
     path: '/all/node/{nodeId}',
-    handler: getAllEntitiesOfNodeHandler,
+    handler: taskHandler.getAllEntitiesOfNodeHandler,
   },
 ];
 
@@ -74,22 +59,22 @@ const viewRouteHandlers = [
   {
     method: HTTPMethod.POST,
     path: '/view',
-    handler: createViewHandler,
+    handler: viewHandler.createViewHandler,
   },
   {
     method: HTTPMethod.GET,
     path: '/view/{entityId}',
-    handler: getViewHandler,
+    handler: viewHandler.getViewHandler,
   },
   {
     method: HTTPMethod.DELETE,
     path: '/view/{entityId}',
-    handler: deleteViewHandler,
+    handler: viewHandler.deleteViewHandler,
   },
   {
     method: HTTPMethod.GET,
     path: '/view/all/workspace',
-    handler: getAllViewsOfWorkspaceHandler,
+    handler: viewHandler.getAllViewsOfWorkspaceHandler,
   },
 ];
 
