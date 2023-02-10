@@ -1,4 +1,4 @@
-import { ValidatedAPIGatewayProxyEvent } from '@mex/gen-utils';
+import { ValidatedAPIGatewayProxyEvent } from '@workduck-io/lambda-routing';
 import { NodeLambdaFunctionName } from './consts';
 import { lambda } from './invokeLambda';
 
