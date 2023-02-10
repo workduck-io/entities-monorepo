@@ -12,19 +12,18 @@ const task = {
     },
     {
       httpApi: {
-        method: 'POST',
-        path: '/batch/update',
-        authorizer: 'workduckAuthorizer',
-      },
-    },
-    {
-      httpApi: {
         method: 'GET',
         path: '/{entityId}',
         authorizer: 'workduckAuthorizer',
       },
     },
-
+    {
+      httpApi: {
+        method: 'POST',
+        path: '/batch/update',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
     {
       httpApi: {
         method: 'POST',

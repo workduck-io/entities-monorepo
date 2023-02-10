@@ -1,4 +1,5 @@
-import { WDError } from '@workduck-io/wderror';
+import { createError, HttpError } from '@middy/util';
+import { Catch, WDError } from '@workduck-io/wderror';
 import jwt_decode from 'jwt-decode';
 import { WDTokenDecode } from './interfaces';
 
@@ -26,3 +27,8 @@ export const extractUserIdFromToken = (event): string => {
 
   return userId;
 };
+
+export const InternalError = (): any =>
+  Catch(Error, (err: HttpError) => {
+    throw createError(err.statusCode ?? 500, err.message, { cause: err.cause });
+  });
