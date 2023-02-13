@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 import { getAccess } from '@mex/access-checker';
 import {
   entityFilter,
@@ -7,19 +9,40 @@ import {
   type BatchUpdateRequest,
 } from '@mex/entity-utils';
 import { createError } from '@middy/util';
+import { Container } from 'inversify';
 
 import {
   extractUserIdFromToken,
   extractWorkspaceId,
   InternalError,
 } from '@mex/gen-utils';
-import { ValidatedAPIGatewayProxyEvent } from '@workduck-io/lambda-routing';
+import {
+  Header,
+  HTTPMethod,
+  Path,
+  Query,
+  Route,
+  RouteAndExec,
+  ValidatedAPIGatewayProxyEvent,
+} from '@workduck-io/lambda-routing';
+import { injectable } from 'inversify';
 import { TaskEntity } from '../entities';
 import { Task } from '../interface';
-
+@injectable()
 @InternalError()
-class TaskHandler {
-  async getHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
+export class TaskHandler {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/{entityId}',
+  })
+  async getHandler(
+    event: ValidatedAPIGatewayProxyEvent<undefined>,
+    @Header() header?,
+    @Path() path?,
+    @Query() query?
+  ): Promise<{ statusCode: number; body: string; }> {
+    console.log(header['mex-workspace-id'], path, query);
+
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
     const res = (
@@ -35,7 +58,16 @@ class TaskHandler {
     };
   }
 
-  async createHandler(event: ValidatedAPIGatewayProxyEvent<Task>) {
+  @Route({
+    method: HTTPMethod.POST,
+    path: '/',
+  })
+  async createHandler(
+    event: ValidatedAPIGatewayProxyEvent<Task>,
+    @Header() header?
+  ) {
+    console.log('HEADER', header['mex-workspace-id']);
+
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserIdFromToken(event);
     const task = event.body;
@@ -64,6 +96,10 @@ class TaskHandler {
     };
   }
 
+  @Route({
+    method: HTTPMethod.DELETE,
+    path: '/{entityId}',
+  })
   async deleteHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
@@ -79,6 +115,10 @@ class TaskHandler {
     };
   }
 
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/all/workspace',
+  })
   async getAllEntitiesOfWorkspaceHandler(
     event: ValidatedAPIGatewayProxyEvent<undefined>
   ) {
@@ -99,7 +139,10 @@ class TaskHandler {
       }),
     };
   }
-
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/all/node/{nodeId}',
+  })
   async getAllEntitiesOfNodeHandler(
     event: ValidatedAPIGatewayProxyEvent<undefined>
   ) {
@@ -121,6 +164,10 @@ class TaskHandler {
     };
   }
 
+  @Route({
+    method: HTTPMethod.DELETE,
+    path: '/all/node/{nodeId}',
+  })
   async deleteAllEntitiesOfNodeHandler(
     event: ValidatedAPIGatewayProxyEvent<undefined>
   ) {
@@ -159,6 +206,10 @@ class TaskHandler {
     };
   }
 
+  @Route({
+    method: HTTPMethod.POST,
+    path: '/all/node/{nodeId}',
+  })
   async restoreAllEntitiesOfNodeHandler(
     event: ValidatedAPIGatewayProxyEvent<undefined>
   ) {
@@ -197,6 +248,7 @@ class TaskHandler {
     };
   }
 
+  @Route({ method: HTTPMethod.POST, path: '/batch/get' })
   async getEntityOfMultipleNodesHandler(
     event: ValidatedAPIGatewayProxyEvent<{ nodes: string[] }>
   ) {
@@ -211,7 +263,7 @@ class TaskHandler {
     const successful = {};
     const failed = [];
     await Promise.all(
-      dedupNodeList.map(async (nodeId) => {
+      dedupNodeList.map(async (nodeId:string) => {
         const access = await getAccess(workspaceId, nodeId, event);
         if (access === 'NO_ACCESS') {
           failed.push({ nodeId, reason: 'No access' });
@@ -233,6 +285,10 @@ class TaskHandler {
     };
   }
 
+  @Route({
+    method: HTTPMethod.POST,
+    path: '/batch/update',
+  })
   async batchUpdateHandler(
     event: ValidatedAPIGatewayProxyEvent<BatchUpdateRequest<Task>>
   ) {
@@ -256,6 +312,15 @@ class TaskHandler {
       body: JSON.stringify(batchRequestResult),
     };
   }
+
+  @RouteAndExec()
+  execute(event) {
+    return event;
+  }
 }
 
-export const taskHandler = new TaskHandler();
+const taskContainer = new Container({ defaultScope: 'Singleton' });
+
+taskContainer.bind<TaskHandler>(TaskHandler).to(TaskHandler);
+
+export { taskContainer };

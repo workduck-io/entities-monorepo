@@ -4,12 +4,23 @@ import {
   extractWorkspaceId,
   InternalError,
 } from '@mex/gen-utils';
-import { ValidatedAPIGatewayProxyEvent } from '@workduck-io/lambda-routing';
+import { createError } from '@middy/util';
+import {
+  HTTPMethod,
+  Route,
+  RouteAndExec,
+  ValidatedAPIGatewayProxyEvent,
+} from '@workduck-io/lambda-routing';
+import { injectable } from 'inversify';
 import { ViewEntity } from '../entities';
 import { View } from '../interface';
-
+@injectable()
 @InternalError()
-class ViewHandler {
+export class ViewHandler {
+  @Route({
+    path: '/view',
+    method: HTTPMethod.POST,
+  })
   async createViewHandler(event: ValidatedAPIGatewayProxyEvent<View>) {
     const workspaceId = extractWorkspaceId(event);
 
@@ -29,6 +40,10 @@ class ViewHandler {
     };
   }
 
+  @Route({
+    path: '/view/{entityId}',
+    method: HTTPMethod.GET,
+  })
   async getViewHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
@@ -38,12 +53,17 @@ class ViewHandler {
         entityId,
       })
     ).Item;
+    if (!res) throw createError(404, 'View not found');
     return {
       statusCode: 200,
       body: JSON.stringify(res),
     };
   }
 
+  @Route({
+    path: '/view/{entityId}',
+    method: HTTPMethod.DELETE,
+  })
   async deleteViewHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
@@ -56,6 +76,10 @@ class ViewHandler {
     };
   }
 
+  @Route({
+    path: '/view/all/workspace',
+    method: HTTPMethod.GET,
+  })
   async getAllViewsOfWorkspaceHandler(
     event: ValidatedAPIGatewayProxyEvent<undefined>
   ) {
@@ -72,6 +96,9 @@ class ViewHandler {
       body: JSON.stringify(res),
     };
   }
-}
 
-export const viewHandler = new ViewHandler();
+  @RouteAndExec()
+  execute(event) {
+    return event;
+  }
+}
