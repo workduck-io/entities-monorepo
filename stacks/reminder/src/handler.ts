@@ -1,55 +1,6 @@
 import { middyfy } from '@mex/middy-utils';
-import {
-  createGatewayLambdaHandler,
-  createLambdaEventMapping,
-  HTTPMethod,
-} from '@workduck-io/lambda-routing';
-import { createHandler } from './handlers/createHandler';
-import { deleteAllEntitiesOfNodeHandler } from './handlers/deleteAllEntitiesOfNodeHandler';
-import { deleteHandler } from './handlers/deleteHandler';
-import { getAllEntitiesOfNodeHandler } from './handlers/getAllEntitiesOfNodeHandler';
-import { getAllEntitiesOfWorkspaceHandler } from './handlers/getAllEntitiesOfWorkspaceHandler';
-import { getHandler } from './handlers/getHandler';
-import { restoreAllEntitiesOfNodeHandler } from './handlers/restoreAllEntitiesOfNodeHandler';
+import { container } from './handlers/inversify.config';
+import { ReminderHandler } from './handlers/reminder';
 
-const routeHandlers = [
-  {
-    method: HTTPMethod.POST,
-    path: '/',
-    handler: createHandler,
-  },
-  {
-    method: HTTPMethod.GET,
-    path: '/{entityId}',
-    handler: getHandler,
-  },
-  {
-    method: HTTPMethod.DELETE,
-    path: '/all/node/{nodeId}',
-    handler: deleteAllEntitiesOfNodeHandler,
-  },
-  {
-    method: HTTPMethod.POST,
-    path: '/all/node/{nodeId}',
-    handler: restoreAllEntitiesOfNodeHandler,
-  },
-  {
-    method: HTTPMethod.DELETE,
-    path: '/{entityId}',
-    handler: deleteHandler,
-  },
-  {
-    method: HTTPMethod.GET,
-    path: '/all/workspace',
-    handler: getAllEntitiesOfWorkspaceHandler,
-  },
-  {
-    method: HTTPMethod.GET,
-    path: '/all/node/{nodeId}',
-    handler: getAllEntitiesOfNodeHandler,
-  },
-];
-
-const handlerPairs = createLambdaEventMapping(routeHandlers);
-
-export const main = middyfy(createGatewayLambdaHandler(handlerPairs));
+const reminderHandler = container.get(ReminderHandler);
+export const main = middyfy(reminderHandler.execute);

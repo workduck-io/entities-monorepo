@@ -1,5 +1,3 @@
-import 'reflect-metadata';
-
 import { getAccess } from '@mex/access-checker';
 import {
   entityFilter,
@@ -9,7 +7,6 @@ import {
   type BatchUpdateRequest,
 } from '@mex/entity-utils';
 import { createError } from '@middy/util';
-import { Container } from 'inversify';
 
 import {
   extractUserIdFromToken,
@@ -40,7 +37,7 @@ export class TaskHandler {
     @Header() header?,
     @Path() path?,
     @Query() query?
-  ): Promise<{ statusCode: number; body: string; }> {
+  ): Promise<{ statusCode: number; body: string }> {
     console.log(header['mex-workspace-id'], path, query);
 
     const workspaceId = extractWorkspaceId(event);
@@ -263,7 +260,7 @@ export class TaskHandler {
     const successful = {};
     const failed = [];
     await Promise.all(
-      dedupNodeList.map(async (nodeId:string) => {
+      dedupNodeList.map(async (nodeId: string) => {
         const access = await getAccess(workspaceId, nodeId, event);
         if (access === 'NO_ACCESS') {
           failed.push({ nodeId, reason: 'No access' });
@@ -318,9 +315,3 @@ export class TaskHandler {
     return event;
   }
 }
-
-const taskContainer = new Container({ defaultScope: 'Singleton' });
-
-taskContainer.bind<TaskHandler>(TaskHandler).to(TaskHandler);
-
-export { taskContainer };
