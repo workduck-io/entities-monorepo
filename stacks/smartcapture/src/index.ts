@@ -59,6 +59,13 @@ const config = {
         authorizer: 'workduckAuthorizer',
       },
     },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/variable/{variableId}/labels/all',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
   ],
 };
 

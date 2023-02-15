@@ -27,6 +27,15 @@ export const serializeConfig = (config) => {
   };
 };
 
+export const serializeConfigFormat = (config) => {
+  return config.reduce((acc, val) => {
+    return {
+      ...acc,
+      [val.id]: val,
+    };
+  }, {});
+};
+
 export const serializeConfigDelete = (config) => {
   return config.reduce((acc, val) => {
     return {

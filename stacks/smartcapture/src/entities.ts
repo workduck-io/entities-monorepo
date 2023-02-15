@@ -8,15 +8,18 @@ export const CaptureVariableLabelEntity = new Entity({
   name: 'captureVariableLabel',
   attributes: {
     variableId: {
-      sortKey: true,
+      partitionKey: true,
       type: 'string',
-      coerce: false,
     },
-    labelId: { partitionKey: true, type: 'string' },
-    base: {
+    id: { sortKey: true, type: 'string', coerce: false },
+    configId: {
       type: 'string',
       map: 'ak',
       coerce: false,
+    },
+    base: {
+      type: 'string',
+      required: true,
     },
     _source: {
       type: 'string',
