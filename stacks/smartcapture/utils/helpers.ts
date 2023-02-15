@@ -2,7 +2,6 @@ import merge from 'deepmerge';
 
 export const combineMerge = (target, source, options) => {
   const destination = target.slice();
-  const text = {};
   source.forEach((item, index) => {
     if (typeof destination[index] === 'undefined') {
       destination[index] = options.cloneUnlessOtherwiseSpecified(item, options);
