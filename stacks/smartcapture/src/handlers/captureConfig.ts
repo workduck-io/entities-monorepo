@@ -30,7 +30,6 @@ export const createConfigHandler: ValidatedAPIGatewayProxyHandler<any> = async (
       allTransacts.push(
         CaptureVariableLabelEntity.putTransaction({
           id: label.id,
-          labelName: label.name,
           variableId: label.variableId,
           userId,
           base: config.base,
@@ -64,7 +63,6 @@ export const updateConfigHandler: ValidatedAPIGatewayProxyHandler<any> = async (
         allTransacts.push(
           CaptureVariableLabelEntity.updateTransaction({
             id: label.id,
-            labelName: label.name,
             variableId: label.variableId,
             userId,
             base: config.base,

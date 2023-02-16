@@ -30,7 +30,6 @@ export const CaptureVariableLabelEntity = new Entity({
     _ttl: { type: 'number', hidden: true },
     userId: { type: 'string', required: true },
     properties: { type: 'map' },
-    labelName: { type: 'string', required: true },
   },
   table: smartcaptureTable,
 } as const);
