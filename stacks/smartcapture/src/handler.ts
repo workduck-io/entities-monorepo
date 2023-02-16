@@ -11,6 +11,7 @@ import {
   getAllConfigOfBase,
   getAllConfigOfPublic,
   getAllConfigOfWorkspace,
+  getAllLabelsForVariable,
   getConfigHandler,
   updateConfigHandler,
 } from './handlers/captureConfig';
@@ -19,7 +20,7 @@ import {
   deleteVariableHandler,
   getAllVariablesHandler,
   getVariableHandler,
-} from './handlers/smartcaptures';
+} from './handlers/captureVariable';
 
 const configRouteHandlers = [
   {
@@ -62,6 +63,11 @@ const configRouteHandlers = [
     path: '/config/{configId}/labels',
     handler: deleteConfigLabelHandler,
   },
+  {
+    method: HTTPMethod.GET,
+    path: '/variable/{variableId}/labels/all',
+    handler: getAllLabelsForVariable,
+  },
 ];
 const routeHandlers = [
   {
@@ -80,7 +86,6 @@ const routeHandlers = [
     path: '/variable/{variableId}',
     handler: getVariableHandler,
   },
-
   {
     method: HTTPMethod.DELETE,
     path: '/variable/{variableId}',

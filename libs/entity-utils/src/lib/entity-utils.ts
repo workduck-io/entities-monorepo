@@ -1,7 +1,7 @@
 import DynamoDB from 'aws-sdk/clients/dynamodb';
 import { Entity, Table } from 'dynamodb-toolbox';
 import { TableIndexes } from 'dynamodb-toolbox/dist/classes/Table';
-import { MAX_DYNAMO_BATCH_REQUEST } from './consts';
+import { ENTITYSOURCE, MAX_DYNAMO_BATCH_REQUEST } from './consts';
 import {
   BaseEntityParameters,
   BatchUpdateRequest,
@@ -60,7 +60,11 @@ export const defaultEntityAttributes: {
     coerce: false;
   };
   nodeId: { type: 'string'; map: 'ak'; coerce: false };
-  _source: { type: 'string'; default: () => 'INTERNAL'; hidden: true };
+  _source: {
+    type: 'string';
+    default: () => ENTITYSOURCE.INTERNAL;
+    hidden: true;
+  };
   _status: { type: 'string'; default: () => 'ACTIVE'; hidden: true };
   _ttl: { type: 'number'; hidden: true };
   userId: { type: 'string'; required: true };
@@ -73,7 +77,11 @@ export const defaultEntityAttributes: {
     coerce: false,
   },
   nodeId: { type: 'string', map: 'ak', coerce: false },
-  _source: { type: 'string', default: () => 'INTERNAL', hidden: true },
+  _source: {
+    type: 'string',
+    default: () => ENTITYSOURCE.INTERNAL,
+    hidden: true,
+  },
   _status: { type: 'string', default: () => 'ACTIVE', hidden: true },
   _ttl: { type: 'number', hidden: true },
   userId: { type: 'string', required: true },
@@ -114,14 +122,14 @@ export const executeBatchRequest = async <
         return {
           ...req,
           workspaceId: wsId,
-          _source: source ?? 'INTERNAL',
+          _source: source ?? ENTITYSOURCE.INTERNAL,
           $remove: ['_ttl'],
         };
       case 'DELETE':
         return {
           ...req,
           workspaceId: wsId,
-          _source: source ?? 'INTERNAL',
+          _source: source ?? ENTITYSOURCE.INTERNAL,
           _status: 'ARCHIVED',
           _ttl: ttlDate,
         };

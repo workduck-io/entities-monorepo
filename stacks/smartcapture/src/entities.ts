@@ -1,7 +1,38 @@
 import { defaultEntityAttributes } from '@mex/entity-utils';
 import { Entity } from 'dynamodb-toolbox';
 import { smartcaptureTable } from '../service/DynamoDB';
+import { ENTITYSOURCE } from '../utils/consts';
 import { serializeConfig } from '../utils/helpers';
+
+export const CaptureVariableLabelEntity = new Entity({
+  name: 'captureVariableLabel',
+  attributes: {
+    variableId: {
+      partitionKey: true,
+      type: 'string',
+    },
+    id: { sortKey: true, type: 'string', coerce: false },
+    configId: {
+      type: 'string',
+      map: 'ak',
+      coerce: false,
+    },
+    base: {
+      type: 'string',
+      required: true,
+    },
+    _source: {
+      type: 'string',
+      default: () => ENTITYSOURCE.INTERNAL,
+      hidden: true,
+    },
+    _status: { type: 'string', default: () => 'ACTIVE', hidden: true },
+    _ttl: { type: 'number', hidden: true },
+    userId: { type: 'string', required: true },
+    properties: { type: 'map' },
+  },
+  table: smartcaptureTable,
+} as const);
 
 export const CaptureVariableEntity = new Entity({
   name: 'captureVariable',
