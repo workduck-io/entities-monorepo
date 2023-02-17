@@ -14,10 +14,8 @@ import {
   InternalError,
 } from '@mex/gen-utils';
 import {
-  Header,
   HTTPMethod,
   Path,
-  Query,
   Route,
   RouteAndExec,
   ValidatedAPIGatewayProxyEvent,
@@ -34,14 +32,10 @@ export class TaskHandler {
   })
   async getHandler(
     event: ValidatedAPIGatewayProxyEvent<undefined>,
-    @Header() header?,
-    @Path() path?,
-    @Query() query?
+    @Path() path?
   ): Promise<{ statusCode: number; body: string }> {
-    console.log(header['mex-workspace-id'], path, query);
-
     const workspaceId = extractWorkspaceId(event);
-    const entityId = event.pathParameters.entityId;
+    const entityId = path.entityId;
     const res = (
       await TaskEntity.get({
         workspaceId,
@@ -59,12 +53,7 @@ export class TaskHandler {
     method: HTTPMethod.POST,
     path: '/',
   })
-  async createHandler(
-    event: ValidatedAPIGatewayProxyEvent<Task>,
-    @Header() header?
-  ) {
-    console.log('HEADER', header['mex-workspace-id']);
-
+  async createHandler(event: ValidatedAPIGatewayProxyEvent<Task>) {
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserIdFromToken(event);
     const task = event.body;
