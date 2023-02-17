@@ -8,23 +8,60 @@ import {
 } from '@mex/entity-utils';
 import { createError } from '@middy/util';
 
-import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
-import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
+import {
+  extractUserIdFromToken,
+  extractWorkspaceId,
+  InternalError,
+} from '@mex/gen-utils';
+import {
+  HTTPMethod,
+  Path,
+  Route,
+  RouteAndExec,
+  ValidatedAPIGatewayProxyEvent,
+} from '@workduck-io/lambda-routing';
+import { injectable } from 'inversify';
 import { TaskEntity } from '../entities';
 import { Task } from '../interface';
-
-export const createHandler: ValidatedAPIGatewayProxyHandler<Task> = async (
-  event
-) => {
-  const workspaceId = extractWorkspaceId(event);
-  const userId = extractUserIdFromToken(event);
-  const task = event.body;
-  if (task.workspaceId && workspaceId != task.workspaceId) {
-    const access = await getAccess(workspaceId, task.nodeId, event);
-    if (access === 'NO_ACCESS' || access === 'READ')
-      throw createError(401, 'User access denied');
+@injectable()
+@InternalError()
+export class TaskHandler {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/{entityId}',
+  })
+  async getHandler(
+    event: ValidatedAPIGatewayProxyEvent<undefined>,
+    @Path() path?
+  ): Promise<{ statusCode: number; body: string }> {
+    const workspaceId = extractWorkspaceId(event);
+    const entityId = path.entityId;
+    const res = (
+      await TaskEntity.get({
+        workspaceId,
+        entityId,
+      })
+    ).Item;
+    if (!res) throw createError(404, 'Item not found');
+    return {
+      statusCode: 200,
+      body: JSON.stringify(res),
+    };
   }
-  try {
+
+  @Route({
+    method: HTTPMethod.POST,
+    path: '/',
+  })
+  async createHandler(event: ValidatedAPIGatewayProxyEvent<Task>) {
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserIdFromToken(event);
+    const task = event.body;
+    if (task.workspaceId && workspaceId != task.workspaceId) {
+      const access = await getAccess(workspaceId, task.nodeId, event);
+      if (access === 'NO_ACCESS' || access === 'READ')
+        throw createError(401, 'User access denied');
+    }
     const res = (
       await TaskEntity.update(
         {
@@ -43,37 +80,13 @@ export const createHandler: ValidatedAPIGatewayProxyHandler<Task> = async (
       statusCode: 200,
       body: JSON.stringify(res),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
-  event
-) => {
-  try {
-    const workspaceId = extractWorkspaceId(event);
-    const entityId = event.pathParameters.entityId;
-    const res = (
-      await TaskEntity.get({
-        workspaceId,
-        entityId,
-      })
-    ).Item;
-    if (!res) throw createError(404, 'Item not found');
-    return {
-      statusCode: 200,
-      body: JSON.stringify(res),
-    };
-  } catch (e) {
-    throw createError(e.statusCode ?? 400, JSON.stringify(e.message));
-  }
-};
-
-export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
-  event
-) => {
-  try {
+  @Route({
+    method: HTTPMethod.DELETE,
+    path: '/{entityId}',
+  })
+  async deleteHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
     const res = await TaskEntity.update({
@@ -86,16 +99,16 @@ export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
       statusCode: 200,
       body: JSON.stringify(res),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const getAllEntitiesOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  const lastKey = event.queryStringParameters?.lastKey;
-  try {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/all/workspace',
+  })
+  async getAllEntitiesOfWorkspaceHandler(
+    event: ValidatedAPIGatewayProxyEvent<undefined>
+  ) {
+    const lastKey = event.queryStringParameters?.lastKey;
     const workspaceId = extractWorkspaceId(event);
     const res = await TaskEntity.query(workspaceId, {
       startKey: lastKey && {
@@ -111,15 +124,14 @@ export const getAllEntitiesOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
         lastKey: res.LastEvaluatedKey?.sk ?? undefined,
       }),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
-
-export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  try {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/all/node/{nodeId}',
+  })
+  async getAllEntitiesOfNodeHandler(
+    event: ValidatedAPIGatewayProxyEvent<undefined>
+  ) {
     const nodeId = event.pathParameters.nodeId;
     const workspaceId = extractWorkspaceId(event);
     const access = await getAccess(workspaceId, nodeId, event);
@@ -136,15 +148,15 @@ export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       statusCode: 200,
       body: JSON.stringify(res),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  try {
+  @Route({
+    method: HTTPMethod.DELETE,
+    path: '/all/node/{nodeId}',
+  })
+  async deleteAllEntitiesOfNodeHandler(
+    event: ValidatedAPIGatewayProxyEvent<undefined>
+  ) {
     const nodeId = event.pathParameters.nodeId;
     const workspaceId = extractWorkspaceId(event);
     const access = await getAccess(workspaceId, nodeId, event);
@@ -178,15 +190,15 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       statusCode: 204,
       body: '',
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const restoreAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  try {
+  @Route({
+    method: HTTPMethod.POST,
+    path: '/all/node/{nodeId}',
+  })
+  async restoreAllEntitiesOfNodeHandler(
+    event: ValidatedAPIGatewayProxyEvent<undefined>
+  ) {
     const nodeId = event.pathParameters.nodeId;
     const workspaceId = extractWorkspaceId(event);
     const access = await getAccess(workspaceId, nodeId, event);
@@ -220,56 +232,57 @@ export const restoreAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       statusCode: 204,
       body: '',
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const getEntityOfMultipleNodesHandler: ValidatedAPIGatewayProxyHandler<{
-  nodes: string[];
-}> = async (event) => {
-  const workspaceId = extractWorkspaceId(event);
-  const req = event.body;
-  const dedupNodeList = [...new Set(req.nodes)];
-  if (dedupNodeList.length > MAX_DYNAMO_BATCH_REQUEST)
-    throw createError(
-      400,
-      `Maximum ${MAX_DYNAMO_BATCH_REQUEST} can be requested at once`
+  @Route({ method: HTTPMethod.POST, path: '/batch/get' })
+  async getEntityOfMultipleNodesHandler(
+    event: ValidatedAPIGatewayProxyEvent<{ nodes: string[] }>
+  ) {
+    const workspaceId = extractWorkspaceId(event);
+    const req = event.body;
+    const dedupNodeList = [...new Set(req.nodes)];
+    if (dedupNodeList.length > MAX_DYNAMO_BATCH_REQUEST)
+      throw createError(
+        400,
+        `Maximum ${MAX_DYNAMO_BATCH_REQUEST} can be requested at once`
+      );
+    const successful = {};
+    const failed = [];
+    await Promise.all(
+      dedupNodeList.map(async (nodeId: string) => {
+        const access = await getAccess(workspaceId, nodeId, event);
+        if (access === 'NO_ACCESS') {
+          failed.push({ nodeId, reason: 'No access' });
+        } else {
+          const res = (
+            await TaskEntity.query(workspaceId, {
+              index: 'pk-ak-index',
+              eq: nodeId,
+              filters: [statusFilter('ACTIVE'), entityFilter('task')],
+            })
+          ).Items;
+          successful[nodeId] = res;
+        }
+      })
     );
-  const successful = {};
-  const failed = [];
-  await Promise.all(
-    dedupNodeList.map(async (nodeId) => {
-      const access = await getAccess(workspaceId, nodeId, event);
-      if (access === 'NO_ACCESS') {
-        failed.push({ nodeId, reason: 'No access' });
-      } else {
-        const res = (
-          await TaskEntity.query(workspaceId, {
-            index: 'pk-ak-index',
-            eq: nodeId,
-            filters: [statusFilter('ACTIVE'), entityFilter('task')],
-          })
-        ).Items;
-        successful[nodeId] = res;
-      }
-    })
-  );
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ Items: successful, Failed: failed }),
-  };
-};
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ Items: successful, Failed: failed }),
+    };
+  }
 
-export const batchUpdateHandler: ValidatedAPIGatewayProxyHandler<
-  BatchUpdateRequest<Task>
-> = async (event) => {
-  try {
+  @Route({
+    method: HTTPMethod.POST,
+    path: '/batch/update',
+  })
+  async batchUpdateHandler(
+    event: ValidatedAPIGatewayProxyEvent<BatchUpdateRequest<Task>>
+  ) {
     const workspaceId = extractWorkspaceId(event);
     const req = event.body;
     await Promise.all(
       [...new Set(req.map((r) => r.nodeId))].map(async (nodeId) => {
-        const access = await getAccess(workspaceId, nodeId, event);
+        const access = await getAccess(workspaceId, nodeId as string, event);
         if (access === 'NO_ACCESS' || access === 'READ')
           throw createError(401, 'User access denied');
       })
@@ -284,7 +297,10 @@ export const batchUpdateHandler: ValidatedAPIGatewayProxyHandler<
       statusCode: 200,
       body: JSON.stringify(batchRequestResult),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
+
+  @RouteAndExec()
+  execute(event) {
+    return event;
+  }
+}
