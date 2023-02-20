@@ -69,8 +69,8 @@ const config = {
   ],
 };
 
-const main = {
-  handler: `${handlerPath(__dirname)}/handler.main`,
+const variable = {
+  handler: `${handlerPath(__dirname)}/handler.variable`,
   events: [
     {
       httpApi: {
@@ -104,6 +104,6 @@ const main = {
 };
 
 export default {
-  main,
   config,
+  variable,
 };
