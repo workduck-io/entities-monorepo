@@ -47,6 +47,7 @@ export type ENTITY_TYPE =
   | 'view'
   | 'highlights'
   | 'captureVariable'
+  | 'capture'
   | 'captureLabel';
 
 export interface HierarchyItem {

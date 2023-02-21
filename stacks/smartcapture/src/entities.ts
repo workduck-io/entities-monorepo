@@ -88,3 +88,50 @@ export const CaptureConfigEntity = new Entity({
   },
   table: smartcaptureTable,
 } as const);
+
+export const CaptureEntity = new Entity({
+  name: 'capture',
+  attributes: {
+    pk: {
+      partitionKey: true,
+      type: 'string',
+      coerce: false,
+    },
+    workspaceId: ['pk', 0, { type: 'string', required: true, coerce: false }],
+    configId: ['pk', 1, { type: 'string', required: true, coerce: false }],
+    captureId: { sortKey: true, type: 'string', coerce: false },
+    userId: {
+      type: 'string',
+      map: 'ak',
+      coerce: false,
+      required: true,
+    },
+    source: {
+      type: 'string',
+    },
+    page: { type: 'string' },
+    data: {
+      type: 'map',
+      transform: (value) => {
+        if (Array.isArray(value)) {
+          return serializeConfig(value).data;
+        } else return value;
+      },
+      format: (value, data: any) => {
+        return data.dataOrder.map((key) => {
+          return value[key];
+        });
+      },
+    },
+    _source: {
+      type: 'string',
+      default: () => ENTITYSOURCE.EXTERNAL,
+      hidden: true,
+    },
+    _status: { type: 'string', default: () => 'ACTIVE', hidden: true },
+    _ttl: { type: 'number', hidden: true },
+
+    properties: { type: 'map' },
+  },
+  table: smartcaptureTable,
+} as const);

@@ -103,7 +103,49 @@ const variable = {
   ],
 };
 
+const capture = {
+  handler: `${handlerPath(__dirname)}/handler.capture`,
+  events: [
+    {
+      httpApi: {
+        method: 'POST',
+        path: '/capture',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'DELETE',
+        path: '/config/{configId}/capture/{entityId}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/config/{configId}/capture/{entityId}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/config/{configId}/captures',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/config/{configId}/all',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+  ],
+};
+
 export default {
   config,
   variable,
+  capture,
 };

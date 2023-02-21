@@ -22,3 +22,20 @@ export interface Config extends Omit<BaseEntityParameters, 'entityId'> {
   labels: Record<string, Label>;
   regex: string;
 }
+
+export interface CaptureLabel {
+  id: string;
+  label: string;
+  value: string;
+  properties: any;
+}
+
+export interface Capture {
+  page: string; // webpage title
+  source: string; // webpage url
+  data: Label[];
+  configId: string;
+  workspaceId?: string;
+  userId?: string;
+  captureId?: string;
+}
