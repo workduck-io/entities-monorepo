@@ -86,7 +86,7 @@ export class CaptureHandler {
     method: HTTPMethod.GET,
     path: '/config/{configId}/captures',
   })
-  async getAllCaptures(
+  async getAllCapturesForUser(
     event: ValidatedAPIGatewayProxyEvent<any>,
     @Path() path?
   ) {
