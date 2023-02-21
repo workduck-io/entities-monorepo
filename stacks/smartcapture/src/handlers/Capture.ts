@@ -1,3 +1,4 @@
+import { entityFilter, statusFilter } from '@mex/entity-utils';
 import {
   extractUserIdFromToken,
   extractWorkspaceId,
@@ -11,7 +12,6 @@ import {
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
 import { injectable } from 'inversify';
-import { entityFilter, statusFilter } from '@mex/entity-utils';
 import { nanoid } from 'nanoid';
 import { CaptureEntity } from '../entities';
 import { Capture } from '../interface';

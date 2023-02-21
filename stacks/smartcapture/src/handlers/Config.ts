@@ -11,12 +11,12 @@ import {
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
 import { injectable } from 'inversify';
+import { smartcaptureTable } from '../../service/DynamoDB';
 import {
   serializeConfig,
   serializeConfigDelete,
   serializeConfigFormat,
 } from '../../utils/helpers';
-import { smartcaptureTable } from '../../service/DynamoDB';
 import { CaptureConfigEntity, CaptureVariableLabelEntity } from '../entities';
 import { Label } from '../interface';
 

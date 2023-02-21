@@ -96,6 +96,7 @@ export const CaptureEntity = new Entity({
       partitionKey: true,
       type: 'string',
       coerce: false,
+      hidden: true,
     },
     workspaceId: ['pk', 0, { type: 'string', required: true, coerce: false }],
     configId: ['pk', 1, { type: 'string', required: true, coerce: false }],
@@ -118,8 +119,8 @@ export const CaptureEntity = new Entity({
         } else return value;
       },
       format: (value, data: any) => {
-        return data.dataOrder.map((key) => {
-          return value[key];
+        return Object.entries(value).map(([key, val]) => {
+          return val;
         });
       },
     },
