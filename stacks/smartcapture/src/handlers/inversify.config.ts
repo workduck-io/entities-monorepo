@@ -1,7 +1,7 @@
 import { Container } from 'inversify';
+import { CaptureHandler } from './Capture';
 import { ConfigHandler } from './Config';
 import { VariableHandler } from './Variable';
-import { CaptureHandler } from './Capture';
 
 const container = new Container({ defaultScope: 'Singleton' });
 
