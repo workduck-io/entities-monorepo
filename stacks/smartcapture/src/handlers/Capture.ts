@@ -11,12 +11,10 @@ import {
   RouteAndExec,
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
-import { injectable } from 'inversify';
 import { nanoid } from 'nanoid';
 import { CaptureEntity } from '../entities';
 import { Capture } from '../interface';
 
-@injectable()
 @InternalError()
 export class CaptureHandler {
   @Route({

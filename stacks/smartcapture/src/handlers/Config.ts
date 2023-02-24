@@ -10,7 +10,6 @@ import {
   RouteAndExec,
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
-import { injectable } from 'inversify';
 import { smartcaptureTable } from '../../service/DynamoDB';
 import {
   serializeConfig,
@@ -20,7 +19,6 @@ import {
 import { CaptureConfigEntity, CaptureVariableLabelEntity } from '../entities';
 import { Label } from '../interface';
 
-@injectable()
 @InternalError()
 export class ConfigHandler {
   @Route({
