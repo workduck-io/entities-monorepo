@@ -20,10 +20,8 @@ import {
   RouteAndExec,
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
-import { injectable } from 'inversify';
 import { TaskEntity } from '../entities';
 import { Task } from '../interface';
-@injectable()
 @InternalError()
 export class TaskHandler {
   @Route({

@@ -98,7 +98,6 @@
     "@workduck-io/workspace-validator": "^0.0.7",
     "deepmerge": "^4.2.2",
     "dynamodb-toolbox": "^0.6.0",
-    "inversify": "^6.0.1",
     "jwt-decode": "^3.1.2",
     "meilisearch": "^0.29.1",
     "nanoid": "^4.0.0",

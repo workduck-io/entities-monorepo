@@ -17,11 +17,9 @@ import {
   RouteAndExec,
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
-import { injectable } from 'inversify';
 import { ReminderEntity } from '../entities';
 import { Reminder } from '../interface';
 
-@injectable()
 @InternalError()
 export class ReminderHandler {
   @Route({
