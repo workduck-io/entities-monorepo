@@ -2,5 +2,8 @@ import { middyfy } from '@mex/middy-utils';
 import { TaskHandler } from './handlers/tasks';
 import { ViewHandler } from './handlers/view';
 
-export const task = middyfy(new TaskHandler().execute);
-export const view = middyfy(new ViewHandler().execute);
+const taskHandler = new TaskHandler();
+const viewHandler = new ViewHandler();
+
+export const task = middyfy(taskHandler.execute);
+export const view = middyfy(viewHandler.execute);
