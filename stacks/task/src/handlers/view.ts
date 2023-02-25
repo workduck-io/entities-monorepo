@@ -11,10 +11,8 @@ import {
   RouteAndExec,
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
-import { injectable } from 'inversify';
 import { ViewEntity } from '../entities';
 import { View } from '../interface';
-@injectable()
 @InternalError()
 export class ViewHandler {
   @Route({
