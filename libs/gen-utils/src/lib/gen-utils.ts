@@ -16,8 +16,11 @@ export const extractApiVersion = (event) => {
 };
 
 export const extractUserIdFromToken = (event): string => {
-  const userId = (jwt_decode(event.headers.authorization) as WDTokenDecode).sub;
-
+  const userId = (
+    jwt_decode(
+      event.headers.authorization ?? event.multiValueHeaders.Authorization[0]
+    ) as WDTokenDecode
+  ).sub;
   if (!userId)
     throw new WDError({
       message: 'Invalid token provided',

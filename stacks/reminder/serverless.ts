@@ -13,6 +13,7 @@ const reminderServerlessConfig = {
       lambdaPort: 4042,
       ignoreJWTSignature: true,
       noAuth: true,
+      noPrependStageInUrl: true,
     },
     customDomain: {
       http: {

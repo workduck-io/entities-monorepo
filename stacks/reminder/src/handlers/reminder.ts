@@ -14,11 +14,11 @@ import { createError } from '@middy/util';
 import {
   HTTPMethod,
   Route,
-  RouteAndExec,
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
 import { ReminderEntity } from '../entities';
 import { Reminder } from '../interface';
+import { RouteAndExec2 } from './decorator';
 
 @InternalError()
 export class ReminderHandler {
@@ -51,10 +51,57 @@ export class ReminderHandler {
   }
 
   @Route({
+    method: HTTPMethod.POST,
+    path: '/rest',
+  })
+  async createHandlerRest(event: ValidatedAPIGatewayProxyEvent<Reminder>) {
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserIdFromToken(event);
+    const reminder = event.body;
+    if (reminder.workspaceId && workspaceId != reminder.workspaceId) {
+      const access = await getAccess(workspaceId, reminder.nodeId, event);
+      if (access === 'NO_ACCESS' || access === 'READ')
+        throw createError(401, 'User access denied');
+    }
+
+    const res = (
+      await ReminderEntity.update(
+        { ...reminder, workspaceId, userId },
+        {
+          returnValues: 'ALL_NEW',
+        }
+      )
+    ).Attributes;
+    return {
+      statusCode: 200,
+      body: JSON.stringify(res),
+    };
+  }
+
+  @Route({
     method: HTTPMethod.GET,
     path: '/{entityId}',
   })
   async getHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
+    const workspaceId = extractWorkspaceId(event);
+    const entityId = event.pathParameters.entityId;
+    const res = (
+      await ReminderEntity.get({
+        workspaceId,
+        entityId,
+      })
+    ).Item;
+    return {
+      statusCode: 200,
+      body: JSON.stringify(res),
+    };
+  }
+
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/rest/{entityId}',
+  })
+  async getHandlerRest(event: ValidatedAPIGatewayProxyEvent<undefined>) {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
     const res = (
@@ -222,7 +269,7 @@ export class ReminderHandler {
     };
   }
 
-  @RouteAndExec()
+  @RouteAndExec2()
   execute(event) {
     return event;
   }

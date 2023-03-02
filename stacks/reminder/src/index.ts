@@ -4,6 +4,20 @@ const main = {
   handler: `${handlerPath(__dirname)}/handler.main`,
   events: [
     {
+      http: {
+        method: 'POST',
+        path: '/rest',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      http: {
+        method: 'GET',
+        path: '/rest/{entityId}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
       httpApi: {
         method: 'POST',
         path: '/',
