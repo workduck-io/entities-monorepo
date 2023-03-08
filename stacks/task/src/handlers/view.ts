@@ -1,9 +1,5 @@
 import { entityFilter } from '@mex/entity-utils';
-import {
-  extractApiVersion,
-  extractWorkspaceId,
-  InternalError,
-} from '@mex/gen-utils';
+import { extractWorkspaceId, InternalError } from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import {
   HTTPMethod,
@@ -82,10 +78,9 @@ export class ViewHandler {
     event: ValidatedAPIGatewayProxyEvent<undefined>
   ) {
     const workspaceId = extractWorkspaceId(event);
-    const apiVersion = extractApiVersion(event);
     const res = (
       await ViewEntity.query(workspaceId, {
-        beginsWith: apiVersion ? 'TASKVIEW' : 'TASK_VIEW',
+        beginsWith: 'TASKVIEW',
         filters: [entityFilter('view')],
       })
     ).Items;
