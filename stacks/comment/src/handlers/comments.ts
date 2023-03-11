@@ -5,25 +5,39 @@ import {
   executeBatchRequest,
   statusFilter,
 } from '@mex/entity-utils';
-import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
+import {
+  extractUserIdFromToken,
+  extractWorkspaceId,
+  InternalError,
+} from '@mex/gen-utils';
 import { createError } from '@middy/util';
-import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
+import {
+  HTTPMethod,
+  Route,
+  RouteAndExec,
+  ValidatedAPIGatewayProxyEvent,
+} from '@workduck-io/lambda-routing';
 import { InferEntityItem } from 'dynamodb-toolbox';
 import { sanitizeComment } from '../../utils/helpers';
 import { CommentEntity } from '../entities';
 
-export const createHandler: ValidatedAPIGatewayProxyHandler<
-  InferEntityItem<typeof CommentEntity>
-> = async (event) => {
-  const workspaceId = extractWorkspaceId(event);
-  const userId = extractUserIdFromToken(event);
-  const comment = event.body;
-  if (comment.workspaceId && workspaceId != comment.workspaceId) {
-    const access = await getAccess(workspaceId, comment.nodeId, event);
-    if (access === 'NO_ACCESS' || access === 'READ')
-      throw createError(401, 'User access denied');
-  }
-  try {
+@InternalError()
+export class CommentsHandler {
+  @Route({
+    method: HTTPMethod.POST,
+    path: '/',
+  })
+  async createHandler(
+    event: ValidatedAPIGatewayProxyEvent<InferEntityItem<typeof CommentEntity>>
+  ) {
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserIdFromToken(event);
+    const comment = event.body;
+    if (comment.workspaceId && workspaceId != comment.workspaceId) {
+      const access = await getAccess(workspaceId, comment.nodeId, event);
+      if (access === 'NO_ACCESS' || access === 'READ')
+        throw createError(401, 'User access denied');
+    }
     const res = (
       await CommentEntity.update(
         {
@@ -42,15 +56,15 @@ export const createHandler: ValidatedAPIGatewayProxyHandler<
       statusCode: 200,
       body: JSON.stringify(sanitizeComment(res)),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
-  event
-) => {
-  try {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/{nodeId}/{entityId}',
+  })
+  async getHandler(
+    event: ValidatedAPIGatewayProxyEvent<undefined>
+  ): Promise<{ statusCode: number; body: string }> {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
     const nodeId = event.pathParameters.nodeId;
@@ -65,20 +79,19 @@ export const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
         entityId,
       })
     ).Item;
+    if (!res) throw createError(404, 'Item not found');
     return {
       statusCode: 200,
       //NOTE: Do away with it when toolbox adds format function
       body: JSON.stringify(sanitizeComment(res)),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
-  event
-) => {
-  try {
+  @Route({
+    method: HTTPMethod.DELETE,
+    path: '/{nodeId}/{entityId}',
+  })
+  async deleteHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
     const nodeId = event.pathParameters.nodeId;
@@ -94,15 +107,18 @@ export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
     return {
       statusCode: 204,
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  try {
+  @Route({
+    method: HTTPMethod.GET,
+    path:
+      '/all/{nodeId}' ||
+      '/all/{nodeId}/block/{blockId}' ||
+      '/all/{nodeId}/block/{blockId}/thread/{threadId}',
+  })
+  async getAllEntitiesOfNodeHandler(
+    event: ValidatedAPIGatewayProxyEvent<undefined>
+  ) {
     const nodeId = event.pathParameters.nodeId;
     const blockId = event.pathParameters?.blockId;
     const threadId = event.pathParameters?.threadId;
@@ -124,15 +140,15 @@ export const getAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       statusCode: 200,
       body: JSON.stringify(res.map(sanitizeComment)),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  try {
+  @Route({
+    method: HTTPMethod.DELETE,
+    path: '/all/{nodeId}' || '/all/{nodeId}/block/{blockId}' ||  '/all/{nodeId}/block/{blockId}/thread/{threadId}',
+  })
+  async deleteAllEntitiesOfNodeHandler(
+    event: ValidatedAPIGatewayProxyEvent<undefined>
+  ) {
     const nodeId = event.pathParameters.nodeId;
     const blockId = event.pathParameters?.blockId;
     const threadId = event.pathParameters?.threadId;
@@ -172,7 +188,10 @@ export const deleteAllEntitiesOfNodeHandler: ValidatedAPIGatewayProxyHandler<
     return {
       statusCode: 204,
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
+
+  @RouteAndExec()
+  execute(event) {
+    return event;
+  }
+}
