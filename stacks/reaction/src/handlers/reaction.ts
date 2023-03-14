@@ -71,7 +71,11 @@ export class ReactionkHandler {
   }
   @Route({
     method: HTTPMethod.GET,
-    path: '/node/{nodeId}' || '/node/{nodeId}/block/{blockId}',
+    path: '/node/{nodeId}',
+  })
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/node/{nodeId}/block/{blockId}',
   })
   async getAllReactionsOfNodeHandler(
     event: ValidatedAPIGatewayProxyEvent<undefined>

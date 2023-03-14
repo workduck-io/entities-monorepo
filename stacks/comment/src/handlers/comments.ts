@@ -112,8 +112,16 @@ export class CommentsHandler {
   @Route({
     method: HTTPMethod.GET,
     path:
-      '/all/{nodeId}' ||
-      '/all/{nodeId}/block/{blockId}' ||
+      '/all/{nodeId}',
+  })
+  @Route({
+    method: HTTPMethod.GET,
+    path:
+      '/all/{nodeId}/block/{blockId}',
+  })
+  @Route({
+    method: HTTPMethod.GET,
+    path:
       '/all/{nodeId}/block/{blockId}/thread/{threadId}',
   })
   async getAllEntitiesOfNodeHandler(
@@ -144,7 +152,15 @@ export class CommentsHandler {
 
   @Route({
     method: HTTPMethod.DELETE,
-    path: '/all/{nodeId}' || '/all/{nodeId}/block/{blockId}' ||  '/all/{nodeId}/block/{blockId}/thread/{threadId}',
+    path: '/all/{nodeId}',
+  })
+  @Route({
+    method: HTTPMethod.DELETE,
+    path: '/all/{nodeId}/block/{blockId}',
+  })
+  @Route({
+    method: HTTPMethod.DELETE,
+    path: '/all/{nodeId}/block/{blockId}/thread/{threadId}',
   })
   async deleteAllEntitiesOfNodeHandler(
     event: ValidatedAPIGatewayProxyEvent<undefined>
