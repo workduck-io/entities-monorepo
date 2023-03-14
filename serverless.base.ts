@@ -21,7 +21,7 @@ export const baseServerlessConfiguration: Partial<Serverless> = {
     enabled: {
       dev: true,
       test: true,
-      staging: true,
+      staging: false,
       other: false,
     },
     stage: '${opt:stage, self:provider.stage}',
