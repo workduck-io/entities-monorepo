@@ -1,18 +1,30 @@
 import { entityFilter } from '@mex/entity-utils';
-import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
+import {
+  extractUserIdFromToken,
+  extractWorkspaceId,
+  InternalError,
+} from '@mex/gen-utils';
 import { createError } from '@middy/util';
-import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
+import {
+  HTTPMethod,
+  Route,
+  RouteAndExec,
+  ValidatedAPIGatewayProxyEvent,
+} from '@workduck-io/lambda-routing';
 import { highlightsTable } from '../../service/DynamoDB';
 import { HighlightsEntity } from '../entities';
 import { Highlights } from '../interface';
 
-export const createHandler: ValidatedAPIGatewayProxyHandler<
-  Highlights
-> = async (event) => {
-  const workspaceId = extractWorkspaceId(event);
-  const userId = extractUserIdFromToken(event);
-  const highlights = event.body;
-  try {
+@InternalError()
+export class HighlightsHandler {
+  @Route({
+    method: HTTPMethod.POST,
+    path: '/',
+  })
+  async createHandler(event: ValidatedAPIGatewayProxyEvent<Highlights>) {
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserIdFromToken(event);
+    const highlights = event.body;
     const res = (
       await HighlightsEntity.update(
         { ...highlights, workspaceId, userId, _source: 'EXTERNAL' },
@@ -25,15 +37,13 @@ export const createHandler: ValidatedAPIGatewayProxyHandler<
       statusCode: 200,
       body: JSON.stringify(res),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
-  event
-) => {
-  try {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/{entityId}',
+  })
+  async getHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
     const res = (
@@ -47,15 +57,13 @@ export const getHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
       statusCode: 200,
       body: JSON.stringify(res),
     };
-  } catch (e) {
-    throw createError(e.statusCode ?? 400, JSON.stringify(e.message));
   }
-};
 
-export const getMultipleHandler: ValidatedAPIGatewayProxyHandler<any> = async (
-  event
-) => {
-  try {
+  @Route({
+    method: HTTPMethod.POST,
+    path: '/multiple',
+  })
+  async getMultipleHandler(event: ValidatedAPIGatewayProxyEvent<any>) {
     const body = event.body;
     const highlightList = (
       await Promise.allSettled(
@@ -85,15 +93,13 @@ export const getMultipleHandler: ValidatedAPIGatewayProxyHandler<any> = async (
       statusCode: 200,
       body: JSON.stringify(res?.Responses?.[highlightsTable.name] ?? []),
     };
-  } catch (e) {
-    throw createError(e.statusCode ?? 400, JSON.stringify(e.message));
   }
-};
 
-export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
-  event
-) => {
-  try {
+  @Route({
+    method: HTTPMethod.DELETE,
+    path: '/{entityId}',
+  })
+  async deleteHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
     await HighlightsEntity.delete({
@@ -105,16 +111,16 @@ export const deleteHandler: ValidatedAPIGatewayProxyHandler<undefined> = async (
       statusCode: 204,
       body: '',
     };
-  } catch (e) {
-    throw createError(e.statusCode ?? 400, JSON.stringify(e.message));
   }
-};
 
-export const getAllEntitiesOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  const lastKey = event.queryStringParameters?.lastKey;
-  try {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/all',
+  })
+  async getAllEntitiesOfWorkspaceHandler(
+    event: ValidatedAPIGatewayProxyEvent<undefined>
+  ) {
+    const lastKey = event.queryStringParameters?.lastKey;
     const workspaceId = extractWorkspaceId(event);
     const res = await HighlightsEntity.query(workspaceId, {
       startKey: lastKey && {
@@ -131,15 +137,15 @@ export const getAllEntitiesOfWorkspaceHandler: ValidatedAPIGatewayProxyHandler<
         lastKey: res.LastEvaluatedKey?.sk ?? undefined,
       }),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const getAllEntitiesOfURLHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  try {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/all/{urlHash}',
+  })
+  async getAllEntitiesOfURLHandler(
+    event: ValidatedAPIGatewayProxyEvent<undefined>
+  ) {
     const urlHash = event.pathParameters.urlHash;
     const workspaceId = extractWorkspaceId(event);
     const res = (
@@ -153,15 +159,15 @@ export const getAllEntitiesOfURLHandler: ValidatedAPIGatewayProxyHandler<
       statusCode: 200,
       body: JSON.stringify(res),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const deleteAllEntitiesOfURLHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  try {
+  @Route({
+    method: HTTPMethod.DELETE,
+    path: '/all/{urlHash}',
+  })
+  async deleteAllEntitiesOfURLHandler(
+    event: ValidatedAPIGatewayProxyEvent<undefined>
+  ) {
     const urlHash = event.pathParameters.urlHash;
     const workspaceId = extractWorkspaceId(event);
 
@@ -183,7 +189,9 @@ export const deleteAllEntitiesOfURLHandler: ValidatedAPIGatewayProxyHandler<
       statusCode: 204,
       body: '',
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
+  @RouteAndExec()
+  execute(event) {
+    return event;
+  }
+}

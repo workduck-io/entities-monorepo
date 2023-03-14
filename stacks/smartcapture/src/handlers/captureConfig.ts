@@ -1,6 +1,14 @@
-import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
-import { createError } from '@middy/util';
-import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
+import {
+  extractUserIdFromToken,
+  extractWorkspaceId,
+  InternalError,
+} from '@mex/gen-utils';
+import {
+  HTTPMethod,
+  Route,
+  RouteAndExec,
+  ValidatedAPIGatewayProxyEvent,
+} from '@workduck-io/lambda-routing';
 import { ENTITYSOURCE } from '../../utils/consts';
 import { smartcaptureTable } from '../../service/DynamoDB';
 import {
@@ -11,53 +19,54 @@ import {
 import { CaptureConfigEntity, CaptureVariableLabelEntity } from '../entities';
 import { Label } from '../interface';
 
-export const createConfigHandler: ValidatedAPIGatewayProxyHandler<any> = async (
-  event
-) => {
-  const workspaceId = extractWorkspaceId(event);
-  const userId = extractUserIdFromToken(event);
-  const config = event.body;
-  const labels = config.labels as Label[];
-  const allTransacts = [];
-  const configTransaction = CaptureConfigEntity.putTransaction({
-    ...config,
-    workspaceId,
-    _source: ENTITYSOURCE.EXTERNAL,
-    userId,
-  });
-  for (const label of labels) {
-    if (label.variableId) {
-      allTransacts.push(
-        CaptureVariableLabelEntity.putTransaction({
-          id: label.id,
-          variableId: label.variableId,
-          userId,
-          base: config.base,
-          configId: config.entityId,
-        })
-      );
+@InternalError()
+export class CaptureConfigHandler {
+  @Route({
+    method: HTTPMethod.POST,
+    path: '/config',
+  })
+  async createConfigHandler(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserIdFromToken(event);
+    const config = event.body;
+    const labels = config.labels as Label[];
+    const allTransacts = [];
+    const configTransaction = CaptureConfigEntity.putTransaction({
+      ...config,
+      workspaceId,
+      _source: ENTITYSOURCE.EXTERNAL,
+      userId,
+    });
+    for (const label of labels) {
+      if (label.variableId) {
+        allTransacts.push(
+          CaptureVariableLabelEntity.putTransaction({
+            id: label.id,
+            variableId: label.variableId,
+            userId,
+            base: config.base,
+            configId: config.entityId,
+          })
+        );
+      }
     }
-  }
-  allTransacts.push(configTransaction);
-  try {
+    allTransacts.push(configTransaction);
     await smartcaptureTable.transactWrite(allTransacts);
     return {
       statusCode: 204,
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const updateConfigHandler: ValidatedAPIGatewayProxyHandler<any> = async (
-  event
-) => {
-  const workspaceId = extractWorkspaceId(event);
-  const userId = extractUserIdFromToken(event);
-  const config = event.body;
-  const labels = config.labels as Label[];
-  const allTransacts = [];
-  try {
+  @Route({
+    method: HTTPMethod.PATCH,
+    path: '/config/{configId}',
+  })
+  async updateConfigHandler(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserIdFromToken(event);
+    const config = event.body;
+    const labels = config.labels as Label[];
+    const allTransacts = [];
     for (const label of labels) {
       if (label.variableId) {
         allTransacts.push(
@@ -85,56 +94,52 @@ export const updateConfigHandler: ValidatedAPIGatewayProxyHandler<any> = async (
     return {
       statusCode: 204,
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const deleteLabelHandler: ValidatedAPIGatewayProxyHandler<any> = async (
-  event
-) => {
-  const workspaceId = extractWorkspaceId(event);
-  const userId = extractUserIdFromToken(event);
-  const config = event.body;
-  const labels = config.labels as Label[];
-  const allTransacts = [];
+  @Route({
+    method: HTTPMethod.DELETE,
+    path: '/config/{configId}/labels',
+  })
+  async deleteConfigLabelHandler(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserIdFromToken(event);
+    const config = event.body;
+    const labels = config.labels as Label[];
+    const allTransacts = [];
 
-  for (const label of labels) {
-    if (label.variableId) {
-      allTransacts.push(
-        CaptureVariableLabelEntity.deleteTransaction({
-          id: label.id,
-          variableId: label.variableId,
-        })
-      );
+    for (const label of labels) {
+      if (label.variableId) {
+        allTransacts.push(
+          CaptureVariableLabelEntity.deleteTransaction({
+            id: label.id,
+            variableId: label.variableId,
+          })
+        );
+      }
     }
-  }
 
-  const updateItem = {
-    entityId: event.pathParameters.configId,
-    labels: { $set: serializeConfigDelete(config.labels) },
-    workspaceId,
-    _source: ENTITYSOURCE.EXTERNAL,
-    userId,
-  };
-  allTransacts.push(CaptureConfigEntity.updateTransaction(updateItem));
+    const updateItem = {
+      entityId: event.pathParameters.configId,
+      labels: { $set: serializeConfigDelete(config.labels) },
+      workspaceId,
+      _source: ENTITYSOURCE.EXTERNAL,
+      userId,
+    };
+    allTransacts.push(CaptureConfigEntity.updateTransaction(updateItem));
 
-  try {
     await smartcaptureTable.transactWrite(allTransacts);
     return {
       statusCode: 204,
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const getConfigHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  const workspaceId = extractWorkspaceId(event) as string;
-  const configId = event.pathParameters.configId;
-  try {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/config/{configId}',
+  })
+  async getConfigHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
+    const workspaceId = extractWorkspaceId(event) as string;
+    const configId = event.pathParameters.configId;
     const res = (
       await CaptureConfigEntity.get({
         workspaceId,
@@ -146,16 +151,16 @@ export const getConfigHandler: ValidatedAPIGatewayProxyHandler<
       statusCode: 200,
       body: JSON.stringify(res),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const getAllConfigOfWorkspace: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  const workspaceId = extractWorkspaceId(event) as string;
-  try {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/config/all',
+  })
+  async getAllConfigOfWorkspace(
+    event: ValidatedAPIGatewayProxyEvent<undefined>
+  ) {
+    const workspaceId = extractWorkspaceId(event) as string;
     const res = await CaptureConfigEntity.query(workspaceId, {
       beginsWith: 'CONFIG_',
     });
@@ -163,18 +168,13 @@ export const getAllConfigOfWorkspace: ValidatedAPIGatewayProxyHandler<
       statusCode: 200,
       body: JSON.stringify(res.Items),
     };
-  } catch (error) {
-    return {
-      statusCode: 400,
-      body: `Cannot get config ${error}`,
-    };
   }
-};
 
-export const getAllConfigOfPublic: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  try {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/config/all/public',
+  })
+  async getAllConfigOfPublic(event: ValidatedAPIGatewayProxyEvent<undefined>) {
     const res = await CaptureConfigEntity.query('WORKSPACE_INTERNAL', {
       beginsWith: 'CONFIG_',
     });
@@ -182,19 +182,14 @@ export const getAllConfigOfPublic: ValidatedAPIGatewayProxyHandler<
       statusCode: 200,
       body: JSON.stringify(res.Items),
     };
-  } catch (error) {
-    return {
-      statusCode: 400,
-      body: `Cannot get config ${error}`,
-    };
   }
-};
 
-export const getAllConfigOfBase: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  const workspaceId = extractWorkspaceId(event) as string;
-  try {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/config/all/{base}',
+  })
+  async getAllConfigOfBase(event: ValidatedAPIGatewayProxyEvent<undefined>) {
+    const workspaceId = extractWorkspaceId(event) as string;
     const res = await CaptureConfigEntity.query(workspaceId, {
       index: 'pk-ak-index',
       eq: event.pathParameters.base,
@@ -203,20 +198,15 @@ export const getAllConfigOfBase: ValidatedAPIGatewayProxyHandler<
       statusCode: 200,
       body: JSON.stringify(res.Items),
     };
-  } catch (error) {
-    return {
-      statusCode: 400,
-      body: `Cannot get config ${error}`,
-    };
   }
-};
 
-export const deleteConfigHandler: ValidatedAPIGatewayProxyHandler<any> = async (
-  event
-) => {
-  const workspaceId = extractWorkspaceId(event) as string;
-  const configId = event.pathParameters.configId;
-  try {
+  @Route({
+    method: HTTPMethod.DELETE,
+    path: '/config/{configId}',
+  })
+  async deleteConfigHandler(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const workspaceId = extractWorkspaceId(event) as string;
+    const configId = event.pathParameters.configId;
     await CaptureConfigEntity.delete({
       workspaceId,
       entityId: configId,
@@ -225,16 +215,14 @@ export const deleteConfigHandler: ValidatedAPIGatewayProxyHandler<any> = async (
     return {
       statusCode: 204,
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const getAllLabelsForVariable: ValidatedAPIGatewayProxyHandler<
-  any
-> = async (event) => {
-  const variableId = event.pathParameters.variableId;
-  try {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/variable/{variableId}/labels/all',
+  })
+  async getAllLabelsForVariable(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const variableId = event.pathParameters.variableId;
     const res = await CaptureVariableLabelEntity.query(variableId, {
       beginsWith: 'LABEL_',
     });
@@ -242,10 +230,9 @@ export const getAllLabelsForVariable: ValidatedAPIGatewayProxyHandler<
       statusCode: 200,
       body: JSON.stringify(serializeConfigFormat(res.Items)),
     };
-  } catch (error) {
-    return {
-      statusCode: 400,
-      body: `Cannot get the variables ${error}`,
-    };
   }
-};
+  @RouteAndExec()
+  execute(event) {
+    return event;
+  }
+}

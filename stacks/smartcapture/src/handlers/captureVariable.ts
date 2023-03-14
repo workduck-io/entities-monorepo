@@ -1,24 +1,36 @@
 import { getAccess } from '@mex/access-checker';
 import { entityFilter, statusFilter } from '@mex/entity-utils';
-import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
+import {
+  extractUserIdFromToken,
+  extractWorkspaceId,
+  InternalError,
+} from '@mex/gen-utils';
 import { createError } from '@middy/util';
-import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
+import {
+  HTTPMethod,
+  Route,
+  RouteAndExec,
+  ValidatedAPIGatewayProxyEvent,
+} from '@workduck-io/lambda-routing';
 import { nanoid } from 'nanoid';
 import { CaptureVariableEntity } from '../entities';
 import { Variable } from '../interface';
 
-export const createVariableHandler: ValidatedAPIGatewayProxyHandler<
-  Variable
-> = async (event) => {
-  const workspaceId = extractWorkspaceId(event);
-  const userId = extractUserIdFromToken(event);
-  const variable = event.body;
-  if (variable.workspaceId && workspaceId != variable.workspaceId) {
-    const access = await getAccess(workspaceId, variable.nodeId, event);
-    if (access === 'NO_ACCESS' || access === 'READ')
-      throw createError(401, 'User access denied');
-  }
-  try {
+@InternalError()
+export class CaptureVariablesHandler {
+  @Route({
+    method: HTTPMethod.POST,
+    path: '/variable',
+  })
+  async createHandler(event: ValidatedAPIGatewayProxyEvent<Variable>) {
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserIdFromToken(event);
+    const variable = event.body;
+    if (variable.workspaceId && workspaceId != variable.workspaceId) {
+      const access = await getAccess(workspaceId, variable.nodeId, event);
+      if (access === 'NO_ACCESS' || access === 'READ')
+        throw createError(401, 'User access denied');
+    }
     const payload = {
       entityId: variable.entityId ?? nanoid(),
       variableName: variable.variableName,
@@ -33,16 +45,14 @@ export const createVariableHandler: ValidatedAPIGatewayProxyHandler<
     return {
       statusCode: 204,
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const getAllVariablesHandler: ValidatedAPIGatewayProxyHandler<
-  Variable
-> = async (event) => {
-  const workspaceId = extractWorkspaceId(event);
-  try {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/variables',
+  })
+  async getAllVariablesHandler(event: ValidatedAPIGatewayProxyEvent<Variable>) {
+    const workspaceId = extractWorkspaceId(event);
     const res = (
       await CaptureVariableEntity.query(workspaceId, {
         beginsWith: 'VARIABLE',
@@ -54,17 +64,15 @@ export const getAllVariablesHandler: ValidatedAPIGatewayProxyHandler<
       statusCode: 200,
       body: JSON.stringify(res),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const getVariableHandler: ValidatedAPIGatewayProxyHandler<
-  Variable
-> = async (event) => {
-  const workspaceId = extractWorkspaceId(event) as string;
-  const variableId = event.pathParameters.variableId;
-  try {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/variable/{variableId}',
+  })
+  async getVariableHandler(event: ValidatedAPIGatewayProxyEvent<Variable>) {
+    const workspaceId = extractWorkspaceId(event) as string;
+    const variableId = event.pathParameters.variableId;
     const res = await (
       await CaptureVariableEntity.get({
         workspaceId,
@@ -78,17 +86,15 @@ export const getVariableHandler: ValidatedAPIGatewayProxyHandler<
         body: JSON.stringify(res),
       };
     else throw new Error();
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
 
-export const deleteVariableHandler: ValidatedAPIGatewayProxyHandler<
-  Variable
-> = async (event) => {
-  const workspaceId = extractWorkspaceId(event) as string;
-  const variableId = event.pathParameters.variableId;
-  try {
+  @Route({
+    method: HTTPMethod.DELETE,
+    path: '/variable/{variableId}',
+  })
+  async deleteVariableHandler(event: ValidatedAPIGatewayProxyEvent<Variable>) {
+    const workspaceId = extractWorkspaceId(event) as string;
+    const variableId = event.pathParameters.variableId;
     await CaptureVariableEntity.delete({
       workspaceId,
       entityId: variableId,
@@ -97,7 +103,10 @@ export const deleteVariableHandler: ValidatedAPIGatewayProxyHandler<
     return {
       statusCode: 204,
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
+  
+  @RouteAndExec()
+  execute(event) {
+    return event;
+  }
+}
