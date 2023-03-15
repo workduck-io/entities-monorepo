@@ -1,6 +1,6 @@
 import { middyfy } from '@mex/middy-utils';
-import { PromtHandlersHandler } from './handlers/promptHandler';
+import { PromptsHandler } from './handlers/promptHandler';
 
-const handlerPairs = new PromtHandlersHandler();
+const promptHandler = new PromptsHandler();
 
-export const main = middyfy(handlerPairs);
+export const main = middyfy(promptHandler.execute);

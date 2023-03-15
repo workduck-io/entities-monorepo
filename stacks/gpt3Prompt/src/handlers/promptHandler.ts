@@ -50,7 +50,7 @@ import {
 } from '../../utils/consts';
 
 @InternalError()
-export class PromtHandlersHandler {
+export class PromptsHandler {
   @Route({
     method: HTTPMethod.POST,
     path: '/',
