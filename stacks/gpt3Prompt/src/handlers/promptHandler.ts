@@ -498,9 +498,9 @@ export class PromtHandlersHandler {
       })
     ).Item as UserApiInfo;
 
-    let apikey: string = '';
-    let userFlag: boolean = false;
-    let userToken = userAuthInfo.auth?.authData.accessToken;
+    let apikey = '';
+    let userFlag = false;
+    const userToken = userAuthInfo.auth?.authData.accessToken;
 
     if (userToken !== undefined && userToken !== null && userToken !== '') {
       apikey = userAuthInfo.auth?.authData.accessToken;
@@ -564,7 +564,7 @@ export class PromtHandlersHandler {
         completions.data &&
         completions.data.choices.length > 0
       ) {
-        let choices = [];
+        const choices = [];
         completions.data.choices.map((choice) => {
           return choices.push(choice.text);
         });
@@ -610,7 +610,6 @@ export class PromtHandlersHandler {
       downloadedRes = (
         await Gpt3PromptEntity.query(workspaceId, {
           beginsWith: 'PROMPT_',
-          // @ts-ignore
           filters: [{ attr: 'downloadedBy', contains: userId }],
         })
       ).Items;
@@ -618,7 +617,6 @@ export class PromtHandlersHandler {
       createdRes = (
         await Gpt3PromptEntity.query(workspaceId, {
           beginsWith: 'PROMPT_',
-          // @ts-ignore
           filters: [
             { attr: 'createdBy', eq: userId },
             { attr: 'isPublic', eq: true },
@@ -628,12 +626,14 @@ export class PromtHandlersHandler {
     }
 
     const downloadedResFiltered = downloadedRes.map((downloadedPrompt: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { prompt, properties, downloadedBy, analyticsId, ...rest } =
         downloadedPrompt;
       return rest;
     });
 
     const createdResFiltered = createdRes.map((createdPrompt: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { prompt, properties, downloadedBy, analyticsId, ...rest } =
         createdPrompt;
       return rest;
@@ -659,27 +659,23 @@ export class PromtHandlersHandler {
     const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
     const currentUserId = extractUserIdFromToken(event);
 
-    let downloadedRes, createdRes, defaultRes;
-    downloadedRes = (
+    const downloadedRes = (
       await Gpt3PromptEntity.query(workspaceId, {
         beginsWith: 'PROMPT_',
-        // @ts-ignore
         filters: [{ attr: 'downloadedBy', contains: currentUserId }],
       })
     ).Items;
 
-    createdRes = (
+    const createdRes = (
       await Gpt3PromptEntity.query(workspaceId, {
         beginsWith: 'PROMPT_',
-        // @ts-ignore
         filters: [{ attr: 'createdBy', eq: currentUserId }],
       })
     ).Items;
 
-    defaultRes = (
+    const defaultRes = (
       await Gpt3PromptEntity.query(workspaceId, {
         beginsWith: 'PROMPT_',
-        // @ts-ignore
         filters: [{ attr: 'default', eq: true }],
       })
     ).Items;
@@ -912,9 +908,9 @@ export class PromtHandlersHandler {
     const currentTime = Date.now();
     const last24Hours = currentTime - 24 * 60 * 60 * 1000;
     const last7Days = currentTime - 7 * 24 * 60 * 60 * 1000;
-    let filter24H = `${SortKey.CREATED_AT} >= ${last24Hours} AND ${SortKey.CREATED_AT} <= ${currentTime}`;
-    let filter7D = `${SortKey.CREATED_AT} >= ${last7Days} AND ${SortKey.CREATED_AT} <= ${currentTime}`;
-    let filterUser = `createdBy.id = ${userId}`;
+    const filter24H = `${SortKey.CREATED_AT} >= ${last24Hours} AND ${SortKey.CREATED_AT} <= ${currentTime}`;
+    const filter7D = `${SortKey.CREATED_AT} >= ${last7Days} AND ${SortKey.CREATED_AT} <= ${currentTime}`;
+    const filterUser = `createdBy.id = ${userId}`;
 
     // Make parallel requests for todayPrompts, mostDownloadedPrompts, popularWeeklyPrompts and trendingPrompts
     const [
