@@ -1,70 +1,85 @@
 import { getAccess } from '@mex/access-checker';
-import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
+import {
+  extractUserIdFromToken,
+  extractWorkspaceId,
+  InternalError,
+} from '@mex/gen-utils';
 import { createError } from '@middy/util';
-import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
+import {
+  HTTPMethod,
+  Route,
+  RouteAndExec,
+  ValidatedAPIGatewayProxyEvent,
+} from '@workduck-io/lambda-routing';
 import { reactionTable } from '../../service/DynamoDB';
 import { ReactionCount, UserReaction } from '../entities';
 import { ReactionRequest } from '../interface';
 
-export const createHandler: ValidatedAPIGatewayProxyHandler<
-  ReactionRequest
-> = async (event) => {
-  const workspaceId = extractWorkspaceId(event);
-  const userId = extractUserIdFromToken(event);
-  const reaction = event.body;
-  if (reaction.workspaceId && workspaceId != reaction.workspaceId) {
-    const access = await getAccess(workspaceId, reaction.nodeId, event);
-    if (access === 'NO_ACCESS' || access === 'READ')
-      throw createError(401, 'User access denied');
-  }
-  const isAdd = reaction.action === 'ADD' ?? true;
+@InternalError()
+export class ReactionkHandler {
+  @Route({
+    method: HTTPMethod.POST,
+    path: '/',
+  })
+  async createHandler(event: ValidatedAPIGatewayProxyEvent<ReactionRequest>) {
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserIdFromToken(event);
+    const reaction = event.body;
+    if (reaction.workspaceId && workspaceId != reaction.workspaceId) {
+      const access = await getAccess(workspaceId, reaction.nodeId, event);
+      if (access === 'NO_ACCESS' || access === 'READ')
+        throw createError(401, 'User access denied');
+    }
+    const isAdd = reaction.action === 'ADD' ?? true;
 
-  delete reaction.action;
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  //@ts-ignore
-  const updateCount = ReactionCount.updateTransaction({
-    ...reaction,
-    count: {
-      $add: isAdd ? 1 : -1,
-    },
-  });
-  const react = UserReaction.updateTransaction(
+    delete reaction.action;
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     //@ts-ignore
-    {
-      blockId: reaction.blockId,
-      nodeId: reaction.nodeId,
-      userId,
-      reaction: isAdd
-        ? {
-            $add: [`${reaction.reaction.type}_${reaction.reaction.value}`],
-          }
-        : {
-            $delete: [`${reaction.reaction.type}_${reaction.reaction.value}`],
-          },
-    },
-    {
-      conditions: {
-        attr: 'reaction',
-        contains: `${reaction.reaction.type}_${reaction.reaction.value}`,
-        negate: isAdd,
+    const updateCount = ReactionCount.updateTransaction({
+      ...reaction,
+      count: {
+        $add: isAdd ? 1 : -1,
       },
-    }
-  );
-  try {
+    });
+    const react = UserReaction.updateTransaction(
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore
+      {
+        blockId: reaction.blockId,
+        nodeId: reaction.nodeId,
+        userId,
+        reaction: isAdd
+          ? {
+              $add: [`${reaction.reaction.type}_${reaction.reaction.value}`],
+            }
+          : {
+              $delete: [`${reaction.reaction.type}_${reaction.reaction.value}`],
+            },
+      },
+      {
+        conditions: {
+          attr: 'reaction',
+          contains: `${reaction.reaction.type}_${reaction.reaction.value}`,
+          negate: isAdd,
+        },
+      }
+    );
     await reactionTable.transactWrite([react, updateCount]);
     return {
       statusCode: 204,
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
-
-export const getAllReactionsOfNodeHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  try {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/node/{nodeId}',
+  })
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/node/{nodeId}/block/{blockId}',
+  })
+  async getAllReactionsOfNodeHandler(
+    event: ValidatedAPIGatewayProxyEvent<undefined>
+  ) {
     const workspaceId = extractWorkspaceId(event);
 
     const userId = extractUserIdFromToken(event);
@@ -126,15 +141,15 @@ export const getAllReactionsOfNodeHandler: ValidatedAPIGatewayProxyHandler<
       //In case blockId is passed just return the array instead of object
       body: JSON.stringify(blockId ? metaData[blockId] : metaData),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.stack));
   }
-};
 
-export const getDetailedReactionForBlockHandler: ValidatedAPIGatewayProxyHandler<
-  undefined
-> = async (event) => {
-  try {
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/node/{nodeId}/block/{blockId}/details',
+  })
+  async getDetailedReactionForBlockHandler(
+    event: ValidatedAPIGatewayProxyEvent<undefined>
+  ) {
     const workspaceId = extractWorkspaceId(event);
     const { nodeId, blockId } = event.pathParameters;
 
@@ -153,7 +168,10 @@ export const getDetailedReactionForBlockHandler: ValidatedAPIGatewayProxyHandler
       statusCode: 200,
       body: JSON.stringify(reactions),
     };
-  } catch (e) {
-    throw createError(400, JSON.stringify(e.message));
   }
-};
+
+  @RouteAndExec()
+  execute(event) {
+    return event;
+  }
+}
