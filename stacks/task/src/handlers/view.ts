@@ -1,4 +1,4 @@
-import { entityFilter } from '@mex/entity-utils';
+import { entityFilter, HierarchyOps } from '@mex/entity-utils';
 import { extractWorkspaceId, InternalError } from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import {
@@ -28,6 +28,32 @@ export class ViewHandler {
         }
       )
     ).Attributes;
+    return {
+      statusCode: 200,
+      body: JSON.stringify(res),
+    };
+  }
+
+  @Route({
+    path: '/h',
+    method: HTTPMethod.POST,
+  })
+  async createHierarchyHandler(
+    event: ValidatedAPIGatewayProxyEvent<View & { parent?: string }>
+  ) {
+    const workspaceId = extractWorkspaceId(event);
+
+    const h = event.body;
+    const { parent, ...rest } = h;
+    const res = await HierarchyOps.addItem<View>(
+      { workspaceId, entityId: h.entityId, parent },
+      ViewEntity,
+      {
+        ...rest,
+        workspaceId,
+      }
+    );
+
     return {
       statusCode: 200,
       body: JSON.stringify(res),

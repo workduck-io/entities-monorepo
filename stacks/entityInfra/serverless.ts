@@ -1,5 +1,6 @@
 import type { Serverless } from 'serverless/aws';
-import Table from './infra/dynamodb/single-table';
+import EntityTable from './infra/dynamodb/entity-table';
+import HierarchyTable from './infra/dynamodb/hierarchy-table';
 
 export const serverlessConfiguration: Partial<Serverless> = {
   frameworkVersion: '3',
@@ -51,7 +52,7 @@ export const serverlessConfiguration: Partial<Serverless> = {
     region: 'us-east-1',
   },
   resources: {
-    Resources: Table,
+    Resources: { ...EntityTable, ...HierarchyTable },
   },
 };
 module.exports = serverlessConfiguration;

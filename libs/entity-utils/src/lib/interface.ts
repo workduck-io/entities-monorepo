@@ -48,3 +48,16 @@ export type ENTITY_TYPE =
   | 'highlights'
   | 'captureVariable'
   | 'captureLabel';
+
+export interface HierarchyItem {
+  workspaceId: string;
+  entityId: string;
+  path: string;
+  parent: string;
+}
+
+export interface HierarchyRequest {
+  workspaceId: string;
+  entityId: string;
+  parent?: string;
+}
