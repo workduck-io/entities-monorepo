@@ -9,6 +9,8 @@ import {
 } from '@workduck-io/lambda-routing';
 import { ViewEntity } from '../entities';
 import { View } from '../interface';
+
+const ViewHierarchyOps = new HierarchyOps(ViewEntity);
 @InternalError()
 export class ViewHandler {
   @Route({
@@ -23,10 +25,8 @@ export class ViewHandler {
     const view = event.body;
 
     const { parent, ...rest } = view;
-    const res = await HierarchyOps.addItem<View>(
+    const res = await ViewHierarchyOps.addItem<View>(
       { entityId: view.entityId, workspaceId, parent },
-      // 'VIEW_124'
-      ViewEntity,
       {
         ...rest,
         workspaceId,
@@ -44,7 +44,7 @@ export class ViewHandler {
   })
   async getViewHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
     const entityId = event.pathParameters.entityId;
-    const res = await HierarchyOps.getItem(entityId, ViewEntity);
+    const res = await ViewHierarchyOps.getItem(entityId);
     if (!res) throw createError(404, 'View not found');
     return {
       statusCode: 200,
@@ -57,9 +57,8 @@ export class ViewHandler {
     method: HTTPMethod.DELETE,
   })
   async deleteViewHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
-    const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
-    await HierarchyOps.deleteItem(entityId, ViewEntity);
+    await ViewHierarchyOps.deleteItem(entityId);
     return {
       statusCode: 204,
     };
@@ -75,13 +74,16 @@ export class ViewHandler {
     const workspaceId = extractWorkspaceId(event);
     const res = (
       await ViewEntity.query(workspaceId, {
-        beginsWith: 'TASKVIEW',
+        beginsWith: 'VIEW',
         filters: [entityFilter('view')],
       })
     ).Items;
+    const hierarchy = (await ViewHierarchyOps.getGraph(workspaceId)).map(
+      (hItem) => ({ entityId: hItem.entityId, path: hItem.path })
+    );
     return {
       statusCode: 200,
-      body: JSON.stringify(res),
+      body: JSON.stringify({ entities: res, hierarchy }),
     };
   }
 
