@@ -65,11 +65,17 @@ export class HierarchyOps {
     return await HierarchyTable.transactWrite(transactions);
   };
 
-  static getItem = async (entityId: string) => {
-    return (await HierarchyEntity.get({ entityId })).Item;
+  static getItem = async (entityId: string, entity: Entity) => {
+    const hItem = (await HierarchyEntity.get({ entityId })).Item;
+    return {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore
+      ...(await entity.get({ entityId, workspaceId: hItem.workspaceId })).Item,
+      path: hItem.path,
+    };
   };
 
-  static getItemAncestors = async (entityId: string) => {
+  static getItemAncestors = async (entityId: string, entity: Entity) => {
     const item = (await HierarchyEntity.get({ entityId })).Item;
     const parentPath = item.path as string;
     const result = [item];
@@ -81,7 +87,7 @@ export class HierarchyOps {
             .split('|')
             .slice(0, -1)
             .map(async (id) => {
-              return (await HierarchyEntity.get({ entityId: id })).Item;
+              return this.getItem(id, entity);
             })
         ))
       );
@@ -89,7 +95,7 @@ export class HierarchyOps {
     return result;
   };
 
-  static getItemChildren = async (entityId: string) => {
+  static getItemChildren = async (entityId: string, entity: Entity) => {
     const item = (await HierarchyEntity.get({ entityId })).Item;
     const parentPath = item.path ?? '';
     const result = [item];
@@ -104,10 +110,25 @@ export class HierarchyOps {
       ).Items
     );
 
-    return result;
+    const newRes = Promise.all(
+      result.map(async (item) => {
+        const actualEntity = await entity.get({
+          entityId: item.entityId,
+          workspaceId: item.workspaceId,
+        });
+        return {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          //@ts-ignore
+          ...actualEntity.Item,
+          path: item.path,
+        };
+      })
+    );
+
+    return newRes;
   };
 
-  static deleteItem = async (entityId: string) => {
+  static deleteItem = async (entityId: string, entity: Entity) => {
     const item = (await HierarchyEntity.get({ entityId }))?.Item;
     if (!item) throw new Error('Item not found');
     const path = (item.path ?? '') + entityId + '|';
@@ -123,13 +144,22 @@ export class HierarchyOps {
       const deleteQuery = itemsToDelete.map((item) =>
         HierarchyEntity.deleteBatch({ entityId: item.entityId })
       );
-      await HierarchyTable.batchWrite(deleteQuery);
+      const deleteQueryOg = itemsToDelete.map((item) =>
+        entity.deleteBatch({
+          entityId: item.entityId,
+          workspaceId: item.workspaceId,
+        })
+      );
+      await HierarchyTable.batchWrite([...deleteQuery, ...deleteQueryOg]);
     }
-    HierarchyEntity.delete({ entityId });
+    await HierarchyEntity.delete({ entityId });
+    await entity.delete({ entityId, workspaceId: item.workspaceId });
   };
 
   static refactorItem = async (entityId: string, newParentId: string) => {
     const item = (await HierarchyEntity.get({ entityId }))?.Item;
+    console.log({ item });
+
     if (!item) throw new Error('Item not found');
     const path = (item.path ?? '') + entityId + '|';
 
@@ -145,12 +175,15 @@ export class HierarchyOps {
           parseAsEntity: 'hierarchy',
         })
       ).Items;
-      const updateQuery = itemsToUpdate.map((item) =>
+
+      const updateQuery = [...itemsToUpdate, item].map((item) =>
         HierarchyEntity.putBatch({
           ...item,
           path: (newPath ?? '') + path.slice(path.length),
         })
       );
+      console.log('Update query', updateQuery);
+
       await HierarchyTable.batchWrite(updateQuery);
     }
     await HierarchyEntity.update({

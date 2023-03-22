@@ -86,13 +86,6 @@ const view = {
     },
     {
       httpApi: {
-        method: 'POST',
-        path: '/h',
-        authorizer: 'workduckAuthorizer',
-      },
-    },
-    {
-      httpApi: {
         method: 'GET',
         path: '/view/{entityId}',
         authorizer: 'workduckAuthorizer',

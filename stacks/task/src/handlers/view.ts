@@ -15,45 +15,23 @@ export class ViewHandler {
     path: '/view',
     method: HTTPMethod.POST,
   })
-  async createViewHandler(event: ValidatedAPIGatewayProxyEvent<View>) {
+  async createViewHandler(
+    event: ValidatedAPIGatewayProxyEvent<View & { parent: string }>
+  ) {
     const workspaceId = extractWorkspaceId(event);
 
     const view = event.body;
 
-    const res = (
-      await ViewEntity.update(
-        { ...view, workspaceId },
-        {
-          returnValues: 'ALL_NEW',
-        }
-      )
-    ).Attributes;
-    return {
-      statusCode: 200,
-      body: JSON.stringify(res),
-    };
-  }
-
-  @Route({
-    path: '/h',
-    method: HTTPMethod.POST,
-  })
-  async createHierarchyHandler(
-    event: ValidatedAPIGatewayProxyEvent<View & { parent?: string }>
-  ) {
-    const workspaceId = extractWorkspaceId(event);
-
-    const h = event.body;
-    const { parent, ...rest } = h;
+    const { parent, ...rest } = view;
     const res = await HierarchyOps.addItem<View>(
-      { workspaceId, entityId: h.entityId, parent },
+      { entityId: view.entityId, workspaceId, parent },
+      // 'VIEW_124'
       ViewEntity,
       {
         ...rest,
         workspaceId,
       }
     );
-
     return {
       statusCode: 200,
       body: JSON.stringify(res),
@@ -65,14 +43,8 @@ export class ViewHandler {
     method: HTTPMethod.GET,
   })
   async getViewHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
-    const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
-    const res = (
-      await ViewEntity.get({
-        workspaceId,
-        entityId,
-      })
-    ).Item;
+    const res = await HierarchyOps.getItem(entityId, ViewEntity);
     if (!res) throw createError(404, 'View not found');
     return {
       statusCode: 200,
@@ -87,10 +59,7 @@ export class ViewHandler {
   async deleteViewHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
     const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.entityId;
-    await ViewEntity.delete({
-      workspaceId,
-      entityId,
-    });
+    await HierarchyOps.deleteItem(entityId, ViewEntity);
     return {
       statusCode: 204,
     };
