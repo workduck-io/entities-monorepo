@@ -78,12 +78,16 @@ export class ViewHandler {
         filters: [entityFilter('view')],
       })
     ).Items;
-    // const hierarchy = (await ViewHierarchyOps.getGraph(workspaceId)).map(
-    //   (hItem) => ({ entityId: hItem.entityId, path: hItem.path })
-    // );
+    const hierarchy = (await ViewHierarchyOps.getGraph(workspaceId)).map(
+      (hItem) => ({
+        path: hItem.path,
+        ...res.find((item) => item.entityId === hItem.entityId),
+      })
+    );
+
     return {
       statusCode: 200,
-      body: JSON.stringify(res),
+      body: JSON.stringify(hierarchy),
     };
   }
 

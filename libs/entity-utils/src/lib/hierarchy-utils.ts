@@ -64,7 +64,7 @@ export class HierarchyOps {
       HierarchyEntity.updateTransaction(
         {
           ...rest,
-          path: parent ? parentPath + parent + '|' : this.entity.name,
+          path: parent ? parentPath + parent + '|' : this.entity.name + '|',
         },
         {}
       ),
@@ -75,12 +75,12 @@ export class HierarchyOps {
 
   getItem = async (entityId: string) => {
     const hItem = (await HierarchyEntity.get({ entityId })).Item;
-    const item = await this.entity.get({
-      entityId,
-      workspaceId: hItem.workspaceId,
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //@ts-ignore
-    }).Item;
+    const item = (
+      (await this.entity.get({
+        entityId,
+        workspaceId: hItem.workspaceId,
+      })) as any
+    ).Item;
     return {
       ...item,
       path: hItem.path,
@@ -204,7 +204,7 @@ export class HierarchyOps {
   getGraph = async (workspaceId: string) => {
     return (
       await HierarchyEntity.query(workspaceId, {
-        eq: this.entity.name,
+        beginsWith: this.entity.name + '|',
         index: 'tree-path-index',
       })
     ).Items;
