@@ -87,7 +87,7 @@ export class ViewHandler {
 
     return {
       statusCode: 200,
-      body: JSON.stringify(hierarchy),
+      body: JSON.stringify(hierarchy.filter((item) => item.entityId)),
     };
   }
 
