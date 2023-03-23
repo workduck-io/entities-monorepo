@@ -74,16 +74,16 @@ export class ViewHandler {
     const workspaceId = extractWorkspaceId(event);
     const res = (
       await ViewEntity.query(workspaceId, {
-        beginsWith: 'VIEW',
+        beginsWith: 'TASKVIEW',
         filters: [entityFilter('view')],
       })
     ).Items;
-    const hierarchy = (await ViewHierarchyOps.getGraph(workspaceId)).map(
-      (hItem) => ({ entityId: hItem.entityId, path: hItem.path })
-    );
+    // const hierarchy = (await ViewHierarchyOps.getGraph(workspaceId)).map(
+    //   (hItem) => ({ entityId: hItem.entityId, path: hItem.path })
+    // );
     return {
       statusCode: 200,
-      body: JSON.stringify({ entities: res, hierarchy }),
+      body: JSON.stringify(res),
     };
   }
 
