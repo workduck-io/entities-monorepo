@@ -1,6 +1,7 @@
 import { Entity, Table } from 'dynamodb-toolbox';
 import { DocumentClient } from './client';
 import { HierarchyRequest } from './interface';
+import { combineKeys, retrievePath } from './utils';
 
 const initializeHierarchyTable = (tableConfig: { name: string }) => {
   const { name } = tableConfig;
@@ -51,16 +52,19 @@ export class HierarchyOps {
   addItem = async <T>(request: HierarchyRequest, entityDetails: T) => {
     let parentPath = '';
     const { parent, ...rest } = request;
-    if (parent != this.entity.name) {
+    if (parent) {
       const parentItem = await HierarchyEntity.get({ entityId: parent });
       if (!parentItem.Item) throw new Error('Parent doesnt exist');
-      parentPath = (parentItem.Item?.path as string) ?? ' ';
+      parentPath =
+        (parentItem.Item?.path as string) ?? combineKeys(this.entity.name);
     }
     const transactions = [
       HierarchyEntity.updateTransaction(
         {
           ...rest,
-          path: parent ? parentPath + parent + '|' : this.entity.name + '|',
+          path: parent
+            ? combineKeys(parentPath, parent)
+            : combineKeys(this.entity.name),
         },
         {}
       ),
@@ -91,12 +95,9 @@ export class HierarchyOps {
     if (parentPath != this.entity.name) {
       result.push(
         ...(await Promise.all(
-          parentPath
-            .split('|')
-            .slice(0, -1)
-            .map(async (id) => {
-              return this.getItem(id);
-            })
+          retrievePath(parentPath).map(async (id) => {
+            return this.getItem(id);
+          })
         ))
       );
     }
@@ -105,7 +106,7 @@ export class HierarchyOps {
 
   getItemChildren = async (entityId: string) => {
     const item = (await HierarchyEntity.get({ entityId })).Item;
-    const parentPath = item.path ?? '';
+    const parentPath = item.path.toString() ?? '';
     const result = [item];
 
     result.push(
@@ -113,8 +114,8 @@ export class HierarchyOps {
         await HierarchyEntity.query(item.workspaceId, {
           index: 'tree-path-index',
           beginsWith: parentPath
-            ? parentPath + entityId + '|'
-            : this.entity.name,
+            ? combineKeys(parentPath, entityId)
+            : combineKeys(this.entity.name),
           parseAsEntity: 'hierarchy',
         })
       ).Items
@@ -141,8 +142,8 @@ export class HierarchyOps {
   deleteItem = async (entityId: string) => {
     const item = (await HierarchyEntity.get({ entityId }))?.Item;
     if (!item) throw new Error('Item not found');
-    const path =
-      (item.path != this.entity.name ? item.path : '') + entityId + '|';
+    const path = combineKeys(item.path as string, entityId);
+
     if (path) {
       const itemsToDelete = (
         await HierarchyEntity.query(item.workspaceId, {
@@ -173,18 +174,17 @@ export class HierarchyOps {
     const item = (await HierarchyEntity.get({ entityId }))?.Item;
 
     if (!item) throw new Error('Item not found');
-    const path =
-      (item.path != this.entity.name ? item.path : '') + entityId + '|';
+    const path = combineKeys(item.path as string, entityId);
 
     const newParent = (await HierarchyEntity.get({ entityId: newParentId }))
       ?.Item;
     if (!newParent) throw new Error('Parent Item not found');
-    const newPath =
-      (newParent.path != this.entity.name ? newParent.path : '') +
-      newParentId +
-      '|' +
-      entityId +
-      '|';
+    const newPath = combineKeys(
+      newParent.path as string,
+      newParentId,
+      entityId
+    );
+
     if (path) {
       const itemsToUpdate = (
         await HierarchyEntity.query(item.workspaceId, {
@@ -204,14 +204,14 @@ export class HierarchyOps {
     }
     await HierarchyEntity.update({
       ...item,
-      path: (newParent.path ?? '') + newParentId + '|',
+      path: combineKeys(newParent.path as string, newParentId),
     });
   };
 
   getGraph = async (workspaceId: string) => {
     return (
       await HierarchyEntity.query(workspaceId, {
-        beginsWith: this.entity.name + '|',
+        beginsWith: combineKeys(this.entity.name),
         index: 'tree-path-index',
       })
     ).Items;
