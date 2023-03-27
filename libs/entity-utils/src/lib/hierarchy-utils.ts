@@ -1,3 +1,4 @@
+import { createError } from '@middy/util';
 import { Entity, Table } from 'dynamodb-toolbox';
 import { DocumentClient } from './client';
 import { HierarchyRequest } from './interface';
@@ -58,6 +59,9 @@ export class HierarchyOps {
       parentPath =
         (parentItem.Item?.path as string) ?? combineKeys(this.entity.name);
     }
+    if ([...retrievePath(parentPath), parent].includes(request.entityId))
+      throw createError(400, 'Circular logic found');
+
     const transactions = [
       HierarchyEntity.updateTransaction(
         {
@@ -184,7 +188,12 @@ export class HierarchyOps {
       newParentId,
       entityId
     );
-
+    if (
+      [...retrievePath(newParent.path as string), newParentId].includes(
+        entityId
+      )
+    )
+      return createError(400, 'Circular logic found');
     if (path) {
       const itemsToUpdate = (
         await HierarchyEntity.query(item.workspaceId, {
