@@ -112,7 +112,7 @@ export const pickAttributes = (obj: any, attributes: string[]) => {
   }, {});
 };
 
-export const removeAtrributes = (data: any, attributes: string[]) => {
+export const removeAtrributes = <T>(data: T[] | T, attributes: (keyof T)[]) => {
   if (Array.isArray(data)) {
     return data.map((obj: any) => {
       attributes.forEach((attribute) => {

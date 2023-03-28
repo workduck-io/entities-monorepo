@@ -1,8 +1,31 @@
-import { InternalError } from '@mex/gen-utils';
-import { HTTPMethod, Route, RouteAndExec } from '@workduck-io/lambda-routing';
+import { extractUserIdFromToken, InternalError } from '@mex/gen-utils';
+import { createError } from '@middy/util';
+import {
+  HTTPMethod,
+  Route,
+  RouteAndExec,
+  ValidatedAPIGatewayProxyEvent,
+} from '@workduck-io/lambda-routing';
+import { InferEntityItem } from 'dynamodb-toolbox';
+import {
+  Categories,
+  defaultGPT3Props,
+  PromptProviders,
+} from '../../utils/consts';
+import {
+  openaiInstance,
+  removeAtrributes,
+  replaceVarWithVal,
+  replaceVarWithValForPreview,
+} from '../../utils/helpers';
+import {
+  Gpt3PromptAnalyticsEntity,
+  Gpt3PromptEntity,
+  Gpt3PromptUserEntity,
+} from '../entities';
+import { Gpt3Prompt, UserApiInfo } from '../interface';
 
 import { chatGPTPrompt } from './chatGpt';
-
 
 @InternalError()
 export class PromptsHandler {
@@ -93,76 +116,76 @@ export class PromptsHandler {
   //   else throw createError(400, 'Error creating prompt');
   // }
 
-  // // Get a list of all prompts
-  // @Route({
-  //   method: HTTPMethod.POST,
-  //   path: '/all',
-  // })
-  // async getAllPromptsHandler(event: ValidatedAPIGatewayProxyEvent<Gpt3Prompt>) {
-  //   let res;
-  //   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
-  //   const queryParams = event.queryStringParameters;
+  // Get a list of all prompts
+  @Route({
+    method: HTTPMethod.POST,
+    path: '/all',
+  })
+  async getAllPromptsHandler(event: ValidatedAPIGatewayProxyEvent<Gpt3Prompt>) {
+    let res;
+    const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
+    const queryParams = event.queryStringParameters;
 
-  //   if (queryParams) {
-  //     const { category, tags, isPublic } = event.queryStringParameters as any;
-  //     const filters = [];
-  //     if (category) filters.push({ attr: 'category', eq: category });
-  //     if (tags) filters.push({ attr: 'tags', contains: tags });
-  //     if (isPublic) filters.push({ attr: 'isPublic', eq: isPublic === 'true' });
+    if (queryParams) {
+      const { category, tags, isPublic } = event.queryStringParameters as any;
+      const filters = [];
+      if (category) filters.push({ attr: 'category', eq: category });
+      if (tags) filters.push({ attr: 'tags', contains: tags });
+      if (isPublic) filters.push({ attr: 'isPublic', eq: isPublic === 'true' });
 
-  //     try {
-  //       res = (
-  //         await Gpt3PromptEntity.query(workspaceId, {
-  //           beginsWith: 'PROMPT_',
-  //           filters: filters,
-  //         })
-  //       ).Items;
-  //     } catch (e) {
-  //       throw createError(400, e.message);
-  //     }
-  //   } else {
-  //     try {
-  //       res = (
-  //         await Gpt3PromptEntity.query(workspaceId, {
-  //           beginsWith: 'PROMPT_',
-  //         })
-  //       ).Items;
-  //     } catch (e) {
-  //       throw createError(400, e.message);
-  //     }
-  //   }
+      try {
+        res = (
+          await Gpt3PromptEntity.query(workspaceId, {
+            beginsWith: 'PROMPT_',
+            filters: filters,
+          })
+        ).Items;
+      } catch (e) {
+        throw createError(400, e.message);
+      }
+    } else {
+      try {
+        res = (
+          await Gpt3PromptEntity.query(workspaceId, {
+            beginsWith: 'PROMPT_',
+          })
+        ).Items;
+      } catch (e) {
+        throw createError(400, e.message);
+      }
+    }
 
-  //   // Remove prompt, properities from the response
-  //   const prompts = res.map((item: any) => {
-  //     const { prompt, properties, downloadedBy, ...rest } = item;
-  //     return rest;
-  //   });
+    // Remove prompt, properities from the response
+    const prompts = res.map((item: any) => {
+      const { prompt, properties, downloadedBy, ...rest } = item;
+      return rest;
+    });
 
-  //   return {
-  //     statusCode: 200,
-  //     body: JSON.stringify(prompts),
-  //   };
-  // }
+    return {
+      statusCode: 200,
+      body: JSON.stringify(prompts),
+    };
+  }
 
-  // // Get a single prompt
-  // @Route({
-  //   method: HTTPMethod.GET,
-  //   path: '/{id}',
-  // })
-  // async getPromptHandler(event: ValidatedAPIGatewayProxyEvent<Gpt3Prompt>) {
-  //   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
-  //   const { id } = event.pathParameters;
-  //   const { prompt, properties, downloadedBy, analyticsId, ...rest }: any = (
-  //     await Gpt3PromptEntity.get({
-  //       entityId: id,
-  //       workspaceId,
-  //     })
-  //   ).Item;
-  //   return {
-  //     statusCode: 200,
-  //     body: JSON.stringify(rest),
-  //   };
-  // }
+  // Get a single prompt
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/{id}',
+  })
+  async getPromptHandler(event: ValidatedAPIGatewayProxyEvent<Gpt3Prompt>) {
+    const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
+    const { id } = event.pathParameters;
+    const { prompt, properties, downloadedBy, analyticsId, ...rest }: any = (
+      await Gpt3PromptEntity.get({
+        entityId: id,
+        workspaceId,
+      })
+    ).Item;
+    return {
+      statusCode: 200,
+      body: JSON.stringify(rest),
+    };
+  }
 
   // // Update a prompt
   // @Route({
@@ -406,314 +429,307 @@ export class PromptsHandler {
   //   else throw createError(400, 'Error downloading prompt');
   // }
 
-  // // Results of a prompt
-  // @Route({
-  //   method: HTTPMethod.POST,
-  //   path: '/result/{id}',
-  // })
-  // async resultPrompthandler(event: ValidatedAPIGatewayProxyEvent<any>) {
-  //   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
-  //   const userId = extractUserIdFromToken(event);
-  //   const { id } = event.pathParameters;
-  //   let options: Gpt3Prompt['properties'],
-  //     variablesValues: Record<string, string>,
-  //     promptRes,
-  //     transformedPrompt;
-  //   let properties = null;
+  // Results of a prompt
+  @Route({
+    method: HTTPMethod.POST,
+    path: '/result/{id}',
+  })
+  async resultPrompthandler(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
+    const userId = extractUserIdFromToken(event);
+    const { id } = event.pathParameters;
+    let options: Gpt3Prompt['properties'],
+      variablesValues: Record<string, string>,
+      promptRes,
+      transformedPrompt;
+    let properties = null;
 
-  //   if (id === 'preview') {
-  //     const body = event.body as any;
-  //     const { prompt, variables } = event.body;
-  //     options = body.options;
-  //     transformedPrompt = replaceVarWithValForPreview(prompt, variables);
-  //   } else {
-  //     options = event.body.options;
-  //     variablesValues = event.body.variablesValues as unknown as Record<
-  //       string,
-  //       string
-  //     >;
+    if (id === 'preview') {
+      const body = event.body as any;
+      const { prompt, variables } = event.body;
+      options = body.options;
+      transformedPrompt = replaceVarWithValForPreview(prompt, variables);
+    } else {
+      options = event.body.options;
+      variablesValues = event.body.variablesValues as unknown as Record<
+        string,
+        string
+      >;
 
-  //     promptRes = (
-  //       await Gpt3PromptEntity.get({
-  //         entityId: id,
-  //         workspaceId,
-  //       })
-  //     ).Item;
-  //     const { prompt, variables } = promptRes;
-  //     properties = promptRes.properties;
+      promptRes = (
+        await Gpt3PromptEntity.get({
+          entityId: id,
+          workspaceId,
+        })
+      ).Item;
+      const { prompt, variables } = promptRes;
+      properties = promptRes.properties;
 
-  //     // Replace the variables with the values
-  //     transformedPrompt = replaceVarWithVal(prompt, variables, variablesValues);
-  //   }
+      // Replace the variables with the values
+      transformedPrompt = replaceVarWithVal(prompt, variables, variablesValues);
+    }
 
-  //   const userAuthInfo: UserApiInfo = (
-  //     await Gpt3PromptUserEntity.get({
-  //       userId,
-  //       workspaceId,
-  //     })
-  //   ).Item as UserApiInfo;
+    const userAuthInfo: UserApiInfo = (
+      await Gpt3PromptUserEntity.get({
+        userId,
+        workspaceId,
+      })
+    ).Item as UserApiInfo;
 
-  //   let apikey = '';
-  //   let userFlag = false;
-  //   const userToken = userAuthInfo.auth?.authData.accessToken;
+    let apikey = '';
+    let userFlag = false;
+    const userToken = userAuthInfo.auth?.authData.accessToken;
 
-  //   if (userToken !== undefined && userToken !== null && userToken !== '') {
-  //     apikey = userAuthInfo.auth?.authData.accessToken;
-  //     userFlag = true;
-  //   } else {
-  //     // If the user has not set the access token, then use the default one with check for the limit
-  //     if (userAuthInfo.auth?.authMetadata.limit > 0) {
-  //       apikey = process.env.OPENAI_API_KEY;
-  //     } else if (userAuthInfo.auth?.authMetadata.limit <= 0) {
-  //       return {
-  //         statusCode: 402,
-  //         body: JSON.stringify("You've reached your limit for the month"),
-  //       };
-  //     } else {
-  //       return {
-  //         statusCode: 402,
-  //         body: JSON.stringify('You need to set up your OpenAI API key'),
-  //       };
-  //     }
-  //   }
+    if (userToken !== undefined && userToken !== null && userToken !== '') {
+      apikey = userAuthInfo.auth?.authData.accessToken;
+      userFlag = true;
+    } else {
+      // If the user has not set the access token, then use the default one with check for the limit
+      if (userAuthInfo.auth?.authMetadata.limit > 0) {
+        apikey = process.env.OPENAI_API_KEY;
+      } else if (userAuthInfo.auth?.authMetadata.limit <= 0) {
+        return {
+          statusCode: 402,
+          body: JSON.stringify("You've reached your limit for the month"),
+        };
+      } else {
+        return {
+          statusCode: 402,
+          body: JSON.stringify('You need to set up your OpenAI API key'),
+        };
+      }
+    }
 
-  //   if (transformedPrompt) {
-  //     const resultPayload = {
-  //       prompt: transformedPrompt,
-  //       model: properties ? properties.model : defaultGPT3Props.model,
-  //       max_tokens: options
-  //         ? options.max_tokens
-  //         : properties
-  //         ? properties.max_tokens
-  //         : defaultGPT3Props.max_tokens,
-  //       temperature: options
-  //         ? options.temperature
-  //         : properties
-  //         ? properties.temperature
-  //         : defaultGPT3Props.temperature,
-  //       top_p: options
-  //         ? options.weight
-  //         : properties
-  //         ? properties.top_p
-  //         : defaultGPT3Props.top_p,
-  //       n: options
-  //         ? options.iterations
-  //         : properties
-  //         ? properties.iterations
-  //         : defaultGPT3Props.iterations,
-  //     };
+    if (transformedPrompt) {
+      const resultPayload = {
+        prompt: transformedPrompt,
+        model: properties ? properties.model : defaultGPT3Props.model,
+        max_tokens: options
+          ? options.max_tokens
+          : properties
+          ? properties.max_tokens
+          : defaultGPT3Props.max_tokens,
+        temperature: options
+          ? options.temperature
+          : properties
+          ? properties.temperature
+          : defaultGPT3Props.temperature,
+        top_p: options
+          ? options.weight
+          : properties
+          ? properties.top_p
+          : defaultGPT3Props.top_p,
+        n: options
+          ? options.iterations
+          : properties
+          ? properties.iterations
+          : defaultGPT3Props.iterations,
+      };
 
-  //     // Call the GPT3 API
-  //     let completions;
-  //     try {
-  //       completions = await openaiInstance(apikey).createCompletion({
-  //         ...resultPayload,
-  //       });
-  //     } catch (error) {
-  //       throw createError(400, error.response.statusText);
-  //     }
+      // Call the GPT3 API
+      let completions;
+      try {
+        completions = await openaiInstance(apikey).createCompletion({
+          ...resultPayload,
+        });
+      } catch (error) {
+        throw createError(400, error.response.statusText);
+      }
 
-  //     // Remove other fields in choices array and return only the text, index
-  //     if (
-  //       completions &&
-  //       completions.data &&
-  //       completions.data.choices.length > 0
-  //     ) {
-  //       const choices = [];
-  //       completions.data.choices.map((choice) => {
-  //         return choices.push(choice.text);
-  //       });
+      // Remove other fields in choices array and return only the text, index
+      if (
+        completions &&
+        completions.data &&
+        completions.data.choices.length > 0
+      ) {
+        const choices = [];
+        completions.data.choices.map((choice) => {
+          return choices.push(choice.text);
+        });
 
-  //       await Gpt3PromptUserEntity.update({
-  //         userId,
-  //         workspaceId,
-  //         auth: {
-  //           authData: userAuthInfo.auth?.authData,
-  //           authMetadata: {
-  //             ...userAuthInfo.auth?.authMetadata,
-  //             limit: userFlag
-  //               ? userAuthInfo.auth?.authMetadata.limit
-  //               : userAuthInfo.auth?.authMetadata.limit === 0
-  //               ? 0
-  //               : userAuthInfo.auth?.authMetadata.limit - 1,
-  //             usage: userAuthInfo.auth?.authMetadata.usage + 1,
-  //           },
-  //         },
-  //       });
+        await Gpt3PromptUserEntity.update({
+          userId,
+          workspaceId,
+          auth: {
+            authData: userAuthInfo.auth?.authData,
+            authMetadata: {
+              ...userAuthInfo.auth?.authMetadata,
+              limit: userFlag
+                ? userAuthInfo.auth?.authMetadata.limit
+                : userAuthInfo.auth?.authMetadata.limit === 0
+                ? 0
+                : userAuthInfo.auth?.authMetadata.limit - 1,
+              usage: userAuthInfo.auth?.authMetadata.usage + 1,
+            },
+          },
+        });
 
-  //       return {
-  //         statusCode: 200,
-  //         body: JSON.stringify(choices),
-  //       };
-  //     } else throw createError(400, 'Error fetching results');
-  //   }
-  // }
+        return {
+          statusCode: 200,
+          body: JSON.stringify(choices),
+        };
+      } else throw createError(400, 'Error fetching results');
+    }
+  }
 
-  // @Route({
-  //   method: HTTPMethod.GET,
-  //   path: '/allPublicUser',
-  // })
-  // async getAllPublicUserPromptsHandler(
-  //   event: ValidatedAPIGatewayProxyEvent<Gpt3Prompt>
-  // ) {
-  //   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
-  //   const queryParams = event.queryStringParameters;
-  //   const userId = queryParams?.userId as string;
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/allPublicUser',
+  })
+  async getAllPublicUserPromptsHandler(
+    event: ValidatedAPIGatewayProxyEvent<Gpt3Prompt>
+  ) {
+    const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
+    const queryParams = event.queryStringParameters;
+    const userId = queryParams?.userId as string;
 
-  //   let downloadedRes, createdRes;
-  //   if (userId) {
-  //     downloadedRes = (
-  //       await Gpt3PromptEntity.query(workspaceId, {
-  //         beginsWith: 'PROMPT_',
-  //         filters: [{ attr: 'downloadedBy', contains: userId }],
-  //       })
-  //     ).Items;
+    let downloadedRes, createdRes;
+    if (userId) {
+      downloadedRes = (
+        await Gpt3PromptEntity.query(workspaceId, {
+          beginsWith: 'PROMPT_',
+          filters: [{ attr: 'downloadedBy', contains: userId }],
+        })
+      ).Items;
 
-  //     createdRes = (
-  //       await Gpt3PromptEntity.query(workspaceId, {
-  //         beginsWith: 'PROMPT_',
-  //         filters: [
-  //           { attr: 'createdBy', eq: userId },
-  //           { attr: 'isPublic', eq: true },
-  //         ],
-  //       })
-  //     ).Items;
-  //   }
+      createdRes = (
+        await Gpt3PromptEntity.query(workspaceId, {
+          beginsWith: 'PROMPT_',
+          filters: [
+            { attr: 'createdBy', eq: userId },
+            { attr: 'isPublic', eq: true },
+          ],
+        })
+      ).Items;
+    }
 
-  //   const downloadedResFiltered = downloadedRes.map((downloadedPrompt: any) => {
-  //     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  //     const { prompt, properties, downloadedBy, analyticsId, ...rest } =
-  //       downloadedPrompt;
-  //     return rest;
-  //   });
+    const downloadedResFiltered = downloadedRes.map((downloadedPrompt: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { prompt, properties, downloadedBy, analyticsId, ...rest } =
+        downloadedPrompt;
+      return rest;
+    });
 
-  //   const createdResFiltered = createdRes.map((createdPrompt: any) => {
-  //     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  //     const { prompt, properties, downloadedBy, analyticsId, ...rest } =
-  //       createdPrompt;
-  //     return rest;
-  //   });
+    const createdResFiltered = createdRes.map((createdPrompt: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { prompt, properties, downloadedBy, analyticsId, ...rest } =
+        createdPrompt;
+      return rest;
+    });
 
-  //   return {
-  //     statusCode: 200,
-  //     body: JSON.stringify({
-  //       downloaded: downloadedResFiltered,
-  //       created: createdResFiltered,
-  //     }),
-  //   };
-  // }
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        downloaded: downloadedResFiltered,
+        created: createdResFiltered,
+      }),
+    };
+  }
 
-  // // Get all prompts dwonloaded by the user
-  // @Route({
-  //   method: HTTPMethod.GET,
-  //   path: '/allUser',
-  // })
-  // async getAllUserPromptsHandler(
-  //   event: ValidatedAPIGatewayProxyEvent<Gpt3Prompt>
-  // ) {
-  //   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
-  //   const currentUserId = extractUserIdFromToken(event);
+  // Get all prompts dwonloaded by the user
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/allUser',
+  })
+  async getAllUserPromptsHandler(
+    event: ValidatedAPIGatewayProxyEvent<Gpt3Prompt>
+  ) {
+    const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
+    const currentUserId = extractUserIdFromToken(event);
 
-  //   const downloadedRes = (
-  //     await Gpt3PromptEntity.query(workspaceId, {
-  //       beginsWith: 'PROMPT_',
-  //       filters: [{ attr: 'downloadedBy', contains: currentUserId }],
-  //     })
-  //   ).Items;
+    const downloadedRes = (
+      await Gpt3PromptEntity.query(workspaceId, {
+        beginsWith: 'PROMPT_',
+        filters: [{ attr: 'downloadedBy', contains: currentUserId }],
+      })
+    ).Items;
 
-  //   const createdRes = (
-  //     await Gpt3PromptEntity.query(workspaceId, {
-  //       beginsWith: 'PROMPT_',
-  //       filters: [{ attr: 'createdBy', eq: currentUserId }],
-  //     })
-  //   ).Items;
+    const createdRes = (
+      await Gpt3PromptEntity.query(workspaceId, {
+        beginsWith: 'PROMPT_',
+        filters: [{ attr: 'createdBy', eq: currentUserId }],
+      })
+    ).Items;
 
-  //   const defaultRes = (
-  //     await Gpt3PromptEntity.query(workspaceId, {
-  //       beginsWith: 'PROMPT_',
-  //       filters: [{ attr: 'default', eq: true }],
-  //     })
-  //   ).Items;
+    const defaultRes = (
+      await Gpt3PromptEntity.query(workspaceId, {
+        beginsWith: 'PROMPT_',
+        filters: [{ attr: 'default', eq: true }],
+      })
+    ).Items;
 
-  //   const removeAtrribute = [
-  //     'prompt',
-  //     'properties',
-  //     'downloadedBy',
-  //     'analyticsId',
-  //     'workspaceId',
-  //   ];
+    const removeAtrribute: (keyof InferEntityItem<typeof Gpt3PromptEntity>)[] =
+      ['prompt', 'properties', 'downloadedBy', 'analyticsId', 'workspaceId'];
 
-  //   const downloadedResFiltered = removeAtrributes(
-  //     downloadedRes,
-  //     removeAtrribute
-  //   );
-  //   const createdResFiltered = removeAtrributes(createdRes, removeAtrribute);
-  //   const defaultResFiltered = removeAtrributes(defaultRes, removeAtrribute);
+    const downloadedResFiltered = removeAtrributes(
+      downloadedRes,
+      removeAtrribute
+    );
+    const createdResFiltered = removeAtrributes(createdRes, removeAtrribute);
+    const defaultResFiltered = removeAtrributes(defaultRes, removeAtrribute);
 
-  //   return {
-  //     statusCode: 200,
-  //     body: JSON.stringify({
-  //       downloaded: downloadedResFiltered,
-  //       created: createdResFiltered,
-  //       default: defaultResFiltered,
-  //     }),
-  //   };
-  // }
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        downloaded: downloadedResFiltered,
+        created: createdResFiltered,
+        default: defaultResFiltered,
+      }),
+    };
+  }
 
-  // // Get all prompts provider
-  // @Route({
-  //   method: HTTPMethod.GET,
-  //   path: '/providers',
-  // })
-  // async getAllPromptsProviderHandler(
-  //   event: ValidatedAPIGatewayProxyEvent<Gpt3Prompt>
-  // ) {
-  //   const providers = PromptProviders;
-  //   return {
-  //     statusCode: 200,
-  //     body: JSON.stringify(providers),
-  //   };
-  // }
+  // Get all prompts provider
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/providers',
+  })
+  async getAllPromptsProviderHandler() {
+    const providers = PromptProviders;
+    return {
+      statusCode: 200,
+      body: JSON.stringify(providers),
+    };
+  }
 
-  // // Get the analytics of a prompt
-  // @Route({
-  //   method: HTTPMethod.GET,
-  //   path: '/analytics/{promptId}',
-  // })
-  // async getPromptAnalyticsHandler(
-  //   event: ValidatedAPIGatewayProxyEvent<Gpt3Prompt>
-  // ) {
-  //   const promptId = event.pathParameters?.promptId;
-  //   const response = await Gpt3PromptAnalyticsEntity.query(
-  //     `PROMPT_${promptId}`,
-  //     {
-  //       beginsWith: 'PROMPT_ANALYTICS_',
-  //     }
-  //   );
+  // Get the analytics of a prompt
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/analytics/{promptId}',
+  })
+  async getPromptAnalyticsHandler(
+    event: ValidatedAPIGatewayProxyEvent<Gpt3Prompt>
+  ) {
+    const promptId = event.pathParameters?.promptId;
+    const response = await Gpt3PromptAnalyticsEntity.query(
+      `PROMPT_${promptId}`,
+      {
+        beginsWith: 'PROMPT_ANALYTICS_',
+      }
+    );
 
-  //   return {
-  //     statusCode: 200,
-  //     body: JSON.stringify(response.Items[0]),
-  //   };
-  // }
+    return {
+      statusCode: 200,
+      body: JSON.stringify(response.Items[0]),
+    };
+  }
 
-  // // Get all categories for the prompt
-  // @Route({
-  //   method: HTTPMethod.GET,
-  //   path: '/allCategories',
-  // })
-  // async getCategoriesHandler(event: ValidatedAPIGatewayProxyEvent<Gpt3Prompt>) {
-  //   const categories = {
-  //     id: 1,
-  //     title: 'Categories',
-  //     content: Categories,
-  //   };
+  // Get all categories for the prompt
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/allCategories',
+  })
+  async getCategoriesHandler() {
+    const categories = {
+      id: 1,
+      title: 'Categories',
+      content: Categories,
+    };
 
-  //   return {
-  //     statusCode: 200,
-  //     body: JSON.stringify(categories),
-  //   };
-  // }
+    return {
+      statusCode: 200,
+      body: JSON.stringify(categories),
+    };
+  }
 
   // // Liked/Unliked, View/Unview for the prompt
   // @Route({
@@ -1080,135 +1096,135 @@ export class PromptsHandler {
   //   }
   // }
 
-  // // User Auth Info for the prompt
-  // // OpenAI API Key with usage limits
-  // // It will be used both for create user auth and update user auth
-  // @Route({
-  //   method: HTTPMethod.POST,
-  //   path: '/saveResult',
-  // })
-  // async createUserAuthHandler(event: ValidatedAPIGatewayProxyEvent<any>) {
-  //   const userId = extractUserIdFromToken(event);
-  //   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
-  //   let payload = {
-  //     userId,
-  //     workspaceId,
-  //     auth: {},
-  //   };
+  // User Auth Info for the prompt
+  // OpenAI API Key with usage limits
+  // It will be used both for create user auth and update user auth
+  @Route({
+    method: HTTPMethod.POST,
+    path: '/saveResult',
+  })
+  async createUserAuthHandler(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const userId = extractUserIdFromToken(event);
+    const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
+    let payload = {
+      userId,
+      workspaceId,
+      auth: {},
+    };
 
-  //   const userInfoRes: UserApiInfo = (
-  //     await Gpt3PromptUserEntity.get({
-  //       userId,
-  //       workspaceId,
-  //     })
-  //   ).Item as UserApiInfo;
+    const userInfoRes: UserApiInfo = (
+      await Gpt3PromptUserEntity.get({
+        userId,
+        workspaceId,
+      })
+    ).Item as UserApiInfo;
 
-  //   if (userInfoRes) {
-  //     if (event.body) {
-  //       payload = {
-  //         ...payload,
-  //         auth: {
-  //           authData: {
-  //             accessToken: event.body.accessToken,
-  //           },
-  //           authMetadata: userInfoRes.auth.authMetadata,
-  //         },
-  //       };
-  //     } else {
-  //       payload = {
-  //         ...payload,
-  //         auth: userInfoRes.auth,
-  //       };
-  //     }
-  //   } else {
-  //     payload = {
-  //       ...payload,
-  //       auth: {
-  //         authData: {
-  //           accessToken: null,
-  //         },
-  //         authMetadata: {
-  //           provider: 'openai',
-  //           limit: 10,
-  //           usage: 0,
-  //         },
-  //       },
-  //     };
-  //   }
+    if (userInfoRes) {
+      if (event.body) {
+        payload = {
+          ...payload,
+          auth: {
+            authData: {
+              accessToken: event.body.accessToken,
+            },
+            authMetadata: userInfoRes.auth.authMetadata,
+          },
+        };
+      } else {
+        payload = {
+          ...payload,
+          auth: userInfoRes.auth,
+        };
+      }
+    } else {
+      payload = {
+        ...payload,
+        auth: {
+          authData: {
+            accessToken: null,
+          },
+          authMetadata: {
+            provider: 'openai',
+            limit: 25,
+            usage: 0,
+          },
+        },
+      };
+    }
 
-  //   const userRes = (
-  //     await Gpt3PromptUserEntity.update(
-  //       { ...payload },
-  //       {
-  //         returnValues: 'ALL_NEW',
-  //       }
-  //     )
-  //   ).Attributes;
+    const userRes = (
+      await Gpt3PromptUserEntity.update(
+        { ...payload },
+        {
+          returnValues: 'ALL_NEW',
+        }
+      )
+    ).Attributes;
 
-  //   if (userRes) {
-  //     delete userRes.workspaceId;
-  //     return {
-  //       statusCode: 200,
-  //       body: JSON.stringify(userRes),
-  //     };
-  //   } else throw createError(400, 'User not found');
-  // }
+    if (userRes) {
+      delete userRes.workspaceId;
+      return {
+        statusCode: 200,
+        body: JSON.stringify(userRes),
+      };
+    } else throw createError(400, 'User not found');
+  }
 
-  // @Route({
-  //   method: HTTPMethod.GET,
-  //   path: '/userAuth',
-  // })
-  // async getUserAuthHandler(event: ValidatedAPIGatewayProxyEvent<any>) {
-  //   const userId = extractUserIdFromToken(event);
-  //   const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/userAuth',
+  })
+  async getUserAuthHandler(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const userId = extractUserIdFromToken(event);
+    const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
 
-  //   const userInfoRes: UserApiInfo = (
-  //     await Gpt3PromptUserEntity.get({
-  //       userId,
-  //       workspaceId,
-  //     })
-  //   ).Item as UserApiInfo;
+    const userInfoRes: UserApiInfo = (
+      await Gpt3PromptUserEntity.get({
+        userId,
+        workspaceId,
+      })
+    ).Item as UserApiInfo;
 
-  //   if (userInfoRes) {
-  //     delete userInfoRes.workspaceId;
-  //     return {
-  //       statusCode: 200,
-  //       body: JSON.stringify(userInfoRes),
-  //     };
-  //   } else {
-  //     const payload = {
-  //       userId,
-  //       workspaceId,
-  //       auth: {
-  //         authData: {
-  //           accessToken: null,
-  //         },
-  //         authMetadata: {
-  //           provider: 'openai',
-  //           limit: 10,
-  //           usage: 0,
-  //         },
-  //       },
-  //     };
+    if (userInfoRes) {
+      delete userInfoRes.workspaceId;
+      return {
+        statusCode: 200,
+        body: JSON.stringify(userInfoRes),
+      };
+    } else {
+      const payload = {
+        userId,
+        workspaceId,
+        auth: {
+          authData: {
+            accessToken: null,
+          },
+          authMetadata: {
+            provider: 'openai',
+            limit: 10,
+            usage: 0,
+          },
+        },
+      };
 
-  //     const userRes = (
-  //       await Gpt3PromptUserEntity.update(
-  //         { ...payload },
-  //         {
-  //           returnValues: 'ALL_NEW',
-  //         }
-  //       )
-  //     ).Attributes;
+      const userRes = (
+        await Gpt3PromptUserEntity.update(
+          { ...payload },
+          {
+            returnValues: 'ALL_NEW',
+          }
+        )
+      ).Attributes;
 
-  //     if (userRes) {
-  //       delete userRes.workspaceId;
-  //       return {
-  //         statusCode: 200,
-  //         body: JSON.stringify(userRes),
-  //       };
-  //     } else throw createError(400, 'Error creating user');
-  //   }
-  // }
+      if (userRes) {
+        delete userRes.workspaceId;
+        return {
+          statusCode: 200,
+          body: JSON.stringify(userRes),
+        };
+      } else throw createError(400, 'Error creating user');
+    }
+  }
 
   @Route({
     method: HTTPMethod.POST,
