@@ -13,7 +13,7 @@ export const chatGPTPrompt: ValidatedAPIGatewayProxyHandler<any> = async (
         {
           role: 'system',
           content:
-            'You are a helpful summarizer that summarizes markdown and return result in markdown',
+            'You are a helpful summarizer that sumrmarizes markdown and return result in markdown',
         },
         {
           role: 'user',
