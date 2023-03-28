@@ -53,4 +53,18 @@ export const batchPromises = async <T, U>(
     .reduce((chain, work) => chain.then(work), Promise.resolve([]));
 };
 
+export const DEFAULT_SEAPRATOR = '|';
+
+export const combineKeys = (...items: string[]) => {
+  return items.reduce((acc, val) => {
+    return val
+      ? acc + val + (val.endsWith(DEFAULT_SEAPRATOR) ? '' : DEFAULT_SEAPRATOR)
+      : acc;
+  }, '');
+};
+
+export const retrievePath = (path: string) => {
+  return path.split(DEFAULT_SEAPRATOR).slice(1, -1);
+};
+
 export default () => process.env.DATA_STORE_ARN.split('/').slice(-1)[0];

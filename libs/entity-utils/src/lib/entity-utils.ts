@@ -1,6 +1,6 @@
-import DynamoDB from 'aws-sdk/clients/dynamodb';
 import { Entity, Table } from 'dynamodb-toolbox';
 import { TableIndexes } from 'dynamodb-toolbox/dist/classes/Table';
+import { DocumentClient } from './client';
 import { ENTITYSOURCE, MAX_DYNAMO_BATCH_REQUEST } from './consts';
 import {
   BaseEntityParameters,
@@ -11,18 +11,11 @@ import {
   STATUS_TYPE,
   UpdateSource,
 } from './interface';
-import { batchPromises, getEndpoint, getRegion } from './utils';
+import { batchPromises } from './utils';
 
 export function entityUtils(): string {
   return 'entity-utils';
 }
-
-const DocumentClient = new DynamoDB.DocumentClient({
-  service: new DynamoDB({
-    endpoint: getEndpoint(),
-    region: getRegion(),
-  }),
-});
 
 export const initializeTable = (tableConfig: {
   name: string;

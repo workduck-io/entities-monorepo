@@ -13,7 +13,7 @@ export const baseServerlessConfiguration: Partial<Serverless> = {
     'serverless-dotenv-plugin',
     'serverless-dynamodb-local',
     'serverless-offline',
-    'serverless-domain-manager',
+    // 'serverless-domain-manager',
     'serverless-prune-plugin',
     // 'serverless-s3-deploy',
   ],
