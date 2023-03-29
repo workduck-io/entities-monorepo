@@ -4,6 +4,7 @@ import {
   extractWorkspaceId,
   InternalError,
 } from '@mex/gen-utils';
+import { createError } from '@middy/util';
 import {
   HTTPMethod,
   Path,
@@ -24,34 +25,49 @@ export class CaptureHandler {
   async createCapture(event: ValidatedAPIGatewayProxyEvent<any>) {
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserIdFromToken(event);
-    const capture = event.body as Capture;
+
+    const capture =
+      typeof event.body === 'string'
+        ? (JSON.parse(event.body) as Capture)
+        : (event.body as Capture);
+    const entityId = capture.id ?? `CAPTURE_${nanoid()}`;
+    const configId = capture.data[0]?.elementMetaData?.configID;
 
     await CaptureEntity.put({
       ...capture,
+      configId,
       workspaceId,
-      captureId: capture.captureId ?? `CAPTURE_${nanoid()}`,
+      entityId,
       userId,
     });
 
     return {
-      statusCode: 204,
+      statusCode: 200,
+      body: JSON.stringify({ id: entityId }),
     };
   }
 
   @Route({
     method: HTTPMethod.GET,
-    path: '/config/{configId}/capture/{captureId}',
+    path: '/capture/{captureId}',
   })
   async getCapture(event: ValidatedAPIGatewayProxyEvent<any>, @Path() path?) {
     const workspaceId = extractWorkspaceId(event);
-    const captureId = path.captureId;
-    const configId = path.configId;
+    const entityId = path.captureId;
 
     const response = await CaptureEntity.get({
       workspaceId,
-      configId,
-      captureId,
+      entityId,
     });
+
+    if (!Object.keys(response).length)
+      throw createError(
+        404,
+        JSON.stringify({
+          statusCode: 404,
+          message: 'Requested Capture not found',
+        })
+      );
 
     return {
       statusCode: 200,
@@ -70,8 +86,36 @@ export class CaptureHandler {
     const workspaceId = extractWorkspaceId(event);
     const configId = path.configId;
 
-    const response = await CaptureEntity.query(`${workspaceId}#${configId}`, {
+    const response = (
+      await CaptureEntity.query(workspaceId, {
+        index: 'pk-ak-index',
+        eq: configId,
+        filters: [statusFilter('ACTIVE'), entityFilter('capture')],
+      })
+    ).Items;
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify(response),
+    };
+  }
+
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/usercaptures',
+  })
+  async getAllCapturesForUser(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserIdFromToken(event);
+
+    const response = await CaptureEntity.query(workspaceId, {
       beginsWith: 'CAPTURE_',
+      filters: [
+        {
+          attr: 'userId',
+          eq: userId,
+        },
+      ],
     });
 
     return {
@@ -81,46 +125,31 @@ export class CaptureHandler {
   }
 
   @Route({
-    method: HTTPMethod.GET,
-    path: '/config/{configId}/captures',
-  })
-  async getAllCapturesForUser(
-    event: ValidatedAPIGatewayProxyEvent<any>,
-    @Path() path?
-  ) {
-    const workspaceId = extractWorkspaceId(event);
-    const userId = extractUserIdFromToken(event);
-    const configId = path.configId;
-    const pk = `${workspaceId}#${configId}`;
-
-    const response = (
-      await CaptureEntity.query(pk, {
-        index: 'pk-ak-index',
-        eq: userId,
-        filters: [statusFilter('ACTIVE'), entityFilter('capture')],
-      })
-    ).Items;
-    console.log({ response });
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify(response),
-    };
-  }
-
-  @Route({
     method: HTTPMethod.DELETE,
-    path: '/config/{configId}/capture/{captureId}',
+    path: '/capture/{captureId}',
   })
   async deleteCapture(
     event: ValidatedAPIGatewayProxyEvent<any>,
     @Path() path?
   ) {
     const workspaceId = extractWorkspaceId(event);
-    const configId = path.configId;
-    const captureId = path.captureId;
+    const entityId = path.captureId;
 
-    await CaptureEntity.delete({ workspaceId, configId, captureId });
+    const res = await CaptureEntity.delete({
+      workspaceId,
+      entityId,
+    });
+
+    console.log({ res });
+
+    if (Object.keys(res).length)
+      throw createError(
+        404,
+        JSON.stringify({
+          statusCode: 404,
+          message: 'Requested Capture not found to delete',
+        })
+      );
 
     return { statusCode: 204 };
   }

@@ -1,4 +1,4 @@
-import { defaultEntityAttributes } from '@mex/entity-utils';
+import { AdvancedElements, defaultEntityAttributes } from '@mex/entity-utils';
 import { Entity } from 'dynamodb-toolbox';
 import { smartcaptureTable } from '../service/DynamoDB';
 import { ENTITYSOURCE } from '../utils/consts';
@@ -92,36 +92,23 @@ export const CaptureConfigEntity = new Entity({
 export const CaptureEntity = new Entity({
   name: 'capture',
   attributes: {
-    pk: {
+    workspaceId: {
       partitionKey: true,
       type: 'string',
-      coerce: false,
-      hidden: true,
     },
-    workspaceId: ['pk', 0, { type: 'string', required: true, coerce: false }],
-    configId: ['pk', 1, { type: 'string', required: true, coerce: false }],
-    captureId: { sortKey: true, type: 'string', coerce: false },
+    entityId: { sortKey: true, type: 'string' },
+    configId: { type: 'string', required: true, map: 'ak' },
     userId: {
       type: 'string',
-      map: 'ak',
-      coerce: false,
       required: true,
     },
-    source: {
-      type: 'string',
-    },
-    page: { type: 'string' },
     data: {
-      type: 'map',
-      transform: (value) => {
-        if (Array.isArray(value)) {
-          return serializeConfig(value).data;
-        } else return value;
+      type: 'string',
+      transform: (value: AdvancedElements[]) => {
+        return JSON.stringify(value);
       },
-      format: (value, data: any) => {
-        return Object.entries(value).map(([key, val]) => {
-          return val;
-        });
+      format: (value: string): AdvancedElements[] => {
+        return JSON.parse(value);
       },
     },
     _source: {

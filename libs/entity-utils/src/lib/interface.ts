@@ -62,3 +62,16 @@ export interface HierarchyRequest {
   entityId: string;
   parent?: string;
 }
+
+export interface AdvancedElements {
+  id: string;
+  content?: string;
+  children?: Array<AdvancedElements>;
+  elementType: string;
+  properties?: Record<string, any>;
+  elementMetaData?: Record<string, any>;
+  createdBy?: string;
+  lastEditedBy?: string;
+  createdAt?: number;
+  updatedAt?: number;
+}

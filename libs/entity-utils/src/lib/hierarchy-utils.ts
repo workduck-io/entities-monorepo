@@ -91,10 +91,10 @@ export class HierarchyOps {
     };
   };
 
-  getItemAncestors = async (entityId: string) => {
+  getItemAncestors = async (entityId: string, includeItem = true) => {
     const item = (await HierarchyEntity.get({ entityId })).Item;
     const parentPath = item.path as string;
-    const result = [item];
+    const result = includeItem ? [item] : [];
 
     if (parentPath != this.entity.name) {
       result.push(
@@ -108,10 +108,10 @@ export class HierarchyOps {
     return result;
   };
 
-  getItemChildren = async (entityId: string) => {
+  getItemChildren = async (entityId: string, includeItem = true) => {
     const item = (await HierarchyEntity.get({ entityId })).Item;
     const parentPath = item.path.toString() ?? '';
-    const result = [item];
+    const result = includeItem ? [item] : [];
 
     result.push(
       ...(

@@ -116,21 +116,21 @@ const capture = {
     {
       httpApi: {
         method: 'DELETE',
-        path: '/config/{configId}/capture/{captureId}',
+        path: '/capture/{captureId}',
         authorizer: 'workduckAuthorizer',
       },
     },
     {
       httpApi: {
         method: 'GET',
-        path: '/config/{configId}/capture/{captureId}',
+        path: '/capture/{captureId}',
         authorizer: 'workduckAuthorizer',
       },
     },
     {
       httpApi: {
         method: 'GET',
-        path: '/config/{configId}/captures',
+        path: '/usercaptures',
         authorizer: 'workduckAuthorizer',
       },
     },

@@ -1,4 +1,4 @@
-import { BaseEntityParameters } from '@mex/entity-utils';
+import { AdvancedElements, BaseEntityParameters } from '@mex/entity-utils';
 
 export interface Variable extends Omit<BaseEntityParameters, 'entityId'> {
   variableName: string;
@@ -31,11 +31,9 @@ export interface CaptureLabel {
 }
 
 export interface Capture {
-  page: string; // webpage title
-  source: string; // webpage url
-  data: Label[];
-  configId: string;
-  workspaceId?: string;
-  userId?: string;
-  captureId?: string;
+  data: AdvancedElements[];
+  configID?: string;
+  workspaceID?: string;
+  userID?: string;
+  id?: string;
 }
