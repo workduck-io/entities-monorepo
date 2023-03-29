@@ -1,7 +1,8 @@
 import { entityFilter, statusFilter } from '@mex/entity-utils';
 import {
-  extractUserIdFromToken,
+  extractUserId,
   extractWorkspaceId,
+  generateCaptureId,
   InternalError,
 } from '@mex/gen-utils';
 import { createError } from '@middy/util';
@@ -12,7 +13,6 @@ import {
   RouteAndExec,
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
-import { nanoid } from 'nanoid';
 import { CaptureEntity } from '../entities';
 import { Capture } from '../interface';
 
@@ -24,14 +24,14 @@ export class CaptureHandler {
   })
   async createCapture(event: ValidatedAPIGatewayProxyEvent<any>) {
     const workspaceId = extractWorkspaceId(event);
-    const userId = extractUserIdFromToken(event);
+    const userId = extractUserId(event);
 
     const capture =
       typeof event.body === 'string'
         ? (JSON.parse(event.body) as Capture)
         : (event.body as Capture);
-    const entityId = capture.id ?? `CAPTURE_${nanoid()}`;
-    const configId = capture.data[0]?.elementMetaData?.configID;
+    const entityId = capture.id ?? generateCaptureId();
+    const configId = capture.data?.elementMetadata?.configID;
 
     await CaptureEntity.put({
       ...capture,
@@ -102,11 +102,28 @@ export class CaptureHandler {
 
   @Route({
     method: HTTPMethod.GET,
+    path: '/workspacecaptures',
+  })
+  async getAllCapturesForWorkspace(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const workspaceId = extractWorkspaceId(event);
+
+    const response = await CaptureEntity.query(workspaceId, {
+      beginsWith: 'CAPTURE_',
+    });
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify(response.Items),
+    };
+  }
+
+  @Route({
+    method: HTTPMethod.GET,
     path: '/usercaptures',
   })
   async getAllCapturesForUser(event: ValidatedAPIGatewayProxyEvent<any>) {
     const workspaceId = extractWorkspaceId(event);
-    const userId = extractUserIdFromToken(event);
+    const userId = extractUserId(event);
 
     const response = await CaptureEntity.query(workspaceId, {
       beginsWith: 'CAPTURE_',

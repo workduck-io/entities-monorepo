@@ -110,35 +110,36 @@ const capture = {
       httpApi: {
         method: 'POST',
         path: '/capture',
-        authorizer: 'workduckAuthorizer',
       },
     },
     {
       httpApi: {
         method: 'DELETE',
         path: '/capture/{captureId}',
-        authorizer: 'workduckAuthorizer',
       },
     },
     {
       httpApi: {
         method: 'GET',
         path: '/capture/{captureId}',
-        authorizer: 'workduckAuthorizer',
       },
     },
     {
       httpApi: {
         method: 'GET',
         path: '/usercaptures',
-        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/workspacecaptures',
       },
     },
     {
       httpApi: {
         method: 'GET',
         path: '/config/{configId}/all',
-        authorizer: 'workduckAuthorizer',
       },
     },
   ],

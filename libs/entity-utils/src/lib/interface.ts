@@ -69,7 +69,7 @@ export interface AdvancedElements {
   children?: Array<AdvancedElements>;
   elementType: string;
   properties?: Record<string, any>;
-  elementMetaData?: Record<string, any>;
+  elementMetadata?: Record<string, any>;
   createdBy?: string;
   lastEditedBy?: string;
   createdAt?: number;

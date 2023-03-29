@@ -104,10 +104,10 @@ export const CaptureEntity = new Entity({
     },
     data: {
       type: 'string',
-      transform: (value: AdvancedElements[]) => {
+      transform: (value: AdvancedElements) => {
         return JSON.stringify(value);
       },
-      format: (value: string): AdvancedElements[] => {
+      format: (value: string): AdvancedElements => {
         return JSON.parse(value);
       },
     },

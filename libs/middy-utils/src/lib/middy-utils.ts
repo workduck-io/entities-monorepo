@@ -15,6 +15,9 @@ export function middyUtils(): string {
 
 const workduckWorkspaceValidatorMiddleware = () => {
   const workduckWorkspaceValidatorMiddlewareBefore = async (request) => {
+    // ignore workspace validation for the smartcapture entity
+    if (request.event?.body?.data?.elementType === 'smartCapture') return;
+
     request.event.headers.Authorization = request.event.headers.authorization;
     try {
       if (process.env.SLS_STAGE !== 'local' && !validate(request.event)) {
@@ -59,7 +62,10 @@ export const middyfy = (handler) => {
     .use(userAccessValidatorMiddleware())
     .use(
       httpErrorHandler({
-        fallbackMessage: 'Server failed to respond',
+        fallbackMessage: JSON.stringify({
+          statusCode: 500,
+          message: 'Server failed to respond',
+        }),
       })
     ) // handles common http errors and returns proper responses
     .handler(handler);
