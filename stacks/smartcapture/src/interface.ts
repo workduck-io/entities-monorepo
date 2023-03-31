@@ -32,8 +32,8 @@ export interface CaptureLabel {
 
 export interface Capture {
   data: AdvancedElements;
-  configID?: string;
-  workspaceID?: string;
-  userID?: string;
-  id?: string;
+  configId?: string;
+  workspaceId?: string;
+  userId?: string;
+  entityId?: string;
 }

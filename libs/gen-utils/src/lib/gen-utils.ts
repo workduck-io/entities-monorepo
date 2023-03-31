@@ -4,6 +4,11 @@ import jwt_decode from 'jwt-decode';
 import { WDTokenDecode } from './interfaces';
 import { customAlphabet } from 'nanoid';
 
+const nanoid = customAlphabet(
+  '346789ABCDEFGHJKLMNPQRTUVWXYabcdefghijkmnpqrtwxyz',
+  21
+);
+
 export function genUtils(): string {
   return 'gen-utils';
 }
@@ -45,10 +50,5 @@ export const InternalError = (): any =>
   });
 
 export const generateCaptureId = () => {
-  const nanoid = customAlphabet(
-    '346789ABCDEFGHJKLMNPQRTUVWXYabcdefghijkmnpqrtwxyz',
-    21
-  );
-
   return `CAPTURE_${nanoid()}`;
 };

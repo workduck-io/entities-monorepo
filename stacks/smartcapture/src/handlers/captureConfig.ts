@@ -17,7 +17,10 @@ import {
   serializeConfigFormat,
 } from '../../utils/helpers';
 import { CaptureConfigEntity, CaptureVariableLabelEntity } from '../entities';
-import { Label } from '../interface';
+import { Config, Label } from '../interface';
+import { getPathForEntity, HierarchyOps } from '@mex/entity-utils';
+
+const CaptureConfigHierarchyOps = new HierarchyOps(CaptureConfigEntity);
 
 @InternalError()
 export class CaptureConfigHandler {
@@ -29,14 +32,20 @@ export class CaptureConfigHandler {
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserIdFromToken(event);
     const config = event.body;
-    const labels = config.labels as Label[];
+    const labels = config.labels;
     const allTransacts = [];
-    const configTransaction = CaptureConfigEntity.putTransaction({
-      ...config,
-      workspaceId,
-      _source: ENTITYSOURCE.EXTERNAL,
-      userId,
-    });
+
+    await CaptureConfigHierarchyOps.addItem<Config>(
+      { entityId: config.entityId, workspaceId },
+      {
+        ...config,
+        entityId: config.entityId,
+        userId,
+        _source: ENTITYSOURCE.EXTERNAL,
+        workspaceId,
+      }
+    );
+
     for (const label of labels) {
       if (label.variableId) {
         allTransacts.push(
@@ -50,7 +59,6 @@ export class CaptureConfigHandler {
         );
       }
     }
-    allTransacts.push(configTransaction);
     await smartcaptureTable.transactWrite(allTransacts);
     return {
       statusCode: 204,
@@ -138,18 +146,12 @@ export class CaptureConfigHandler {
     path: '/config/{configId}',
   })
   async getConfigHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
-    const workspaceId = extractWorkspaceId(event) as string;
     const configId = event.pathParameters.configId;
-    const res = (
-      await CaptureConfigEntity.get({
-        workspaceId,
-        entityId: configId,
-      })
-    ).Item;
+    const response = await CaptureConfigHierarchyOps.getItem(configId);
 
     return {
       statusCode: 200,
-      body: JSON.stringify(res),
+      body: JSON.stringify(response),
     };
   }
 
@@ -161,12 +163,17 @@ export class CaptureConfigHandler {
     event: ValidatedAPIGatewayProxyEvent<undefined>
   ) {
     const workspaceId = extractWorkspaceId(event) as string;
-    const res = await CaptureConfigEntity.query(workspaceId, {
-      beginsWith: 'CONFIG_',
-    });
+    const res = (
+      await CaptureConfigEntity.query(workspaceId, {
+        beginsWith: 'CONFIG_',
+      })
+    ).Items;
+
     return {
       statusCode: 200,
-      body: JSON.stringify(res.Items),
+      body: JSON.stringify(
+        await getPathForEntity(CaptureConfigHierarchyOps, workspaceId, res)
+      ),
     };
   }
 
@@ -175,12 +182,20 @@ export class CaptureConfigHandler {
     path: '/config/all/public',
   })
   async getAllConfigOfPublic(event: ValidatedAPIGatewayProxyEvent<undefined>) {
-    const res = await CaptureConfigEntity.query('WORKSPACE_INTERNAL', {
-      beginsWith: 'CONFIG_',
-    });
+    const res = (
+      await CaptureConfigEntity.query('WORKSPACE_INTERNAL', {
+        beginsWith: 'CONFIG_',
+      })
+    ).Items;
     return {
       statusCode: 200,
-      body: JSON.stringify(res.Items),
+      body: JSON.stringify(
+        await getPathForEntity(
+          CaptureConfigHierarchyOps,
+          'WORKSPACE_INTERNAL',
+          res
+        )
+      ),
     };
   }
 
@@ -190,13 +205,17 @@ export class CaptureConfigHandler {
   })
   async getAllConfigOfBase(event: ValidatedAPIGatewayProxyEvent<undefined>) {
     const workspaceId = extractWorkspaceId(event) as string;
-    const res = await CaptureConfigEntity.query(workspaceId, {
-      index: 'pk-ak-index',
-      eq: event.pathParameters.base,
-    });
+    const res = (
+      await CaptureConfigEntity.query(workspaceId, {
+        index: 'pk-ak-index',
+        eq: event.pathParameters.base,
+      })
+    ).Items;
     return {
       statusCode: 200,
-      body: JSON.stringify(res.Items),
+      body: JSON.stringify(
+        await getPathForEntity(CaptureConfigHierarchyOps, workspaceId, res)
+      ),
     };
   }
 
@@ -205,13 +224,8 @@ export class CaptureConfigHandler {
     path: '/config/{configId}',
   })
   async deleteConfigHandler(event: ValidatedAPIGatewayProxyEvent<any>) {
-    const workspaceId = extractWorkspaceId(event) as string;
     const configId = event.pathParameters.configId;
-    await CaptureConfigEntity.delete({
-      workspaceId,
-      entityId: configId,
-    });
-
+    await CaptureConfigHierarchyOps.deleteItem(configId);
     return {
       statusCode: 204,
     };

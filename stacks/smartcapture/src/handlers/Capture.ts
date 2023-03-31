@@ -1,4 +1,4 @@
-import { entityFilter, statusFilter } from '@mex/entity-utils';
+import { getPathForEntity, HierarchyOps } from '@mex/entity-utils';
 import {
   extractUserId,
   extractWorkspaceId,
@@ -16,6 +16,8 @@ import {
 import { CaptureEntity } from '../entities';
 import { Capture } from '../interface';
 
+const CaptureHierarchyOps = new HierarchyOps(CaptureEntity);
+const CAPTURE_PARENT_ENTITY = 'captureConfig';
 @InternalError()
 export class CaptureHandler {
   @Route({
@@ -30,16 +32,19 @@ export class CaptureHandler {
       typeof event.body === 'string'
         ? (JSON.parse(event.body) as Capture)
         : (event.body as Capture);
-    const entityId = capture.id ?? generateCaptureId();
-    const configId = capture.data?.elementMetadata?.configID;
+    const entityId = capture.entityId ?? generateCaptureId();
+    const parent = capture.data?.elementMetadata?.configID;
 
-    await CaptureEntity.put({
-      ...capture,
-      configId,
-      workspaceId,
-      entityId,
-      userId,
-    });
+    await CaptureHierarchyOps.addItem<Capture>(
+      { entityId, workspaceId, parent },
+      {
+        data: capture.data,
+        configId: parent,
+        userId,
+        workspaceId,
+        entityId,
+      }
+    );
 
     return {
       statusCode: 200,
@@ -49,16 +54,11 @@ export class CaptureHandler {
 
   @Route({
     method: HTTPMethod.GET,
-    path: '/capture/{captureId}',
+    path: '/capture/{captureID}',
   })
-  async getCapture(event: ValidatedAPIGatewayProxyEvent<any>, @Path() path?) {
-    const workspaceId = extractWorkspaceId(event);
-    const entityId = path.captureId;
-
-    const response = await CaptureEntity.get({
-      workspaceId,
-      entityId,
-    });
+  async getCapture(_: ValidatedAPIGatewayProxyEvent<any>, @Path() path?) {
+    const entityId = path.captureID;
+    const response = await CaptureHierarchyOps.getItem(entityId);
 
     if (!Object.keys(response).length)
       throw createError(
@@ -71,28 +71,20 @@ export class CaptureHandler {
 
     return {
       statusCode: 200,
-      body: JSON.stringify(response.Item),
+      body: JSON.stringify(response),
     };
   }
 
   @Route({
     method: HTTPMethod.GET,
-    path: '/config/{configId}/all',
+    path: '/capture/config/{configID}/all',
   })
   async getAllCaptureForConfig(
     event: ValidatedAPIGatewayProxyEvent<any>,
     @Path() path?
   ) {
-    const workspaceId = extractWorkspaceId(event);
-    const configId = path.configId;
-
-    const response = (
-      await CaptureEntity.query(workspaceId, {
-        index: 'pk-ak-index',
-        eq: configId,
-        filters: [statusFilter('ACTIVE'), entityFilter('capture')],
-      })
-    ).Items;
+    const configId = path.configID;
+    const response = await CaptureHierarchyOps.getItemChildren(configId, false);
 
     return {
       statusCode: 200,
@@ -102,71 +94,71 @@ export class CaptureHandler {
 
   @Route({
     method: HTTPMethod.GET,
-    path: '/workspacecaptures',
+    path: '/capture/all/workspace',
   })
   async getAllCapturesForWorkspace(event: ValidatedAPIGatewayProxyEvent<any>) {
     const workspaceId = extractWorkspaceId(event);
 
-    const response = await CaptureEntity.query(workspaceId, {
-      beginsWith: 'CAPTURE_',
-    });
+    const response = (
+      await CaptureEntity.query(workspaceId, {
+        beginsWith: 'CAPTURE_',
+      })
+    ).Items;
 
     return {
       statusCode: 200,
-      body: JSON.stringify(response.Items),
+      body: JSON.stringify(
+        await getPathForEntity(
+          CaptureHierarchyOps,
+          workspaceId,
+          response,
+          CAPTURE_PARENT_ENTITY
+        )
+      ),
     };
   }
 
   @Route({
     method: HTTPMethod.GET,
-    path: '/usercaptures',
+    path: '/capture/all/user',
   })
   async getAllCapturesForUser(event: ValidatedAPIGatewayProxyEvent<any>) {
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserId(event);
 
-    const response = await CaptureEntity.query(workspaceId, {
-      beginsWith: 'CAPTURE_',
-      filters: [
-        {
-          attr: 'userId',
-          eq: userId,
-        },
-      ],
-    });
+    const response = (
+      await CaptureEntity.query(workspaceId, {
+        beginsWith: 'CAPTURE_',
+        filters: [
+          {
+            attr: 'userId',
+            eq: userId,
+          },
+        ],
+      })
+    ).Items;
 
     return {
       statusCode: 200,
-      body: JSON.stringify(response.Items),
+      body: JSON.stringify(
+        await getPathForEntity(
+          CaptureHierarchyOps,
+          workspaceId,
+          response,
+          CAPTURE_PARENT_ENTITY
+        )
+      ),
     };
   }
 
   @Route({
     method: HTTPMethod.DELETE,
-    path: '/capture/{captureId}',
+    path: '/capture/{captureID}',
   })
-  async deleteCapture(
-    event: ValidatedAPIGatewayProxyEvent<any>,
-    @Path() path?
-  ) {
-    const workspaceId = extractWorkspaceId(event);
-    const entityId = path.captureId;
+  async deleteCapture(_: ValidatedAPIGatewayProxyEvent<any>, @Path() path?) {
+    const entityId = path.captureID;
 
-    const res = await CaptureEntity.delete({
-      workspaceId,
-      entityId,
-    });
-
-    console.log({ res });
-
-    if (Object.keys(res).length)
-      throw createError(
-        404,
-        JSON.stringify({
-          statusCode: 404,
-          message: 'Requested Capture not found to delete',
-        })
-      );
+    await CaptureHierarchyOps.deleteItem(entityId);
 
     return { statusCode: 204 };
   }

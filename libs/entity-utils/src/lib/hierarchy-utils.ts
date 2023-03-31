@@ -72,13 +72,14 @@ export class HierarchyOps {
         },
         {}
       ),
-      this.entity.updateTransaction(entityDetails),
+      this.entity.putTransaction(entityDetails),
     ];
     return await HierarchyTable.transactWrite(transactions);
   };
 
   getItem = async (entityId: string) => {
     const hItem = (await HierarchyEntity.get({ entityId })).Item;
+    if (!hItem) throw createError(404, 'Entity doesnt exist');
     const item = (
       (await this.entity.get({
         entityId,
@@ -93,6 +94,7 @@ export class HierarchyOps {
 
   getItemAncestors = async (entityId: string, includeItem = true) => {
     const item = (await HierarchyEntity.get({ entityId })).Item;
+    if (!item) throw createError(404, 'Entity doesnt exist');
     const parentPath = item.path as string;
     const result = includeItem ? [item] : [];
 
@@ -110,6 +112,7 @@ export class HierarchyOps {
 
   getItemChildren = async (entityId: string, includeItem = true) => {
     const item = (await HierarchyEntity.get({ entityId })).Item;
+    if (!item) throw createError(404, 'Parent doesnt exist');
     const parentPath = item.path.toString() ?? '';
     const result = includeItem ? [item] : [];
 
@@ -168,7 +171,7 @@ export class HierarchyOps {
       );
       const itemsToRemove = [...deleteQuery, ...deleteQueryOg];
       if (itemsToRemove.length > 0)
-        await HierarchyTable.batchWrite(itemsToDelete);
+        await HierarchyTable.batchWrite(itemsToRemove);
     }
     await HierarchyEntity.delete({ entityId });
     await this.entity.delete({ entityId, workspaceId: item.workspaceId });
@@ -217,12 +220,28 @@ export class HierarchyOps {
     });
   };
 
-  getGraph = async (workspaceId: string) => {
+  getGraph = async (workspaceId: string, parent = '') => {
     return (
       await HierarchyEntity.query(workspaceId, {
-        beginsWith: combineKeys(this.entity.name),
+        beginsWith:
+          parent === '' ? combineKeys(this.entity.name) : combineKeys(parent),
         index: 'tree-path-index',
       })
     ).Items;
   };
 }
+
+export const getPathForEntity = async (
+  hierarchyOps: HierarchyOps,
+  workspaceId: string,
+  res: any[],
+  parent = ''
+) => {
+  const hierarchy = (await hierarchyOps.getGraph(workspaceId, parent)).map(
+    (hItem) => ({
+      path: hItem.path,
+      ...res.find((item) => item.entityId === hItem.entityId),
+    })
+  );
+  return hierarchy.filter((item) => item.entityId);
+};

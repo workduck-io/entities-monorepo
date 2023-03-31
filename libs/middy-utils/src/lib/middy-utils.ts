@@ -8,15 +8,29 @@ import httpCors from '@middy/http-cors';
 import httpErrorHandler from '@middy/http-error-handler';
 import jsonBodyParser from '@middy/http-json-body-parser';
 import { validate } from '@workduck-io/workspace-validator';
+import { BASE_ROUTE } from './interfaces';
 
 export function middyUtils(): string {
   return 'middy-utils';
 }
 
-const workduckWorkspaceValidatorMiddleware = () => {
+const shouldIgnoreValidation = (path: string, ignoreBaseRoutes: string[]) => {
+  for (const route of ignoreBaseRoutes) {
+    if (path.startsWith(route)) return true;
+  }
+  return false;
+};
+
+const workduckWorkspaceValidatorMiddleware = (ignoreBaseRoutes: string[]) => {
   const workduckWorkspaceValidatorMiddlewareBefore = async (request) => {
     // ignore workspace validation for the smartcapture entity
-    if (request.event?.body?.data?.elementType === 'smartCapture') return;
+    if (
+      shouldIgnoreValidation(
+        (request.event?.rawPath as string) ?? (request.event?.path as string),
+        ignoreBaseRoutes
+      )
+    )
+      return;
 
     request.event.headers.Authorization = request.event.headers.authorization;
     try {
@@ -24,7 +38,13 @@ const workduckWorkspaceValidatorMiddleware = () => {
         throw new Error('Workspace dont match');
       }
     } catch (cause) {
-      const error = createError(401, 'Not authorized to the resource');
+      const error = createError(
+        401,
+        JSON.stringify({
+          statusCode: 401,
+          message: 'Not authorized to the resource',
+        })
+      );
       error.cause = cause;
       throw error;
     }
@@ -42,7 +62,13 @@ const userAccessValidatorMiddleware = () => {
         //TODO: Check if user has access to note
         throw new Error('User doesnt have access to resource');
     } catch (cause) {
-      const error = createError(401, 'Not authorized to the resource');
+      const error = createError(
+        401,
+        JSON.stringify({
+          statusCode: 401,
+          message: 'Not authorized to the resource',
+        })
+      );
       error.cause = cause;
       throw error;
     }
@@ -58,7 +84,7 @@ export const middyfy = (handler) => {
     .use(httpCors())
     .use(jsonBodyParser()) // parses the request body when it's a JSON and converts it to an object
     .use(wdRequestIdParser())
-    .use(workduckWorkspaceValidatorMiddleware())
+    .use(workduckWorkspaceValidatorMiddleware([BASE_ROUTE.CAPTURE]))
     .use(userAccessValidatorMiddleware())
     .use(
       httpErrorHandler({
