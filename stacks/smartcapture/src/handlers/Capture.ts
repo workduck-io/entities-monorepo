@@ -47,15 +47,6 @@ export class CaptureHandler {
       }
     );
 
-    if (!Object.keys(response).length)
-      throw createError(
-        404,
-        JSON.stringify({
-          statusCode: 404,
-          message: 'Requested Capture not found',
-        })
-      );
-
     return {
       statusCode: 200,
       body: JSON.stringify({ id: entityId }),
