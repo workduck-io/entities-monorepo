@@ -9,6 +9,7 @@ import { createError } from '@middy/util';
 import {
   HTTPMethod,
   Path,
+  Query,
   Route,
   RouteAndExec,
   ValidatedAPIGatewayProxyEvent,
@@ -46,20 +47,6 @@ export class CaptureHandler {
       }
     );
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ id: entityId }),
-    };
-  }
-
-  @Route({
-    method: HTTPMethod.GET,
-    path: '/capture/{captureID}',
-  })
-  async getCapture(_: ValidatedAPIGatewayProxyEvent<any>, @Path() path?) {
-    const entityId = path.captureID;
-    const response = await CaptureHierarchyOps.getItem(entityId);
-
     if (!Object.keys(response).length)
       throw createError(
         404,
@@ -71,72 +58,115 @@ export class CaptureHandler {
 
     return {
       statusCode: 200,
-      body: JSON.stringify(response),
+      body: JSON.stringify({ id: entityId }),
     };
   }
 
   @Route({
-    method: HTTPMethod.GET,
-    path: '/capture/config/{configID}/all',
+    method: HTTPMethod.PATCH,
+    path: '/capture',
   })
-  async getAllCaptureForConfig(
-    event: ValidatedAPIGatewayProxyEvent<any>,
-    @Path() path?
-  ) {
-    const configId = path.configID;
-    const response = await CaptureHierarchyOps.getItemChildren(configId, false);
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify(response),
-    };
-  }
-
-  @Route({
-    method: HTTPMethod.GET,
-    path: '/capture/all/workspace',
-  })
-  async getAllCapturesForWorkspace(event: ValidatedAPIGatewayProxyEvent<any>) {
-    const workspaceId = extractWorkspaceId(event);
-
-    const response = (
-      await CaptureEntity.query(workspaceId, {
-        beginsWith: 'CAPTURE_',
-      })
-    ).Items;
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify(
-        await getPathForEntity(
-          CaptureHierarchyOps,
-          workspaceId,
-          response,
-          CAPTURE_PARENT_ENTITY
-        )
-      ),
-    };
-  }
-
-  @Route({
-    method: HTTPMethod.GET,
-    path: '/capture/all/user',
-  })
-  async getAllCapturesForUser(event: ValidatedAPIGatewayProxyEvent<any>) {
+  async updateCapture(event: ValidatedAPIGatewayProxyEvent<any>) {
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserId(event);
 
-    const response = (
-      await CaptureEntity.query(workspaceId, {
-        beginsWith: 'CAPTURE_',
-        filters: [
-          {
-            attr: 'userId',
-            eq: userId,
-          },
-        ],
-      })
-    ).Items;
+    const capture =
+      typeof event.body === 'string'
+        ? (JSON.parse(event.body) as Capture)
+        : (event.body as Capture);
+    const entityId = capture.entityId;
+    const response = (await CaptureHierarchyOps.getItem(
+      entityId
+    )) as Capture & { path: string };
+    const parent = capture.data?.elementMetadata?.configID;
+
+    // if the parent is changed, refactor to new parent
+    if (parent !== response.configId)
+      await CaptureHierarchyOps.refactorItem(entityId, parent);
+
+    await CaptureEntity.put({
+      workspaceId,
+      entityId,
+      data: capture.data,
+      configId: parent,
+      userId,
+    });
+
+    return {
+      statusCode: 204,
+    };
+  }
+
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/capture/{captureID}',
+  })
+  async getCapture(_: ValidatedAPIGatewayProxyEvent<any>, @Path() path?) {
+    const entityId = path.captureID;
+    const response = await CaptureHierarchyOps.getItem(entityId);
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify(response),
+    };
+  }
+
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/capture/all',
+  })
+  async getAllCaptures(
+    event: ValidatedAPIGatewayProxyEvent<any>,
+    @Path() path?,
+    @Query() query?
+  ) {
+    const filterType = query?.filterType;
+    const filterValue = query?.filterValue;
+
+    if (!filterType) throw createError(400, 'QueryParams filterType required');
+
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserId(event);
+    let response: any[];
+
+    switch (filterType) {
+      case 'configID':
+        if (!filterValue)
+          throw createError(
+            400,
+            'QueryParams filterValue required for filterType configID'
+          );
+        response = await CaptureHierarchyOps.getItemChildren(
+          filterValue,
+          false
+        );
+        return {
+          statusCode: 200,
+          body: JSON.stringify(response),
+        };
+      case 'userID':
+        response = (
+          await CaptureEntity.query(workspaceId, {
+            beginsWith: 'CAPTURE_',
+            filters: [
+              {
+                attr: 'userId',
+                eq: userId,
+              },
+            ],
+          })
+        ).Items;
+        break;
+      case 'workspaceID':
+        response = (
+          await CaptureEntity.query(workspaceId, {
+            beginsWith: 'CAPTURE_',
+          })
+        ).Items;
+        break;
+      default:
+        break;
+    }
 
     return {
       statusCode: 200,
