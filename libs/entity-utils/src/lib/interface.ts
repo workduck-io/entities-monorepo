@@ -47,6 +47,7 @@ export type ENTITY_TYPE =
   | 'view'
   | 'highlights'
   | 'captureVariable'
+  | 'capture'
   | 'captureLabel';
 
 export interface HierarchyItem {
@@ -60,4 +61,17 @@ export interface HierarchyRequest {
   workspaceId: string;
   entityId: string;
   parent?: string;
+}
+
+export interface AdvancedElements {
+  id: string;
+  content?: string;
+  children?: Array<AdvancedElements>;
+  elementType: string;
+  properties?: Record<string, any>;
+  elementMetadata?: Record<string, any>;
+  createdBy?: string;
+  lastEditedBy?: string;
+  createdAt?: number;
+  updatedAt?: number;
 }

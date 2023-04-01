@@ -69,8 +69,8 @@ const config = {
   ],
 };
 
-const main = {
-  handler: `${handlerPath(__dirname)}/handler.main`,
+const variable = {
+  handler: `${handlerPath(__dirname)}/handler.variable`,
   events: [
     {
       httpApi: {
@@ -103,7 +103,50 @@ const main = {
   ],
 };
 
+const capture = {
+  handler: `${handlerPath(__dirname)}/handler.capture`,
+  events: [
+    {
+      httpApi: {
+        method: 'POST',
+        path: '/capture',
+      },
+    },
+    {
+      httpApi: {
+        method: 'DELETE',
+        path: '/capture/{captureID}',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/capture/{captureID}',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/capture/all/user',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/capture/all/workspace',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/capture/config/{configID}/all',
+      },
+    },
+  ],
+};
+
 export default {
-  main,
   config,
+  variable,
+  capture,
 };

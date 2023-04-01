@@ -1,4 +1,4 @@
-import { defaultEntityAttributes } from '@mex/entity-utils';
+import { AdvancedElements, defaultEntityAttributes } from '@mex/entity-utils';
 import { Entity } from 'dynamodb-toolbox';
 import { smartcaptureTable } from '../service/DynamoDB';
 import { ENTITYSOURCE } from '../utils/consts';
@@ -85,6 +85,41 @@ export const CaptureConfigEntity = new Entity({
         });
       },
     },
+  },
+  table: smartcaptureTable,
+} as const);
+
+export const CaptureEntity = new Entity({
+  name: 'capture',
+  attributes: {
+    workspaceId: {
+      partitionKey: true,
+      type: 'string',
+    },
+    entityId: { sortKey: true, type: 'string' },
+    configId: { type: 'string', required: true, map: 'ak' },
+    userId: {
+      type: 'string',
+      required: true,
+    },
+    data: {
+      type: 'string',
+      transform: (value: AdvancedElements) => {
+        return JSON.stringify(value);
+      },
+      format: (value: string): AdvancedElements => {
+        return JSON.parse(value);
+      },
+    },
+    _source: {
+      type: 'string',
+      default: () => ENTITYSOURCE.EXTERNAL,
+      hidden: true,
+    },
+    _status: { type: 'string', default: () => 'ACTIVE', hidden: true },
+    _ttl: { type: 'number', hidden: true },
+
+    properties: { type: 'map' },
   },
   table: smartcaptureTable,
 } as const);

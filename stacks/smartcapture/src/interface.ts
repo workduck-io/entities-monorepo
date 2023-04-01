@@ -1,4 +1,4 @@
-import { BaseEntityParameters } from '@mex/entity-utils';
+import { AdvancedElements, BaseEntityParameters } from '@mex/entity-utils';
 
 export interface Variable extends Omit<BaseEntityParameters, 'entityId'> {
   variableName: string;
@@ -21,4 +21,19 @@ export interface Config extends Omit<BaseEntityParameters, 'entityId'> {
   dataOrder: string[];
   labels: Record<string, Label>;
   regex: string;
+}
+
+export interface CaptureLabel {
+  id: string;
+  label: string;
+  value: string;
+  properties: any;
+}
+
+export interface Capture {
+  data: AdvancedElements;
+  configId?: string;
+  workspaceId?: string;
+  userId?: string;
+  entityId?: string;
 }
