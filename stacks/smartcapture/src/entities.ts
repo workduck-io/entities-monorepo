@@ -122,4 +122,5 @@ export const CaptureEntity = new Entity({
     properties: { type: 'map' },
   },
   table: smartcaptureTable,
+  timestamps: false,
 } as const);

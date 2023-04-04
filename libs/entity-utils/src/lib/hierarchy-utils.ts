@@ -125,7 +125,11 @@ export class HierarchyOps {
     return result;
   };
 
-  getItemChildren = async (entityId: string, includeItem = true) => {
+  getItemChildren = async (
+    entityId: string,
+    workspaceId = null,
+    includeItem = true
+  ) => {
     const item = (await HierarchyEntity.get({ entityId })).Item;
     if (!item)
       throw createError(
@@ -137,7 +141,7 @@ export class HierarchyOps {
 
     result.push(
       ...(
-        await HierarchyEntity.query(item.workspaceId, {
+        await HierarchyEntity.query(workspaceId ?? item.workspaceId, {
           index: 'tree-path-index',
           beginsWith: parentPath
             ? combineKeys(parentPath, entityId)

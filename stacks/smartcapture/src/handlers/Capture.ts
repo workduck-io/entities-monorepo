@@ -70,6 +70,8 @@ export class CaptureHandler {
     )) as Capture & { path: string };
     const parent = capture.data?.elementMetadata?.configID;
 
+    // configID should not be updated
+    // in any situations
     if (parent !== response.configId)
       throw createError(
         400,
@@ -78,6 +80,11 @@ export class CaptureHandler {
           message: 'Cannot change the configID',
         })
       );
+
+    // Making sure the create metadata
+    // is not updated by overwriting
+    capture.data.createdAt = response.data.createdAt;
+    capture.data.createdBy = response.data.createdBy;
 
     await CaptureEntity.put({
       workspaceId,
@@ -144,6 +151,7 @@ export class CaptureHandler {
           );
         response = await CaptureHierarchyOps.getItemChildren(
           filterValue,
+          workspaceId,
           false
         );
         return {
