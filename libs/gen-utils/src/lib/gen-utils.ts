@@ -14,9 +14,25 @@ export function genUtils(): string {
 }
 
 export const extractWorkspaceId = (event) => {
+  if (!event.headers['mex-workspace-id'])
+    throw createError(
+      400,
+      JSON.stringify({
+        statusCode: 400,
+        message: 'mex-workspace-id header is required',
+      })
+    );
   return event.headers['mex-workspace-id'];
 };
 export const extractUserId = (event) => {
+  if (!event.headers['mex-user-id'])
+    throw createError(
+      400,
+      JSON.stringify({
+        statusCode: 400,
+        message: 'mex-user-id header is required',
+      })
+    );
   return event.headers['mex-user-id'];
 };
 

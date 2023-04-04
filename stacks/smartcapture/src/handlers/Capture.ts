@@ -3,7 +3,6 @@ import {
   extractUserId,
   extractWorkspaceId,
   generateCaptureId,
-  InternalError,
 } from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import {
@@ -19,7 +18,7 @@ import { Capture } from '../interface';
 
 const CaptureHierarchyOps = new HierarchyOps(CaptureEntity);
 const CAPTURE_PARENT_ENTITY = 'captureConfig';
-@InternalError()
+
 export class CaptureHandler {
   @Route({
     method: HTTPMethod.POST,
@@ -71,9 +70,14 @@ export class CaptureHandler {
     )) as Capture & { path: string };
     const parent = capture.data?.elementMetadata?.configID;
 
-    // if the parent is changed, refactor to new parent
     if (parent !== response.configId)
-      await CaptureHierarchyOps.refactorItem(entityId, parent);
+      throw createError(
+        400,
+        JSON.stringify({
+          statusCode: 400,
+          message: 'Cannot change the configID',
+        })
+      );
 
     await CaptureEntity.put({
       workspaceId,
@@ -98,7 +102,7 @@ export class CaptureHandler {
 
     return {
       statusCode: 200,
-      body: JSON.stringify(response),
+      body: JSON.stringify({ data: response.data, id: entityId }),
     };
   }
 
@@ -114,7 +118,14 @@ export class CaptureHandler {
     const filterType = query?.filterType;
     const filterValue = query?.filterValue;
 
-    if (!filterType) throw createError(400, 'QueryParams filterType required');
+    if (!filterType)
+      throw createError(
+        400,
+        JSON.stringify({
+          statusCode: 400,
+          message: 'QueryParams filterType required',
+        })
+      );
 
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserId(event);
@@ -125,7 +136,11 @@ export class CaptureHandler {
         if (!filterValue)
           throw createError(
             400,
-            'QueryParams filterValue required for filterType configID'
+            JSON.stringify({
+              statusCode: 400,
+              message:
+                'QueryParams filterValue required for filterType configID',
+            })
           );
         response = await CaptureHierarchyOps.getItemChildren(
           filterValue,
@@ -133,7 +148,11 @@ export class CaptureHandler {
         );
         return {
           statusCode: 200,
-          body: JSON.stringify(response),
+          body: JSON.stringify([
+            ...response.map((item: Capture) => {
+              return { id: item.entityId, data: item.data };
+            }),
+          ]),
         };
       case 'userID':
         response = (
@@ -161,14 +180,18 @@ export class CaptureHandler {
 
     return {
       statusCode: 200,
-      body: JSON.stringify(
-        await getPathForEntity(
-          CaptureHierarchyOps,
-          workspaceId,
-          response,
-          CAPTURE_PARENT_ENTITY
-        )
-      ),
+      body: JSON.stringify([
+        ...(
+          await getPathForEntity(
+            CaptureHierarchyOps,
+            workspaceId,
+            response,
+            CAPTURE_PARENT_ENTITY
+          )
+        ).map((item: Capture) => {
+          return { id: item.entityId, data: item.data };
+        }),
+      ]),
     };
   }
 
