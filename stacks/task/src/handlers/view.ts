@@ -1,5 +1,9 @@
 import { entityFilter, HierarchyOps } from '@mex/entity-utils';
-import { extractWorkspaceId, InternalError } from '@mex/gen-utils';
+import {
+  extractUserIdFromToken,
+  extractWorkspaceId,
+  InternalError,
+} from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import {
   HTTPMethod,
@@ -21,7 +25,7 @@ export class ViewHandler {
     event: ValidatedAPIGatewayProxyEvent<View & { parent: string }>
   ) {
     const workspaceId = extractWorkspaceId(event);
-
+    const userId = extractUserIdFromToken(event);
     const view = event.body;
 
     const { parent, ...rest } = view;
@@ -30,6 +34,7 @@ export class ViewHandler {
       {
         ...rest,
         workspaceId,
+        userId,
       }
     );
     return {

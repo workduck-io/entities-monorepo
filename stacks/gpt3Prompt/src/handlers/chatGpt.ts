@@ -1,24 +1,22 @@
 import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
-import { openaiInstance } from '../../utils/helpers';
+import {
+  convertToChatCompletionRequest,
+  openaiInstance,
+} from '../../utils/helpers';
+import { SystemPrompt } from '../../utils/prompts';
+import { ChatGPTPromptCreationRequest } from '../interface';
 
-export const chatGPTPrompt: ValidatedAPIGatewayProxyHandler<any> = async (
-  event
-) => {
-  console.log(process.env.OPENAI_API_KEY);
+export const chatGPTPrompt: ValidatedAPIGatewayProxyHandler<
+  ChatGPTPromptCreationRequest
+> = async (event) => {
+  const { context, input, output } = event.body;
   const instance = openaiInstance(process.env.OPENAI_API_KEY);
   try {
     const result = await instance.createChatCompletion({
       model: 'gpt-3.5-turbo',
       messages: [
-        {
-          role: 'system',
-          content:
-            'You are a helpful summarizer that sumrmarizes markdown and return result in markdown',
-        },
-        {
-          role: 'user',
-          content: `Summarize the following from markdown format and add a relevant heading and return the result in markdown format: ${event.body.message}`,
-        },
+        SystemPrompt,
+        ...context.map(convertToChatCompletionRequest(input, output)),
       ],
     });
     return {

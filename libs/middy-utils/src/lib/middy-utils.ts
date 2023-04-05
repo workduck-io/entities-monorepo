@@ -16,17 +16,20 @@ export function middyUtils(): string {
 
 const shouldIgnoreValidation = (path: string, ignoreBaseRoutes: string[]) => {
   for (const route of ignoreBaseRoutes) {
-    if (path.startsWith(route)) return true;
+    if (path?.startsWith(route)) return true;
   }
   return false;
 };
 
-const workduckWorkspaceValidatorMiddleware = (ignoreBaseRoutes: string[]) => {
+const workduckWorkspaceValidatorMiddleware = (ignoreBaseRoutes?: string[]) => {
   const workduckWorkspaceValidatorMiddlewareBefore = async (request) => {
     // ignore workspace validation for the smartcapture entity
     if (
+      ignoreBaseRoutes &&
       shouldIgnoreValidation(
-        (request.event?.rawPath as string) ?? (request.event?.path as string),
+        (request.event?.rawPath as string) ??
+          (request.event?.path as string) ??
+          request.event.routeKey?.split(' ')[1],
         ignoreBaseRoutes
       )
     )
