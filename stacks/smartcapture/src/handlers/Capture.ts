@@ -3,7 +3,6 @@ import {
   extractUserId,
   extractWorkspaceId,
   generateCaptureId,
-  InternalError,
 } from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import {
@@ -15,11 +14,11 @@ import {
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
 import { CaptureEntity } from '../entities';
-import { Capture } from '../interface';
+import { Capture, CaptureRequest } from '../interface';
 
 const CaptureHierarchyOps = new HierarchyOps(CaptureEntity);
 const CAPTURE_PARENT_ENTITY = 'captureConfig';
-@InternalError()
+
 export class CaptureHandler {
   @Route({
     method: HTTPMethod.POST,
@@ -31,9 +30,9 @@ export class CaptureHandler {
 
     const capture =
       typeof event.body === 'string'
-        ? (JSON.parse(event.body) as Capture)
-        : (event.body as Capture);
-    const entityId = capture.entityId ?? generateCaptureId();
+        ? (JSON.parse(event.body) as CaptureRequest)
+        : (event.body as CaptureRequest);
+    const entityId = capture.id ?? generateCaptureId();
     const parent = capture.data?.elementMetadata?.configID;
 
     await CaptureHierarchyOps.addItem<Capture>(
@@ -55,25 +54,45 @@ export class CaptureHandler {
 
   @Route({
     method: HTTPMethod.PATCH,
-    path: '/capture',
+    path: '/capture/{id}',
   })
-  async updateCapture(event: ValidatedAPIGatewayProxyEvent<any>) {
+  async updateCapture(
+    event: ValidatedAPIGatewayProxyEvent<any>,
+    @Path() path?
+  ) {
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserId(event);
-
+    const entityId = path.id;
     const capture =
       typeof event.body === 'string'
         ? (JSON.parse(event.body) as Capture)
         : (event.body as Capture);
-    const entityId = capture.entityId;
+
+    if (!entityId)
+      throw createError(
+        400,
+        JSON.stringify({ statusCode: 400, message: 'id field required' })
+      );
     const response = (await CaptureHierarchyOps.getItem(
       entityId
     )) as Capture & { path: string };
     const parent = capture.data?.elementMetadata?.configID;
 
-    // if the parent is changed, refactor to new parent
+    // configID should not be updated
+    // in any situations
     if (parent !== response.configId)
-      await CaptureHierarchyOps.refactorItem(entityId, parent);
+      throw createError(
+        400,
+        JSON.stringify({
+          statusCode: 400,
+          message: 'Cannot change the configID',
+        })
+      );
+
+    // Making sure the create metadata
+    // is not updated by overwriting
+    capture.data.createdAt = response.data.createdAt;
+    capture.data.createdBy = response.data.createdBy;
 
     await CaptureEntity.put({
       workspaceId,
@@ -90,15 +109,15 @@ export class CaptureHandler {
 
   @Route({
     method: HTTPMethod.GET,
-    path: '/capture/{captureID}',
+    path: '/capture/{id}',
   })
   async getCapture(_: ValidatedAPIGatewayProxyEvent<any>, @Path() path?) {
-    const entityId = path.captureID;
+    const entityId = path.id;
     const response = await CaptureHierarchyOps.getItem(entityId);
 
     return {
       statusCode: 200,
-      body: JSON.stringify(response),
+      body: JSON.stringify({ data: response.data, id: entityId }),
     };
   }
 
@@ -108,13 +127,19 @@ export class CaptureHandler {
   })
   async getAllCaptures(
     event: ValidatedAPIGatewayProxyEvent<any>,
-    @Path() path?,
     @Query() query?
   ) {
     const filterType = query?.filterType;
     const filterValue = query?.filterValue;
 
-    if (!filterType) throw createError(400, 'QueryParams filterType required');
+    if (!filterType)
+      throw createError(
+        400,
+        JSON.stringify({
+          statusCode: 400,
+          message: 'QueryParams filterType required',
+        })
+      );
 
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserId(event);
@@ -125,15 +150,24 @@ export class CaptureHandler {
         if (!filterValue)
           throw createError(
             400,
-            'QueryParams filterValue required for filterType configID'
+            JSON.stringify({
+              statusCode: 400,
+              message:
+                'QueryParams filterValue required for filterType configID',
+            })
           );
         response = await CaptureHierarchyOps.getItemChildren(
           filterValue,
+          workspaceId,
           false
         );
         return {
           statusCode: 200,
-          body: JSON.stringify(response),
+          body: JSON.stringify([
+            ...response.map((item: Capture) => {
+              return { id: item.entityId, data: item.data };
+            }),
+          ]),
         };
       case 'userID':
         response = (
@@ -161,23 +195,27 @@ export class CaptureHandler {
 
     return {
       statusCode: 200,
-      body: JSON.stringify(
-        await getPathForEntity(
-          CaptureHierarchyOps,
-          workspaceId,
-          response,
-          CAPTURE_PARENT_ENTITY
-        )
-      ),
+      body: JSON.stringify([
+        ...(
+          await getPathForEntity(
+            CaptureHierarchyOps,
+            workspaceId,
+            response,
+            CAPTURE_PARENT_ENTITY
+          )
+        ).map((item: Capture) => {
+          return { id: item.entityId, data: item.data };
+        }),
+      ]),
     };
   }
 
   @Route({
     method: HTTPMethod.DELETE,
-    path: '/capture/{captureID}',
+    path: '/capture/{id}',
   })
   async deleteCapture(_: ValidatedAPIGatewayProxyEvent<any>, @Path() path?) {
-    const entityId = path.captureID;
+    const entityId = path.id;
 
     await CaptureHierarchyOps.deleteItem(entityId);
 

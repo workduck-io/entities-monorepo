@@ -55,12 +55,19 @@ export class HierarchyOps {
     const { parent, ...rest } = request;
     if (parent) {
       const parentItem = await HierarchyEntity.get({ entityId: parent });
-      if (!parentItem.Item) throw new Error('Parent doesnt exist');
+      if (!parentItem.Item)
+        throw createError(
+          404,
+          JSON.stringify({ statusCode: 404, message: 'Parent doesnt exist' })
+        );
       parentPath =
         (parentItem.Item?.path as string) ?? combineKeys(this.entity.name);
     }
     if ([...retrievePath(parentPath), parent].includes(request.entityId))
-      throw createError(400, 'Circular logic found');
+      throw createError(
+        400,
+        JSON.stringify({ statusCode: 400, message: 'Circular logic found' })
+      );
 
     const transactions = [
       HierarchyEntity.updateTransaction(
@@ -79,7 +86,11 @@ export class HierarchyOps {
 
   getItem = async (entityId: string) => {
     const hItem = (await HierarchyEntity.get({ entityId })).Item;
-    if (!hItem) throw createError(404, 'Entity doesnt exist');
+    if (!hItem)
+      throw createError(
+        404,
+        JSON.stringify({ statusCode: 404, message: 'Entity doesnt exist' })
+      );
     const item = (
       (await this.entity.get({
         entityId,
@@ -94,7 +105,11 @@ export class HierarchyOps {
 
   getItemAncestors = async (entityId: string, includeItem = true) => {
     const item = (await HierarchyEntity.get({ entityId })).Item;
-    if (!item) throw createError(404, 'Entity doesnt exist');
+    if (!item)
+      throw createError(
+        404,
+        JSON.stringify({ statusCode: 404, message: 'Entity doesnt exist' })
+      );
     const parentPath = item.path as string;
     const result = includeItem ? [item] : [];
 
@@ -110,15 +125,23 @@ export class HierarchyOps {
     return result;
   };
 
-  getItemChildren = async (entityId: string, includeItem = true) => {
+  getItemChildren = async (
+    entityId: string,
+    workspaceId = null,
+    includeItem = true
+  ) => {
     const item = (await HierarchyEntity.get({ entityId })).Item;
-    if (!item) throw createError(404, 'Parent doesnt exist');
+    if (!item)
+      throw createError(
+        404,
+        JSON.stringify({ statusCode: 404, message: 'Parent doesnt exist' })
+      );
     const parentPath = item.path.toString() ?? '';
     const result = includeItem ? [item] : [];
 
     result.push(
       ...(
-        await HierarchyEntity.query(item.workspaceId, {
+        await HierarchyEntity.query(workspaceId ?? item.workspaceId, {
           index: 'tree-path-index',
           beginsWith: parentPath
             ? combineKeys(parentPath, entityId)
@@ -148,7 +171,11 @@ export class HierarchyOps {
 
   deleteItem = async (entityId: string) => {
     const item = (await HierarchyEntity.get({ entityId }))?.Item;
-    if (!item) throw new Error('Item not found');
+    if (!item)
+      throw createError(
+        404,
+        JSON.stringify({ statusCode: 404, message: 'Item not found' })
+      );
     const path = combineKeys(item.path as string, entityId);
 
     if (path) {
@@ -180,12 +207,20 @@ export class HierarchyOps {
   refactorItem = async (entityId: string, newParentId: string) => {
     const item = (await HierarchyEntity.get({ entityId }))?.Item;
 
-    if (!item) throw new Error('Item not found');
+    if (!item)
+      throw createError(
+        404,
+        JSON.stringify({ statusCode: 404, message: 'Item not found' })
+      );
     const path = combineKeys(item.path as string, entityId);
 
     const newParent = (await HierarchyEntity.get({ entityId: newParentId }))
       ?.Item;
-    if (!newParent) throw new Error('Parent Item not found');
+    if (!newParent)
+      throw createError(
+        404,
+        JSON.stringify({ statusCode: 404, message: 'Parent doesnt exist' })
+      );
     const newPath = combineKeys(
       newParent.path as string,
       newParentId,
@@ -196,7 +231,10 @@ export class HierarchyOps {
         entityId
       )
     )
-      return createError(400, 'Circular logic found');
+      return createError(
+        400,
+        JSON.stringify({ statusCode: 400, message: 'Circular logic found' })
+      );
     if (path) {
       const itemsToUpdate = (
         await HierarchyEntity.query(item.workspaceId, {
