@@ -115,19 +115,19 @@ const capture = {
     {
       httpApi: {
         method: 'PATCH',
-        path: '/capture',
+        path: '/capture/{id}',
       },
     },
     {
       httpApi: {
         method: 'DELETE',
-        path: '/capture/{captureID}',
+        path: '/capture/{id}',
       },
     },
     {
       httpApi: {
         method: 'GET',
-        path: '/capture/{captureID}',
+        path: '/capture/{id}',
       },
     },
     {

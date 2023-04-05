@@ -14,7 +14,7 @@ import {
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
 import { CaptureEntity } from '../entities';
-import { Capture } from '../interface';
+import { Capture, CaptureRequest } from '../interface';
 
 const CaptureHierarchyOps = new HierarchyOps(CaptureEntity);
 const CAPTURE_PARENT_ENTITY = 'captureConfig';
@@ -30,9 +30,9 @@ export class CaptureHandler {
 
     const capture =
       typeof event.body === 'string'
-        ? (JSON.parse(event.body) as Capture)
-        : (event.body as Capture);
-    const entityId = capture.entityId ?? generateCaptureId();
+        ? (JSON.parse(event.body) as CaptureRequest)
+        : (event.body as CaptureRequest);
+    const entityId = capture.id ?? generateCaptureId();
     const parent = capture.data?.elementMetadata?.configID;
 
     await CaptureHierarchyOps.addItem<Capture>(
@@ -54,17 +54,25 @@ export class CaptureHandler {
 
   @Route({
     method: HTTPMethod.PATCH,
-    path: '/capture',
+    path: '/capture/{id}',
   })
-  async updateCapture(event: ValidatedAPIGatewayProxyEvent<any>) {
+  async updateCapture(
+    event: ValidatedAPIGatewayProxyEvent<any>,
+    @Path() path?
+  ) {
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserId(event);
-
+    const entityId = path.id;
     const capture =
       typeof event.body === 'string'
         ? (JSON.parse(event.body) as Capture)
         : (event.body as Capture);
-    const entityId = capture.entityId;
+
+    if (!entityId)
+      throw createError(
+        400,
+        JSON.stringify({ statusCode: 400, message: 'id field required' })
+      );
     const response = (await CaptureHierarchyOps.getItem(
       entityId
     )) as Capture & { path: string };
@@ -101,10 +109,10 @@ export class CaptureHandler {
 
   @Route({
     method: HTTPMethod.GET,
-    path: '/capture/{captureID}',
+    path: '/capture/{id}',
   })
   async getCapture(_: ValidatedAPIGatewayProxyEvent<any>, @Path() path?) {
-    const entityId = path.captureID;
+    const entityId = path.id;
     const response = await CaptureHierarchyOps.getItem(entityId);
 
     return {
@@ -119,7 +127,6 @@ export class CaptureHandler {
   })
   async getAllCaptures(
     event: ValidatedAPIGatewayProxyEvent<any>,
-    @Path() path?,
     @Query() query?
   ) {
     const filterType = query?.filterType;
@@ -205,10 +212,10 @@ export class CaptureHandler {
 
   @Route({
     method: HTTPMethod.DELETE,
-    path: '/capture/{captureID}',
+    path: '/capture/{id}',
   })
   async deleteCapture(_: ValidatedAPIGatewayProxyEvent<any>, @Path() path?) {
-    const entityId = path.captureID;
+    const entityId = path.id;
 
     await CaptureHierarchyOps.deleteItem(entityId);
 

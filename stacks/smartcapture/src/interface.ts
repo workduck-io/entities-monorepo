@@ -37,3 +37,7 @@ export interface Capture {
   userId?: string;
   entityId?: string;
 }
+
+export interface CaptureRequest extends Omit<Capture, 'entityId'> {
+  id?: string;
+}
