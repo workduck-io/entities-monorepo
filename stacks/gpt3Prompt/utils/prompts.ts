@@ -3,7 +3,7 @@ import { ChatCompletionRequestMessage } from 'openai';
 export const SystemPrompt: ChatCompletionRequestMessage = {
   role: 'system',
   content:
-    'You are a helpful summarizer that sumrmarizes markdown and return result in markdown',
+    'You are a helpful AI bot that helps the user perform generative text actions in a professional environment',
 };
 
 export const Prompts = {
