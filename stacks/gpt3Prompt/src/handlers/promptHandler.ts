@@ -13,10 +13,10 @@ import {
   PromptProviders,
 } from '../../utils/consts';
 import {
-  openaiInstance,
   removeAtrributes,
   replaceVarWithVal,
   replaceVarWithValForPreview,
+  validateUsageAndExecutePrompt,
 } from '../../utils/helpers';
 import {
   Gpt3PromptAnalyticsEntity,
@@ -469,107 +469,53 @@ export class PromptsHandler {
       transformedPrompt = replaceVarWithVal(prompt, variables, variablesValues);
     }
 
-    const userAuthInfo: UserApiInfo = (
-      await Gpt3PromptUserEntity.get({
-        userId,
-        workspaceId,
-      })
-    ).Item as UserApiInfo;
+    const { choices } = await validateUsageAndExecutePrompt(
+      workspaceId,
+      userId,
+      async (openai) => {
+        if (transformedPrompt) {
+          const resultPayload = {
+            prompt: transformedPrompt,
+            model: properties ? properties.model : defaultGPT3Props.model,
+            max_tokens: options
+              ? options.max_tokens
+              : properties
+              ? properties.max_tokens
+              : defaultGPT3Props.max_tokens,
+            temperature: options
+              ? options.temperature
+              : properties
+              ? properties.temperature
+              : defaultGPT3Props.temperature,
+            top_p: options
+              ? options.weight
+              : properties
+              ? properties.top_p
+              : defaultGPT3Props.top_p,
+            n: options
+              ? options.iterations
+              : properties
+              ? properties.iterations
+              : defaultGPT3Props.iterations,
+          };
 
-    let apikey = '';
-    let userFlag = false;
-    const userToken = userAuthInfo.auth?.authData.accessToken;
-
-    if (userToken !== undefined && userToken !== null && userToken !== '') {
-      apikey = userAuthInfo.auth?.authData.accessToken;
-      userFlag = true;
-    } else {
-      // If the user has not set the access token, then use the default one with check for the limit
-      if (userAuthInfo.auth?.authMetadata.limit > 0) {
-        apikey = process.env.OPENAI_API_KEY;
-      } else if (userAuthInfo.auth?.authMetadata.limit <= 0) {
-        return {
-          statusCode: 402,
-          body: JSON.stringify("You've reached your limit for the month"),
-        };
-      } else {
-        return {
-          statusCode: 402,
-          body: JSON.stringify('You need to set up your OpenAI API key'),
-        };
+          try {
+            return (
+              await openai.createCompletion({
+                ...resultPayload,
+              })
+            ).data;
+          } catch (error) {
+            throw createError(400, error.response.statusText);
+          }
+        }
       }
-    }
+    );
 
-    if (transformedPrompt) {
-      const resultPayload = {
-        prompt: transformedPrompt,
-        model: properties ? properties.model : defaultGPT3Props.model,
-        max_tokens: options
-          ? options.max_tokens
-          : properties
-          ? properties.max_tokens
-          : defaultGPT3Props.max_tokens,
-        temperature: options
-          ? options.temperature
-          : properties
-          ? properties.temperature
-          : defaultGPT3Props.temperature,
-        top_p: options
-          ? options.weight
-          : properties
-          ? properties.top_p
-          : defaultGPT3Props.top_p,
-        n: options
-          ? options.iterations
-          : properties
-          ? properties.iterations
-          : defaultGPT3Props.iterations,
-      };
-
-      // Call the GPT3 API
-      let completions;
-      try {
-        completions = await openaiInstance(apikey).createCompletion({
-          ...resultPayload,
-        });
-      } catch (error) {
-        throw createError(400, error.response.statusText);
-      }
-
-      // Remove other fields in choices array and return only the text, index
-      if (
-        completions &&
-        completions.data &&
-        completions.data.choices.length > 0
-      ) {
-        const choices = [];
-        completions.data.choices.map((choice) => {
-          return choices.push(choice.text);
-        });
-
-        await Gpt3PromptUserEntity.update({
-          userId,
-          workspaceId,
-          auth: {
-            authData: userAuthInfo.auth?.authData,
-            authMetadata: {
-              ...userAuthInfo.auth?.authMetadata,
-              limit: userFlag
-                ? userAuthInfo.auth?.authMetadata.limit
-                : userAuthInfo.auth?.authMetadata.limit === 0
-                ? 0
-                : userAuthInfo.auth?.authMetadata.limit - 1,
-              usage: userAuthInfo.auth?.authMetadata.usage + 1,
-            },
-          },
-        });
-
-        return {
-          statusCode: 200,
-          body: JSON.stringify(choices),
-        };
-      } else throw createError(400, 'Error fetching results');
-    }
+    return {
+      statusCode: 200,
+      body: JSON.stringify(choices),
+    };
   }
 
   @Route({

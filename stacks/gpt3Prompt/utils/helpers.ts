@@ -1,9 +1,9 @@
 import { createError } from '@middy/util';
 import merge from 'deepmerge';
-
-import { Configuration, OpenAIApi } from 'openai';
+import { Configuration, CreateCompletionResponse, OpenAIApi } from 'openai';
 import { lambda } from '../libs/lambda-lib';
-import { ChatGPTCreationRequest } from '../src/interface';
+import { Gpt3PromptUserEntity } from '../src/entities';
+import { ChatGPTCreationRequest, UserApiInfo } from '../src/interface';
 import { PromptInputFormat, PromptOutputFormat, Prompts } from './prompts';
 
 export const combineMerge = (target, source, options) => {
@@ -162,3 +162,74 @@ export const convertToChatCompletionRequest =
       content: prompt ?? item.content,
     };
   };
+
+export const validateUsageAndExecutePrompt = async (
+  workspaceId: string,
+  userId: string,
+  callback?: (openai: OpenAIApi) => Promise<CreateCompletionResponse>
+) => {
+  const userAuthInfo: UserApiInfo = (
+    await Gpt3PromptUserEntity.get({
+      userId,
+      workspaceId,
+    })
+  ).Item as UserApiInfo;
+
+  let apikey = '';
+  let userFlag = false;
+  const userToken = userAuthInfo.auth?.authData.accessToken;
+
+  if (userToken !== undefined && userToken !== null && userToken !== '') {
+    apikey = userAuthInfo.auth?.authData.accessToken;
+    userFlag = true;
+  } else {
+    // If the user has not set the access token, then use the default one with check for the limit
+    if (userAuthInfo.auth?.authMetadata.limit > 0) {
+      apikey = process.env.OPENAI_API_KEY;
+    } else if (userAuthInfo.auth?.authMetadata.limit <= 0) {
+      return {
+        statusCode: 402,
+        body: JSON.stringify("You've reached your limit for the month"),
+      };
+    } else {
+      return {
+        statusCode: 402,
+        body: JSON.stringify('You need to set up your OpenAI API key'),
+      };
+    }
+  }
+  try {
+    const completions = await callback(openaiInstance(apikey));
+    if (completions && completions && completions.choices.length > 0) {
+      const choices = [];
+      completions.choices.map((choice) => {
+        return choices.push(choice.text);
+      });
+
+      await Gpt3PromptUserEntity.update({
+        userId,
+        workspaceId,
+        auth: {
+          authData: userAuthInfo.auth?.authData,
+          authMetadata: {
+            ...userAuthInfo.auth?.authMetadata,
+            limit: userFlag
+              ? userAuthInfo.auth?.authMetadata.limit
+              : userAuthInfo.auth?.authMetadata.limit === 0
+              ? 0
+              : userAuthInfo.auth?.authMetadata.limit - 1,
+            usage: userAuthInfo.auth?.authMetadata.usage + 1,
+          },
+        },
+      });
+      return {
+        choices,
+      };
+    }
+    return {
+      choices: [],
+    };
+  } catch (err) {
+    throw createError(400, 'Error fetching results');
+  }
+};
