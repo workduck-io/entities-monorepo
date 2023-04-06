@@ -3,6 +3,8 @@ import merge from 'deepmerge';
 
 import { Configuration, OpenAIApi } from 'openai';
 import { lambda } from '../libs/lambda-lib';
+import { ChatGPTCreationRequest } from '../src/interface';
+import { PromptInputFormat, PromptOutputFormat, Prompts } from './prompts';
 
 export const combineMerge = (target, source, options) => {
   const destination = target.slice();
@@ -112,7 +114,7 @@ export const pickAttributes = (obj: any, attributes: string[]) => {
   }, {});
 };
 
-export const removeAtrributes = (data: any, attributes: string[]) => {
+export const removeAtrributes = <T>(data: T[] | T, attributes: (keyof T)[]) => {
   if (Array.isArray(data)) {
     return data.map((obj: any) => {
       attributes.forEach((attribute) => {
@@ -129,3 +131,34 @@ export const removeAtrributes = (data: any, attributes: string[]) => {
     return data;
   }
 };
+
+export const combineString = (...stringArgs: string[]) => {
+  return stringArgs.reduce((acc, val) => {
+    return `${acc}${val}\n`;
+  }, '');
+};
+
+export const convertToChatCompletionRequest =
+  (
+    input: keyof typeof PromptInputFormat = 'MARKDOWN',
+    output: keyof typeof PromptOutputFormat = 'MARKDOWN'
+  ) =>
+  (item: ChatGPTCreationRequest) => {
+    let prompt: string;
+    if (item.role === 'user') {
+      prompt = combineString(PromptOutputFormat[output]);
+      if (item.type && Prompts[item.type]) {
+        prompt = combineString(
+          PromptInputFormat[input],
+          Prompts[item.type],
+          prompt
+        );
+        if (item.content) prompt += `${item.content}\n\n${item.type}: `;
+      } else prompt = combineString(item.content, PromptOutputFormat[output]);
+    }
+
+    return {
+      role: item.role,
+      content: prompt ?? item.content,
+    };
+  };

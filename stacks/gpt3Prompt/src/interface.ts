@@ -1,4 +1,10 @@
 import { BaseEntityParameters } from '@mex/entity-utils';
+import { ChatCompletionRequestMessage } from 'openai';
+import {
+  PromptInputFormat,
+  PromptOutputFormat,
+  Prompts,
+} from '../utils/prompts';
 
 export interface Gpt3Prompt extends BaseEntityParameters {
   title: string;
@@ -206,3 +212,15 @@ export interface PreviewPromptResponse {
   userId: string;
   savedResponse: Record<string, string>;
 }
+
+export interface ChatGPTPromptCreationRequest {
+  context: ChatGPTCreationContext;
+  input: keyof typeof PromptInputFormat;
+  output: keyof typeof PromptOutputFormat;
+}
+
+export interface ChatGPTCreationRequest extends ChatCompletionRequestMessage {
+  type: keyof typeof Prompts;
+}
+
+export type ChatGPTCreationContext = ChatGPTCreationRequest[];
