@@ -1,6 +1,6 @@
 import DynamoDB from 'aws-sdk/clients/dynamodb';
 import { Table } from 'dynamodb-toolbox';
-import { getEndpoint, getRegion } from '../utils/helpers';
+import { getEndpoint, getRegion } from '../utils/dynamo-helpers';
 
 const DocumentClient = new DynamoDB.DocumentClient({
   service: new DynamoDB({

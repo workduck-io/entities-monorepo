@@ -1,4 +1,8 @@
-import { extractUserIdFromToken, InternalError } from '@mex/gen-utils';
+import {
+  extractUserIdFromToken,
+  extractWorkspaceId,
+  InternalError,
+} from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import {
   HTTPMethod,
@@ -13,16 +17,13 @@ import {
   PromptProviders,
 } from '../../utils/consts';
 import {
+  getOrSetUserOpenAiInfo,
   removeAtrributes,
   replaceVarWithVal,
   replaceVarWithValForPreview,
   validateUsageAndExecutePrompt,
 } from '../../utils/helpers';
-import {
-  Gpt3PromptAnalyticsEntity,
-  Gpt3PromptEntity,
-  Gpt3PromptUserEntity,
-} from '../entities';
+import { Gpt3PromptAnalyticsEntity, Gpt3PromptEntity } from '../entities';
 import { Gpt3Prompt, UserApiInfo } from '../interface';
 
 import { chatGPTPrompt } from './chatGpt';
@@ -1051,62 +1052,9 @@ export class PromptsHandler {
   })
   async createUserAuthHandler(event: ValidatedAPIGatewayProxyEvent<any>) {
     const userId = extractUserIdFromToken(event);
-    const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
-    let payload = {
-      userId,
-      workspaceId,
-      auth: {},
-    };
+    const workspaceId = extractWorkspaceId(event);
 
-    const userInfoRes: UserApiInfo = (
-      await Gpt3PromptUserEntity.get({
-        userId,
-        workspaceId,
-      })
-    ).Item as UserApiInfo;
-
-    if (userInfoRes) {
-      if (event.body) {
-        payload = {
-          ...payload,
-          auth: {
-            authData: {
-              accessToken: event.body.accessToken,
-            },
-            authMetadata: userInfoRes.auth.authMetadata,
-          },
-        };
-      } else {
-        payload = {
-          ...payload,
-          auth: userInfoRes.auth,
-        };
-      }
-    } else {
-      payload = {
-        ...payload,
-        auth: {
-          authData: {
-            accessToken: null,
-          },
-          authMetadata: {
-            provider: 'openai',
-            limit: 25,
-            usage: 0,
-          },
-        },
-      };
-    }
-
-    const userRes = (
-      await Gpt3PromptUserEntity.update(
-        { ...payload },
-        {
-          returnValues: 'ALL_NEW',
-        }
-      )
-    ).Attributes;
-
+    const userRes = await getOrSetUserOpenAiInfo(workspaceId, userId);
     if (userRes) {
       delete userRes.workspaceId;
       return {
@@ -1124,52 +1072,18 @@ export class PromptsHandler {
     const userId = extractUserIdFromToken(event);
     const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
 
-    const userInfoRes: UserApiInfo = (
-      await Gpt3PromptUserEntity.get({
-        userId,
-        workspaceId,
-      })
-    ).Item as UserApiInfo;
-
-    if (userInfoRes) {
-      delete userInfoRes.workspaceId;
+    const userRes: UserApiInfo = await getOrSetUserOpenAiInfo(
+      workspaceId,
+      userId,
+      event.body.accessToken
+    );
+    if (userRes) {
+      delete userRes.workspaceId;
       return {
         statusCode: 200,
-        body: JSON.stringify(userInfoRes),
+        body: JSON.stringify(userRes),
       };
-    } else {
-      const payload = {
-        userId,
-        workspaceId,
-        auth: {
-          authData: {
-            accessToken: null,
-          },
-          authMetadata: {
-            provider: 'openai',
-            limit: 10,
-            usage: 0,
-          },
-        },
-      };
-
-      const userRes = (
-        await Gpt3PromptUserEntity.update(
-          { ...payload },
-          {
-            returnValues: 'ALL_NEW',
-          }
-        )
-      ).Attributes;
-
-      if (userRes) {
-        delete userRes.workspaceId;
-        return {
-          statusCode: 200,
-          body: JSON.stringify(userRes),
-        };
-      } else throw createError(400, 'Error creating user');
-    }
+    } else throw createError(400, 'Error creating user');
   }
 
   @Route({

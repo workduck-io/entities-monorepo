@@ -1,9 +1,15 @@
 import { createError } from '@middy/util';
 import merge from 'deepmerge';
-import { Configuration, CreateCompletionResponse, OpenAIApi } from 'openai';
+import {
+  Configuration,
+  CreateChatCompletionResponse,
+  CreateCompletionResponse,
+  OpenAIApi,
+} from 'openai';
 import { lambda } from '../libs/lambda-lib';
 import { Gpt3PromptUserEntity } from '../src/entities';
 import { ChatGPTCreationRequest, UserApiInfo } from '../src/interface';
+import { DEFAULT_USAGE_LIMIT } from './consts';
 import { PromptInputFormat, PromptOutputFormat, Prompts } from './prompts';
 
 export const combineMerge = (target, source, options) => {
@@ -19,28 +25,6 @@ export const combineMerge = (target, source, options) => {
     }
   });
   return destination;
-};
-
-export const getEndpoint = () => {
-  if (process.env.AWS_EXECUTION_ENV) {
-    return undefined;
-  } else if (process.env.DYNAMODB_ENDPOINT) {
-    return `http://${process.env.DYNAMODB_ENDPOINT}`;
-  } else {
-    return 'http://localhost:8000';
-  }
-};
-
-export const getRegion = () => {
-  if (process.env.AWS_EXECUTION_ENV) {
-    return undefined;
-  } else if (process.env.AWS_REGION) {
-    return process.env.AWS_REGION;
-  } else if (process.env.AWS_DEFAULT_REGION) {
-    return process.env.AWS_DEFAULT_REGION;
-  } else {
-    return 'local';
-  }
 };
 
 export const openaiInstance = (apiKey: string) => {
@@ -163,10 +147,10 @@ export const convertToChatCompletionRequest =
     };
   };
 
-export const validateUsageAndExecutePrompt = async (
+export const getOrSetUserOpenAiInfo = async (
   workspaceId: string,
   userId: string,
-  callback?: (openai: OpenAIApi) => Promise<CreateCompletionResponse>
+  openAiAccessToken?: string
 ) => {
   const userAuthInfo: UserApiInfo = (
     await Gpt3PromptUserEntity.get({
@@ -174,13 +158,61 @@ export const validateUsageAndExecutePrompt = async (
       workspaceId,
     })
   ).Item as UserApiInfo;
+  if (!userAuthInfo) {
+    const payload = {
+      userId,
+      workspaceId,
+      auth: {
+        authData: {
+          accessToken: openAiAccessToken,
+        },
+        authMetadata: {
+          provider: 'openai',
+          limit: DEFAULT_USAGE_LIMIT,
+          usage: 0,
+        },
+      },
+    };
+    return (
+      await Gpt3PromptUserEntity.update(payload, {
+        returnValues: 'ALL_NEW',
+      })
+    ).Attributes as UserApiInfo;
+  }
+  if (!userAuthInfo.auth?.authData?.accessToken && openAiAccessToken) {
+    const payload = {
+      userId,
+      workspaceId,
+      auth: {
+        authData: {
+          accessToken: openAiAccessToken,
+        },
+        authMetadata: userAuthInfo.auth.authMetadata,
+      },
+    };
+    return (
+      await Gpt3PromptUserEntity.update(payload, {
+        returnValues: 'ALL_NEW',
+      })
+    ).Attributes as UserApiInfo;
+  }
+  return userAuthInfo;
+};
 
+export const validateUsageAndExecutePrompt = async (
+  workspaceId: string,
+  userId: string,
+  callback?: (
+    openai: OpenAIApi
+  ) => Promise<CreateCompletionResponse | CreateChatCompletionResponse>
+) => {
+  const userAuthInfo = await getOrSetUserOpenAiInfo(workspaceId, userId);
   let apikey = '';
   let userFlag = false;
-  const userToken = userAuthInfo.auth?.authData.accessToken;
+  const userToken = userAuthInfo.auth?.authData?.accessToken;
 
-  if (userToken !== undefined && userToken !== null && userToken !== '') {
-    apikey = userAuthInfo.auth?.authData.accessToken;
+  if (userToken) {
+    apikey = userAuthInfo.auth?.authData?.accessToken;
     userFlag = true;
   } else {
     // If the user has not set the access token, then use the default one with check for the limit
@@ -201,11 +233,6 @@ export const validateUsageAndExecutePrompt = async (
   try {
     const completions = await callback(openaiInstance(apikey));
     if (completions && completions && completions.choices.length > 0) {
-      const choices = [];
-      completions.choices.map((choice) => {
-        return choices.push(choice.text);
-      });
-
       await Gpt3PromptUserEntity.update({
         userId,
         workspaceId,
@@ -223,7 +250,9 @@ export const validateUsageAndExecutePrompt = async (
         },
       });
       return {
-        choices,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        //@ts-ignore
+        choices: completions.choices[0].text ?? completions.choices[0].message,
       };
     }
     return {
