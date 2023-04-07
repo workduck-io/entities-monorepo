@@ -1,7 +1,8 @@
+import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
 import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import {
   convertToChatCompletionRequest,
-  openaiInstance,
+  validateUsageAndExecutePrompt,
 } from '../../utils/helpers';
 import { SystemPrompt } from '../../utils/prompts';
 import { ChatGPTPromptCreationRequest } from '../interface';
@@ -10,18 +11,27 @@ export const chatGPTPrompt: ValidatedAPIGatewayProxyHandler<
   ChatGPTPromptCreationRequest
 > = async (event) => {
   const { context, input, output } = event.body;
-  const instance = openaiInstance(process.env.OPENAI_API_KEY);
+  const workspaceId = extractWorkspaceId(event);
+  const userId = extractUserIdFromToken(event);
   try {
-    const result = await instance.createChatCompletion({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        SystemPrompt,
-        ...context.map(convertToChatCompletionRequest(input, output)),
-      ],
-    });
+    const { choices } = await validateUsageAndExecutePrompt(
+      workspaceId,
+      userId,
+      async (openai) => {
+        return (
+          await openai.createChatCompletion({
+            model: 'gpt-3.5-turbo',
+            messages: [
+              SystemPrompt,
+              ...context.map(convertToChatCompletionRequest(input, output)),
+            ],
+          })
+        ).data;
+      }
+    );
     return {
       statusCode: 200,
-      body: JSON.stringify(result.data.choices[0].message),
+      body: JSON.stringify(choices),
     };
   } catch (err) {
     return {

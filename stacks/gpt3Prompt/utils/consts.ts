@@ -61,3 +61,5 @@ export const defaultGPT3Props = {
   iterations: 3,
   top_p: 1,
 };
+
+export const DEFAULT_USAGE_LIMIT = 25;

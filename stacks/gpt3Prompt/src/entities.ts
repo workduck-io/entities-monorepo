@@ -68,7 +68,7 @@ export const Gpt3PromptUserEntity = new Entity({
   attributes: {
     userId: { partitionKey: true, type: 'string' },
     workspaceId: { sortKey: true, type: 'string' },
-    auth: { type: 'map' },
+    auth: { type: 'map', required: true },
   },
   timestamps: false,
   table: gpt3PromptTable,

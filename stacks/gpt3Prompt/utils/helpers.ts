@@ -1,9 +1,15 @@
 import { createError } from '@middy/util';
 import merge from 'deepmerge';
-
-import { Configuration, OpenAIApi } from 'openai';
+import {
+  Configuration,
+  CreateChatCompletionResponse,
+  CreateCompletionResponse,
+  OpenAIApi,
+} from 'openai';
 import { lambda } from '../libs/lambda-lib';
-import { ChatGPTCreationRequest } from '../src/interface';
+import { Gpt3PromptUserEntity } from '../src/entities';
+import { ChatGPTCreationRequest, UserApiInfo } from '../src/interface';
+import { DEFAULT_USAGE_LIMIT } from './consts';
 import { PromptInputFormat, PromptOutputFormat, Prompts } from './prompts';
 
 export const combineMerge = (target, source, options) => {
@@ -19,28 +25,6 @@ export const combineMerge = (target, source, options) => {
     }
   });
   return destination;
-};
-
-export const getEndpoint = () => {
-  if (process.env.AWS_EXECUTION_ENV) {
-    return undefined;
-  } else if (process.env.DYNAMODB_ENDPOINT) {
-    return `http://${process.env.DYNAMODB_ENDPOINT}`;
-  } else {
-    return 'http://localhost:8000';
-  }
-};
-
-export const getRegion = () => {
-  if (process.env.AWS_EXECUTION_ENV) {
-    return undefined;
-  } else if (process.env.AWS_REGION) {
-    return process.env.AWS_REGION;
-  } else if (process.env.AWS_DEFAULT_REGION) {
-    return process.env.AWS_DEFAULT_REGION;
-  } else {
-    return 'local';
-  }
 };
 
 export const openaiInstance = (apiKey: string) => {
@@ -162,3 +146,119 @@ export const convertToChatCompletionRequest =
       content: prompt ?? item.content,
     };
   };
+
+export const getOrSetUserOpenAiInfo = async (
+  workspaceId: string,
+  userId: string,
+  openAiAccessToken?: string
+) => {
+  const userAuthInfo: UserApiInfo = (
+    await Gpt3PromptUserEntity.get({
+      userId,
+      workspaceId,
+    })
+  ).Item as UserApiInfo;
+  if (!userAuthInfo) {
+    const payload = {
+      userId,
+      workspaceId,
+      auth: {
+        authData: {
+          accessToken: openAiAccessToken,
+        },
+        authMetadata: {
+          provider: 'openai',
+          limit: DEFAULT_USAGE_LIMIT,
+          usage: 0,
+        },
+      },
+    };
+    return (
+      await Gpt3PromptUserEntity.update(payload, {
+        returnValues: 'ALL_NEW',
+      })
+    ).Attributes as UserApiInfo;
+  }
+  if (!userAuthInfo.auth?.authData?.accessToken && openAiAccessToken) {
+    const payload = {
+      userId,
+      workspaceId,
+      auth: {
+        authData: {
+          accessToken: openAiAccessToken,
+        },
+        authMetadata: userAuthInfo.auth.authMetadata,
+      },
+    };
+    return (
+      await Gpt3PromptUserEntity.update(payload, {
+        returnValues: 'ALL_NEW',
+      })
+    ).Attributes as UserApiInfo;
+  }
+  return userAuthInfo;
+};
+
+export const validateUsageAndExecutePrompt = async (
+  workspaceId: string,
+  userId: string,
+  callback?: (
+    openai: OpenAIApi
+  ) => Promise<CreateCompletionResponse | CreateChatCompletionResponse>
+) => {
+  const userAuthInfo = await getOrSetUserOpenAiInfo(workspaceId, userId);
+  let apikey = '';
+  let userFlag = false;
+  const userToken = userAuthInfo.auth?.authData?.accessToken;
+
+  if (userToken) {
+    apikey = userAuthInfo.auth?.authData?.accessToken;
+    userFlag = true;
+  } else {
+    // If the user has not set the access token, then use the default one with check for the limit
+    if (userAuthInfo.auth?.authMetadata.limit > 0) {
+      apikey = process.env.OPENAI_API_KEY;
+    } else if (userAuthInfo.auth?.authMetadata.limit <= 0) {
+      return {
+        statusCode: 402,
+        body: JSON.stringify("You've reached your limit for the month"),
+      };
+    } else {
+      return {
+        statusCode: 402,
+        body: JSON.stringify('You need to set up your OpenAI API key'),
+      };
+    }
+  }
+  try {
+    const completions = await callback(openaiInstance(apikey));
+    if (completions && completions && completions.choices.length > 0) {
+      await Gpt3PromptUserEntity.update({
+        userId,
+        workspaceId,
+        auth: {
+          authData: userAuthInfo.auth?.authData,
+          authMetadata: {
+            ...userAuthInfo.auth?.authMetadata,
+            limit: userFlag
+              ? userAuthInfo.auth?.authMetadata.limit
+              : userAuthInfo.auth?.authMetadata.limit === 0
+              ? 0
+              : userAuthInfo.auth?.authMetadata.limit - 1,
+            usage: userAuthInfo.auth?.authMetadata.usage + 1,
+          },
+        },
+      });
+      return {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        //@ts-ignore
+        choices: completions.choices[0].text ?? completions.choices[0].message,
+      };
+    }
+    return {
+      choices: [],
+    };
+  } catch (err) {
+    throw createError(400, 'Error fetching results');
+  }
+};
