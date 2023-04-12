@@ -20,14 +20,14 @@ const main = {
     {
       httpApi: {
         method: 'GET',
-        path: '/{entityId}',
+        path: '/{id}',
         authorizer: 'workduckAuthorizer',
       },
     },
     {
       httpApi: {
         method: 'DELETE',
-        path: '/{entityId}',
+        path: '/{id}',
         authorizer: 'workduckAuthorizer',
       },
     },
@@ -35,20 +35,6 @@ const main = {
       httpApi: {
         method: 'GET',
         path: '/all',
-        authorizer: 'workduckAuthorizer',
-      },
-    },
-    {
-      httpApi: {
-        method: 'GET',
-        path: '/all/{urlHash}',
-        authorizer: 'workduckAuthorizer',
-      },
-    },
-    {
-      httpApi: {
-        method: 'DELETE',
-        path: '/all/{urlHash}',
         authorizer: 'workduckAuthorizer',
       },
     },

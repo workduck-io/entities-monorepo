@@ -1,7 +1,8 @@
 import { entityFilter } from '@mex/entity-utils';
 import {
-  extractUserIdFromToken,
+  extractUserId,
   extractWorkspaceId,
+  generateHighlightId,
   InternalError,
 } from '@mex/gen-utils';
 import { createError } from '@middy/util';
@@ -13,7 +14,12 @@ import {
 } from '@workduck-io/lambda-routing';
 import { highlightsTable } from '../../service/DynamoDB';
 import { HighlightsEntity } from '../entities';
-import { Highlights } from '../interface';
+import { HighlightData, Highlights } from '../interface';
+import {
+  deserializeMultipleHighlights,
+  highlightDeserializer,
+  highlightSerializer,
+} from '../serializers';
 
 @InternalError()
 export class HighlightsHandler {
@@ -21,41 +27,55 @@ export class HighlightsHandler {
     method: HTTPMethod.POST,
     path: '/',
   })
-  async createHandler(event: ValidatedAPIGatewayProxyEvent<Highlights>) {
+  async createHandler(event: ValidatedAPIGatewayProxyEvent<HighlightData>) {
     const workspaceId = extractWorkspaceId(event);
-    const userId = extractUserIdFromToken(event);
-    const highlights = event.body;
+    const userId = extractUserId(event);
+    const highlights =
+      typeof event.body === 'string'
+        ? (JSON.parse(event.body) as HighlightData)
+        : (event.body as HighlightData);
+    const highlightId = highlights.id ?? generateHighlightId();
+    const serializedHighlight = highlightSerializer(highlights);
+
     const res = (
       await HighlightsEntity.update(
-        { ...highlights, workspaceId, userId, _source: 'EXTERNAL' },
+        {
+          ...serializedHighlight,
+          workspaceId,
+          userId,
+          _source: 'EXTERNAL',
+          entityId: highlightId,
+        },
         {
           returnValues: 'ALL_NEW',
         }
       )
-    ).Attributes;
+    ).Attributes as Partial<Highlights>;
+
     return {
       statusCode: 200,
-      body: JSON.stringify(res),
+      body: JSON.stringify({ id: res.entityId }),
     };
   }
 
   @Route({
     method: HTTPMethod.GET,
-    path: '/{entityId}',
+    path: '/{id}',
   })
   async getHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
     const workspaceId = extractWorkspaceId(event);
-    const entityId = event.pathParameters.entityId;
+    const entityId = event.pathParameters.id;
     const res = (
       await HighlightsEntity.get({
         workspaceId,
         entityId,
       })
-    ).Item;
+    ).Item as Partial<Highlights>;
+
     if (!res) throw createError(404, 'Item not found');
     return {
       statusCode: 200,
-      body: JSON.stringify(res),
+      body: JSON.stringify(highlightDeserializer(res)),
     };
   }
 
@@ -70,6 +90,7 @@ export class HighlightsHandler {
         body.ids.map(async (id: string) => {
           const res = await HighlightsEntity.query(id, {
             index: 'sk-ak-index',
+            beginsWith: 'URL_',
           });
           return res.Items.find(Boolean); // Safely return the first element of array;
         })
@@ -89,19 +110,23 @@ export class HighlightsHandler {
       : {};
 
     if (!res) throw createError(404, 'Item not found');
+
     return {
       statusCode: 200,
-      body: JSON.stringify(res?.Responses?.[highlightsTable.name] ?? []),
+      body: JSON.stringify(
+        deserializeMultipleHighlights(res?.Responses?.[highlightsTable.name]) ??
+          []
+      ),
     };
   }
 
   @Route({
     method: HTTPMethod.DELETE,
-    path: '/{entityId}',
+    path: '/{id}',
   })
   async deleteHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
     const workspaceId = extractWorkspaceId(event);
-    const entityId = event.pathParameters.entityId;
+    const entityId = event.pathParameters.id;
     await HighlightsEntity.delete({
       workspaceId,
       entityId,
@@ -133,63 +158,12 @@ export class HighlightsHandler {
     return {
       statusCode: 200,
       body: JSON.stringify({
-        Items: res.Items,
+        Items: deserializeMultipleHighlights(res.Items),
         lastKey: res.LastEvaluatedKey?.sk ?? undefined,
       }),
     };
   }
 
-  @Route({
-    method: HTTPMethod.GET,
-    path: '/all/{urlHash}',
-  })
-  async getAllEntitiesOfURLHandler(
-    event: ValidatedAPIGatewayProxyEvent<undefined>
-  ) {
-    const urlHash = event.pathParameters.urlHash;
-    const workspaceId = extractWorkspaceId(event);
-    const res = (
-      await HighlightsEntity.query(workspaceId, {
-        index: 'pk-ak-index',
-        eq: `URL_${urlHash}`,
-        filters: [entityFilter('highlights')],
-      })
-    ).Items;
-    return {
-      statusCode: 200,
-      body: JSON.stringify(res),
-    };
-  }
-
-  @Route({
-    method: HTTPMethod.DELETE,
-    path: '/all/{urlHash}',
-  })
-  async deleteAllEntitiesOfURLHandler(
-    event: ValidatedAPIGatewayProxyEvent<undefined>
-  ) {
-    const urlHash = event.pathParameters.urlHash;
-    const workspaceId = extractWorkspaceId(event);
-
-    const tasksToDelete = (
-      await HighlightsEntity.query(workspaceId, {
-        index: 'pk-ak-index',
-        eq: `URL_${urlHash}`,
-        filters: [entityFilter('highlights')],
-      })
-    ).Items;
-
-    Promise.allSettled(
-      tasksToDelete.map((t) =>
-        HighlightsEntity.delete({ workspaceId, entityId: t.entityId })
-      )
-    );
-
-    return {
-      statusCode: 204,
-      body: '',
-    };
-  }
   @RouteAndExec()
   execute(event) {
     return event;

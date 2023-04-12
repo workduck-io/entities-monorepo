@@ -15,24 +15,12 @@ export function genUtils(): string {
 
 export const extractWorkspaceId = (event) => {
   if (!event.headers['mex-workspace-id'])
-    throw createError(
-      400,
-      JSON.stringify({
-        statusCode: 400,
-        message: 'mex-workspace-id header is required',
-      })
-    );
+    throw createError(400, 'mex-workspace-id header is required');
   return event.headers['mex-workspace-id'];
 };
 export const extractUserId = (event) => {
   if (!event.headers['mex-user-id'])
-    throw createError(
-      400,
-      JSON.stringify({
-        statusCode: 400,
-        message: 'mex-user-id header is required',
-      })
-    );
+    throw createError(400, 'mex-user-id header is required');
   return event.headers['mex-user-id'];
 };
 
@@ -68,3 +56,33 @@ export const InternalError = (): any =>
 export const generateCaptureId = () => {
   return `CAPTURE_${nanoid()}`;
 };
+
+export const generateHighlightId = () => {
+  return `HIGHLIGHT_${nanoid()}`;
+};
+
+export function defaultEntitySerializer<T, K>(
+  body: Partial<T>,
+  params: { props?: any; callback?: (data: K) => K }
+): K {
+  const { props, callback } = params;
+  const serializedData = {
+    properties: {
+      ...body,
+    },
+    ...props,
+  } as K;
+  return callback(serializedData);
+}
+
+export function defaultEntityDeserializer<K, T>(
+  body: Partial<K>,
+  params: { callback?: (data: T) => T }
+): T {
+  const { callback } = params;
+  const deserializedData = {
+    ...body,
+  } as T;
+
+  return callback(deserializedData);
+}
