@@ -72,7 +72,9 @@ export function defaultEntitySerializer<T, K>(
     },
     ...props,
   } as K;
-  return callback(serializedData);
+
+  if (!callback) return serializedData;
+  else return callback(serializedData);
 }
 
 export function defaultEntityDeserializer<K, T>(
@@ -84,5 +86,6 @@ export function defaultEntityDeserializer<K, T>(
     ...body,
   } as T;
 
-  return callback(deserializedData);
+  if (!callback) return deserializedData;
+  else return callback(deserializedData);
 }
