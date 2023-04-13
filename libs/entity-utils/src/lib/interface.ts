@@ -75,3 +75,8 @@ export interface AdvancedElements {
   createdAt?: number;
   updatedAt?: number;
 }
+
+export interface AdvancedElementEntity {
+  id?: string;
+  data: AdvancedElements;
+}
