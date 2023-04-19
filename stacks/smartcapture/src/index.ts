@@ -109,31 +109,31 @@ const capture = {
     {
       httpApi: {
         method: 'POST',
-        path: '/capture',
+        path: '/',
       },
     },
     {
       httpApi: {
         method: 'PATCH',
-        path: '/capture/{id}',
+        path: '/{id}',
       },
     },
     {
       httpApi: {
         method: 'DELETE',
-        path: '/capture/{id}',
+        path: '/{id}',
       },
     },
     {
       httpApi: {
         method: 'GET',
-        path: '/capture/{id}',
+        path: '/{id}',
       },
     },
     {
       httpApi: {
         method: 'GET',
-        path: '/capture/all',
+        path: '/all',
       },
     },
   ],
