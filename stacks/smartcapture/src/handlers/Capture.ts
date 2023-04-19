@@ -22,7 +22,7 @@ const CAPTURE_PARENT_ENTITY = 'captureConfig';
 export class CaptureHandler {
   @Route({
     method: HTTPMethod.POST,
-    path: '/capture',
+    path: '/',
   })
   async createCapture(event: ValidatedAPIGatewayProxyEvent<any>) {
     const workspaceId = extractWorkspaceId(event);
@@ -54,7 +54,7 @@ export class CaptureHandler {
 
   @Route({
     method: HTTPMethod.PATCH,
-    path: '/capture/{id}',
+    path: '/{id}',
   })
   async updateCapture(
     event: ValidatedAPIGatewayProxyEvent<any>,
@@ -109,7 +109,7 @@ export class CaptureHandler {
 
   @Route({
     method: HTTPMethod.GET,
-    path: '/capture/{id}',
+    path: '/{id}',
   })
   async getCapture(_: ValidatedAPIGatewayProxyEvent<any>, @Path() path?) {
     const entityId = path.id;
@@ -123,7 +123,7 @@ export class CaptureHandler {
 
   @Route({
     method: HTTPMethod.GET,
-    path: '/capture/all',
+    path: '/all',
   })
   async getAllCaptures(
     event: ValidatedAPIGatewayProxyEvent<any>,
@@ -212,7 +212,7 @@ export class CaptureHandler {
 
   @Route({
     method: HTTPMethod.DELETE,
-    path: '/capture/{id}',
+    path: '/{id}',
   })
   async deleteCapture(_: ValidatedAPIGatewayProxyEvent<any>, @Path() path?) {
     const entityId = path.id;

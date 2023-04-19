@@ -84,10 +84,14 @@ export class HighlightsHandler {
     path: '/multiple',
   })
   async getMultipleHandler(event: ValidatedAPIGatewayProxyEvent<any>) {
-    const body = event.body;
+    const highlightIds =
+      typeof event.body === 'string'
+        ? (JSON.parse(event.body).ids as any)
+        : (event.body.ids as string[]);
+
     const highlightList = (
       await Promise.allSettled(
-        body.ids.map(async (id: string) => {
+        highlightIds.map(async (id: string) => {
           const res = await HighlightsEntity.query(id, {
             index: 'sk-ak-index',
             beginsWith: 'URL_',
