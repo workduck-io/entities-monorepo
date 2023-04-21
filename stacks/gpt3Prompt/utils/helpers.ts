@@ -250,13 +250,17 @@ export const validateUsageAndExecutePrompt = async (
         },
       });
       return {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        //@ts-ignore
-        choices: completions.choices[0].text ?? completions.choices[0].message,
+        statusCode: 200,
+        body: JSON.stringify(
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          //@ts-ignore
+          completions.choices[0].text ?? completions.choices[0].message
+        ),
       };
     }
     return {
-      choices: [],
+      statusCode: 200,
+      body: JSON.stringify([]),
     };
   } catch (err) {
     throw createError(400, 'Error fetching results');

@@ -14,7 +14,7 @@ export const chatGPTPrompt: ValidatedAPIGatewayProxyHandler<
   const workspaceId = extractWorkspaceId(event);
   const userId = extractUserIdFromToken(event);
   try {
-    const { choices } = await validateUsageAndExecutePrompt(
+    const result = await validateUsageAndExecutePrompt(
       workspaceId,
       userId,
       async (openai) => {
@@ -29,10 +29,8 @@ export const chatGPTPrompt: ValidatedAPIGatewayProxyHandler<
         ).data;
       }
     );
-    return {
-      statusCode: 200,
-      body: JSON.stringify(choices),
-    };
+
+    return result;
   } catch (err) {
     return {
       statusCode: 500,
