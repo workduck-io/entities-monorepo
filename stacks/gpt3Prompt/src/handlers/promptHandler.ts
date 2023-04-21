@@ -436,7 +436,7 @@ export class PromptsHandler {
     path: '/result/{id}',
   })
   async resultPrompthandler(event: ValidatedAPIGatewayProxyEvent<any>) {
-    const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
+    const workspaceId = extractWorkspaceId(event);
     const userId = extractUserIdFromToken(event);
     const { id } = event.pathParameters;
     let options: Gpt3Prompt['properties'],
@@ -470,7 +470,7 @@ export class PromptsHandler {
       transformedPrompt = replaceVarWithVal(prompt, variables, variablesValues);
     }
 
-    const { choices } = await validateUsageAndExecutePrompt(
+    const result = await validateUsageAndExecutePrompt(
       workspaceId,
       userId,
       async (openai) => {
@@ -513,10 +513,7 @@ export class PromptsHandler {
       }
     );
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify(choices),
-    };
+    return result;
   }
 
   @Route({
@@ -1048,13 +1045,16 @@ export class PromptsHandler {
   // It will be used both for create user auth and update user auth
   @Route({
     method: HTTPMethod.POST,
-    path: '/saveResult',
+    path: '/userAuth',
   })
   async createUserAuthHandler(event: ValidatedAPIGatewayProxyEvent<any>) {
     const userId = extractUserIdFromToken(event);
     const workspaceId = extractWorkspaceId(event);
-
-    const userRes = await getOrSetUserOpenAiInfo(workspaceId, userId);
+    const userRes = await getOrSetUserOpenAiInfo(
+      workspaceId,
+      userId,
+      JSON.parse(event.body).accessToken
+    );
     if (userRes) {
       delete userRes.workspaceId;
       return {
@@ -1070,12 +1070,11 @@ export class PromptsHandler {
   })
   async getUserAuthHandler(event: ValidatedAPIGatewayProxyEvent<any>) {
     const userId = extractUserIdFromToken(event);
-    const workspaceId = process.env.DEFAULT_WORKSPACE_ID;
+    const workspaceId = extractWorkspaceId(event);
 
     const userRes: UserApiInfo = await getOrSetUserOpenAiInfo(
       workspaceId,
-      userId,
-      event.body.accessToken
+      userId
     );
     if (userRes) {
       delete userRes.workspaceId;
