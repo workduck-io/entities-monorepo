@@ -131,6 +131,7 @@ export class CaptureHandler {
   ) {
     const filterType = query?.filterType;
     const filterValue = query?.filterValue;
+    const lastKey = query?.lastKey;
 
     if (!filterType)
       throw createError(
@@ -143,7 +144,7 @@ export class CaptureHandler {
 
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserId(event);
-    let response: any[];
+    let response: any;
 
     switch (filterType) {
       case 'configID':
@@ -156,38 +157,38 @@ export class CaptureHandler {
                 'QueryParams filterValue required for filterType configID',
             })
           );
-        response = await CaptureHierarchyOps.getItemChildren(
-          filterValue,
-          workspaceId,
-          false
-        );
-        return {
-          statusCode: 200,
-          body: JSON.stringify([
-            ...response.map((item: Capture) => {
-              return { id: item.entityId, data: item.data };
-            }),
-          ]),
-        };
+        response = await CaptureEntity.query(workspaceId, {
+          startKey: lastKey && {
+            pk: workspaceId,
+            sk: lastKey,
+          },
+          index: 'pk-ak-index',
+          eq: filterValue,
+        });
+        break;
       case 'userID':
-        response = (
-          await CaptureEntity.query(workspaceId, {
-            beginsWith: 'CAPTURE_',
-            filters: [
-              {
-                attr: 'userId',
-                eq: userId,
-              },
-            ],
-          })
-        ).Items;
+        response = await CaptureEntity.query(workspaceId, {
+          startKey: lastKey && {
+            pk: workspaceId,
+            sk: lastKey,
+          },
+          beginsWith: 'CAPTURE_',
+          filters: [
+            {
+              attr: 'userId',
+              eq: userId,
+            },
+          ],
+        });
         break;
       case 'workspaceID':
-        response = (
-          await CaptureEntity.query(workspaceId, {
-            beginsWith: 'CAPTURE_',
-          })
-        ).Items;
+        response = await CaptureEntity.query(workspaceId, {
+          startKey: lastKey && {
+            pk: workspaceId,
+            sk: lastKey,
+          },
+          beginsWith: 'CAPTURE_',
+        });
         break;
       default:
         break;
@@ -195,18 +196,21 @@ export class CaptureHandler {
 
     return {
       statusCode: 200,
-      body: JSON.stringify([
-        ...(
-          await getPathForEntity(
-            CaptureHierarchyOps,
-            workspaceId,
-            response,
-            CAPTURE_PARENT_ENTITY
-          )
-        ).map((item: Capture) => {
-          return { id: item.entityId, data: item.data };
-        }),
-      ]),
+      body: JSON.stringify({
+        Items: [
+          ...(
+            await getPathForEntity(
+              CaptureHierarchyOps,
+              workspaceId,
+              response.Items,
+              CAPTURE_PARENT_ENTITY
+            )
+          ).map((item: Capture) => {
+            return { id: item.entityId, data: item.data };
+          }),
+        ],
+        lastKey: response.LastEvaluatedKey?.sk ?? undefined,
+      }),
     };
   }
 
