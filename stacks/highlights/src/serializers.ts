@@ -36,6 +36,7 @@ export const highlightDeserializer = (
         elementMetadata: { ...highlight.properties },
         createdAt: highlight.createdAt ?? new Date(highlight._ct).getTime(),
         createdBy: highlight.userId,
+        entityRefID: highlight.entityId,
       },
     },
     {
