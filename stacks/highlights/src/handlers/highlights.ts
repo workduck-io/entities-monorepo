@@ -1,9 +1,12 @@
-import { entityFilter, HierarchyOps } from '@mex/entity-utils';
+import {
+  AdvancedElements,
+  entityFilter,
+  HierarchyOps,
+} from '@mex/entity-utils';
 import {
   extractUserId,
   extractWorkspaceId,
   generateHighlightId,
-  InternalError,
 } from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import {
@@ -14,7 +17,7 @@ import {
 } from '@workduck-io/lambda-routing';
 import { highlightsTable } from '../../service/DynamoDB';
 import { HighlightsEntity } from '../entities';
-import { HighlightData, Highlights } from '../interface';
+import { Highlights } from '../interface';
 import {
   deserializeMultipleHighlights,
   highlightDeserializer,
@@ -23,23 +26,20 @@ import {
 
 const HighlightHierarchyOps = new HierarchyOps(HighlightsEntity);
 
-@InternalError()
 export class HighlightsHandler {
   @Route({
     method: HTTPMethod.POST,
     path: '/',
   })
-  async createHandler(event: ValidatedAPIGatewayProxyEvent<HighlightData>) {
+  async createHandler(event: ValidatedAPIGatewayProxyEvent<AdvancedElements>) {
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserId(event);
     const highlights =
       typeof event.body === 'string'
-        ? (JSON.parse(event.body) as HighlightData)
-        : (event.body as HighlightData);
+        ? (JSON.parse(event.body) as AdvancedElements)
+        : (event.body as AdvancedElements);
     const highlightId = highlights.id ?? generateHighlightId();
-    const serializedHighlight = highlightSerializer(
-      highlights
-    ) as unknown as Highlights;
+    const serializedHighlight = highlightSerializer(highlights) as Highlights;
 
     await HighlightHierarchyOps.addItem<Highlights>(
       {
@@ -66,18 +66,23 @@ export class HighlightsHandler {
     path: '/instance/{id}',
   })
   async createHighlightInstanceHandler(
-    event: ValidatedAPIGatewayProxyEvent<HighlightData>
+    event: ValidatedAPIGatewayProxyEvent<AdvancedElements>
   ) {
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserId(event);
     const entityId = event.pathParameters.id;
     const newEntityId = generateHighlightId();
-    const highlight = (
-      await HighlightsEntity.get({
-        workspaceId,
-        entityId,
-      })
-    ).Item as unknown as Highlights;
+    let highlight: Highlights;
+    if (event.body) {
+      highlight = highlightSerializer(event.body) as Highlights;
+    } else {
+      highlight = (
+        await HighlightsEntity.get({
+          workspaceId,
+          entityId,
+        })
+      ).Item as unknown as Highlights;
+    }
 
     await HighlightHierarchyOps.addItem<Highlights>(
       {
@@ -105,7 +110,7 @@ export class HighlightsHandler {
     path: '/instances/all/{id}',
   })
   async getAllInstancesForHighlightHandler(
-    event: ValidatedAPIGatewayProxyEvent<HighlightData>
+    event: ValidatedAPIGatewayProxyEvent<undefined>
   ) {
     const workspaceId = extractWorkspaceId(event);
     const parentId = event.pathParameters.id;
@@ -138,7 +143,14 @@ export class HighlightsHandler {
       })
     ).Item as Partial<Highlights>;
 
-    if (!res) throw createError(404, 'Item not found');
+    if (!res)
+      throw createError(
+        404,
+        JSON.stringify({
+          statusCode: 404,
+          message: 'Item not found',
+        })
+      );
     return {
       statusCode: 200,
       body: JSON.stringify(highlightDeserializer(res)),
@@ -179,7 +191,14 @@ export class HighlightsHandler {
       ? await highlightsTable.batchGet(highlightList)
       : {};
 
-    if (!res) throw createError(404, 'Item not found');
+    if (!res)
+      throw createError(
+        404,
+        JSON.stringify({
+          statusCode: 404,
+          message: 'Item not found',
+        })
+      );
 
     return {
       statusCode: 200,

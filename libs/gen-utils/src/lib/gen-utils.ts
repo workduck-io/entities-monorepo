@@ -63,29 +63,33 @@ export const generateHighlightId = () => {
 
 export function defaultEntitySerializer<T, K>(
   body: Partial<T>,
-  params: { props?: any; callback?: (data: K) => K }
+  params?: {
+    props?: any;
+    callback?: (data: K) => K;
+  }
 ): K {
-  const { props, callback } = params;
-  const serializedData = {
-    properties: {
+  if (params) {
+    const serializedData = {
       ...body,
-    },
-    ...props,
-  } as K;
+      ...(params.props && params.props),
+    } as K;
 
-  if (!callback) return serializedData;
-  else return callback(serializedData);
+    if (!params.callback) return serializedData;
+    else return params.callback(serializedData);
+  } else return { ...body } as K;
 }
 
 export function defaultEntityDeserializer<K, T>(
   body: Partial<K>,
-  params: { callback?: (data: T) => T }
+  params?: { callback?: (data: T) => T }
 ): T {
-  const { callback } = params;
-  const deserializedData = {
-    ...body,
-  } as T;
+  if (params) {
+    const { callback } = params;
+    const deserializedData = {
+      ...body,
+    } as T;
 
-  if (!callback) return deserializedData;
-  else return callback(deserializedData);
+    if (!callback) return deserializedData;
+    else return callback(deserializedData);
+  } else return { ...body } as T;
 }
