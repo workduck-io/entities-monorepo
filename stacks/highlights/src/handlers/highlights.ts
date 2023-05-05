@@ -147,6 +147,7 @@ export class HighlightsHandler {
     path: '/multiple',
   })
   async getMultipleHandler(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const workspaceId = extractWorkspaceId(event);
     const highlightIds =
       typeof event.body === 'string'
         ? (JSON.parse(event.body).ids as any)
@@ -155,19 +156,16 @@ export class HighlightsHandler {
     const highlightList = (
       await Promise.allSettled(
         highlightIds.map(async (id: string) => {
-          const res = await HighlightsEntity.query(id, {
-            index: 'sk-ak-index',
-            beginsWith: 'URL_',
-          });
-          return res.Items.find(Boolean); // Safely return the first element of array;
+          const res = await HighlightsEntity.get({ entityId: id, workspaceId });
+          return res.Item;
         })
       )
     )
       .map((result) => {
         return result.status === 'fulfilled' && result.value
           ? HighlightsEntity.getBatch({
-              workspaceId: result.value.pk,
-              entityId: result.value.sk,
+              workspaceId: result.value.workspaceId,
+              entityId: result.value.entityId,
             })
           : undefined;
       })
