@@ -17,10 +17,17 @@ export const highlightSerializer = (
 export const highlightDeserializer = (
   highlight: Partial<Highlights>
 ): AdvancedElements => {
-  return defaultEntityDeserializer<Highlights, AdvancedElements>({
-    properties: highlight.properties,
-    createdAt: highlight.createdAt,
-  });
+  return defaultEntityDeserializer<Highlights, AdvancedElements>(
+    {
+      properties: highlight.properties,
+      createdAt: highlight.createdAt,
+    },
+    {
+      callback: (data) => {
+        return { ...data, entityRefID: highlight.entityId };
+      },
+    }
+  );
 };
 
 export const deserializeMultipleHighlights = (arr: any[]) =>

@@ -7,7 +7,7 @@ export const HighlightsEntity = new Entity({
   attributes: {
     ...defaultEntityAttributes,
     nodeId: { type: 'string' },
-    createdAt: { type: 'number', required: true },
+    createdAt: { type: 'number' },
   },
   table: highlightsTable,
   timestamps: false,

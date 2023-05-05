@@ -1,8 +1,4 @@
-import {
-  AdvancedElements,
-  entityFilter,
-  HierarchyOps,
-} from '@mex/entity-utils';
+import { AdvancedElementEntity, HierarchyOps } from '@mex/entity-utils';
 import {
   extractUserId,
   extractWorkspaceId,
@@ -31,77 +27,66 @@ export class HighlightsHandler {
     method: HTTPMethod.POST,
     path: '/',
   })
-  async createHandler(event: ValidatedAPIGatewayProxyEvent<AdvancedElements>) {
+  async createHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
+    const parentHighlightId = event.queryStringParameters?.parentID;
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserId(event);
-    const highlights =
+    const highlightBody =
       typeof event.body === 'string'
-        ? (JSON.parse(event.body) as AdvancedElements)
-        : (event.body as AdvancedElements);
-    const highlightId = highlights.id ?? generateHighlightId();
-    const serializedHighlight = highlightSerializer(highlights) as Highlights;
+        ? (JSON.parse(event.body) as AdvancedElementEntity)
+        : (event.body as AdvancedElementEntity);
+    let highlightId = generateHighlightId();
 
-    await HighlightHierarchyOps.addItem<Highlights>(
-      {
-        entityId: highlightId,
-        workspaceId,
-      },
-      {
-        ...serializedHighlight,
-        workspaceId,
-        userId,
-        _source: 'EXTERNAL',
-        entityId: highlightId,
-      }
-    );
+    if (parentHighlightId) {
+      let highlight: Highlights;
+      if (highlightBody) {
+        highlight = highlightSerializer(highlightBody.data) as Highlights;
+      } else
+        highlight = (
+          await HighlightsEntity.get({
+            workspaceId,
+            entityId: parentHighlightId,
+          })
+        ).Item as unknown as Highlights;
+
+      await HighlightHierarchyOps.addItem<Highlights>(
+        {
+          entityId: highlightId,
+          workspaceId,
+          parent: parentHighlightId,
+        },
+        {
+          ...highlight,
+          entityId: highlightId,
+          workspaceId,
+          userId,
+          _source: 'EXTERNAL',
+        }
+      );
+    } else {
+      highlightId = highlightBody.id ?? highlightId;
+      const serializedHighlight = highlightSerializer(
+        highlightBody.data
+      ) as Highlights;
+
+      await HighlightHierarchyOps.addItem<Highlights>(
+        {
+          entityId: highlightId,
+          workspaceId,
+        },
+        {
+          ...serializedHighlight,
+          workspaceId,
+          userId,
+          _source: 'EXTERNAL',
+          entityId: highlightId,
+        }
+      );
+    }
 
     return {
       statusCode: 200,
       body: JSON.stringify({ id: highlightId }),
-    };
-  }
-
-  @Route({
-    method: HTTPMethod.POST,
-    path: '/instance/{id}',
-  })
-  async createHighlightInstanceHandler(
-    event: ValidatedAPIGatewayProxyEvent<AdvancedElements>
-  ) {
-    const workspaceId = extractWorkspaceId(event);
-    const userId = extractUserId(event);
-    const entityId = event.pathParameters.id;
-    const newEntityId = generateHighlightId();
-    let highlight: Highlights;
-    if (event.body) {
-      highlight = highlightSerializer(event.body) as Highlights;
-    } else {
-      highlight = (
-        await HighlightsEntity.get({
-          workspaceId,
-          entityId,
-        })
-      ).Item as unknown as Highlights;
-    }
-
-    await HighlightHierarchyOps.addItem<Highlights>(
-      {
-        entityId: newEntityId,
-        workspaceId,
-        parent: entityId,
-      },
-      {
-        ...highlight,
-        entityId: newEntityId,
-        workspaceId,
-        userId,
-        _source: 'EXTERNAL',
-      }
-    );
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ id: newEntityId }),
     };
   }
 
@@ -202,10 +187,12 @@ export class HighlightsHandler {
 
     return {
       statusCode: 200,
-      body: JSON.stringify(
-        deserializeMultipleHighlights(res?.Responses?.[highlightsTable.name]) ??
-          []
-      ),
+      body: JSON.stringify({
+        Items:
+          deserializeMultipleHighlights(
+            res?.Responses?.[highlightsTable.name]
+          ) ?? [],
+      }),
     };
   }
 
@@ -230,21 +217,12 @@ export class HighlightsHandler {
   async getAllEntitiesOfWorkspaceHandler(
     event: ValidatedAPIGatewayProxyEvent<undefined>
   ) {
-    const lastKey = event.queryStringParameters?.lastKey;
     const workspaceId = extractWorkspaceId(event);
-    const res = await HighlightsEntity.query(workspaceId, {
-      startKey: lastKey && {
-        pk: workspaceId,
-        sk: lastKey,
-      },
-      beginsWith: 'HIGHLIGHT_',
-      filters: [entityFilter('highlights')],
-    });
+    const res = await HighlightHierarchyOps.getAllByTree(workspaceId);
     return {
       statusCode: 200,
       body: JSON.stringify({
-        Items: deserializeMultipleHighlights(res.Items),
-        lastKey: res.LastEvaluatedKey?.sk ?? undefined,
+        Items: deserializeMultipleHighlights(res),
       }),
     };
   }

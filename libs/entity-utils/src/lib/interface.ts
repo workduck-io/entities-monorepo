@@ -74,6 +74,7 @@ export interface AdvancedElements {
   lastEditedBy?: string;
   createdAt?: number;
   updatedAt?: number;
+  entityRefID?: string;
 }
 
 export interface AdvancedElementEntity {
