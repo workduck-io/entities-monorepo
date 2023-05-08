@@ -279,21 +279,16 @@ export class HierarchyOps {
         })
       ).Items
     );
-    const newRes = Promise.all(
-      result.map(async (item) => {
-        const actualEntity = await this.entity.get({
-          entityId: item.entityId,
-          workspaceId: item.workspaceId,
-        });
-        return {
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          //@ts-ignore
-          ...actualEntity.Item,
-        };
-      })
-    );
 
-    return newRes;
+    const keys = result.map((item) => {
+      return this.entity.getBatch({
+        entityId: item.entityId,
+        workspaceId: item.workspaceId,
+      });
+    });
+
+    const res = await this.entity.table.batchGet(keys);
+    return res.Responses[this.entity.table.name];
   };
 }
 
