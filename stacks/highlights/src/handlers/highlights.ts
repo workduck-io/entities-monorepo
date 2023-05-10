@@ -64,24 +64,38 @@ export class HighlightsHandler {
         }
       );
     } else {
-      highlightId = highlightBody.id ?? highlightId;
       const serializedHighlight = highlightSerializer(
         highlightBody.data
       ) as Highlights;
-
-      await HighlightHierarchyOps.addItem<Highlights>(
-        {
-          entityId: highlightId,
-          workspaceId,
-        },
-        {
-          ...serializedHighlight,
-          workspaceId,
-          userId,
-          _source: 'EXTERNAL',
-          entityId: highlightId,
-        }
-      );
+      highlightId = highlightBody.id ?? highlightId;
+      if (highlightBody.id) {
+        await HighlightsEntity.update(
+          {
+            ...serializedHighlight,
+            workspaceId,
+            userId,
+            entityId: highlightId,
+            _source: 'EXTERNAL',
+          },
+          {
+            returnValues: 'ALL_NEW',
+          }
+        );
+      } else {
+        await HighlightHierarchyOps.addItem<Highlights>(
+          {
+            entityId: highlightId,
+            workspaceId,
+          },
+          {
+            ...serializedHighlight,
+            workspaceId,
+            userId,
+            _source: 'EXTERNAL',
+            entityId: highlightId,
+          }
+        );
+      }
     }
 
     return {
