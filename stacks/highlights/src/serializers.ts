@@ -3,45 +3,28 @@ import {
   defaultEntitySerializer,
 } from '@mex/gen-utils';
 import { Highlights } from './interface';
-import { AdvancedElementEntity } from '@mex/entity-utils';
+import { AdvancedElements } from '@mex/entity-utils';
 
 export const highlightSerializer = (
-  highlight: AdvancedElementEntity
+  highlight: AdvancedElements
 ): Partial<Highlights> => {
-  return defaultEntitySerializer<AdvancedElementEntity, Highlights>(
-    highlight.data.elementMetadata,
-    {
-      props: {
-        userId: highlight.data.createdBy,
-        createdAt: highlight.data.createdAt,
-        sourceUrl: highlight.data.elementMetadata.sourceUrl,
-      },
-      callback(data) {
-        data.properties.saveableRange['text'] = highlight.data.content;
-        return data;
-      },
-    }
-  );
+  return defaultEntitySerializer<AdvancedElements, Highlights>({
+    properties: highlight.properties,
+    createdAt: highlight.createdAt,
+  });
 };
 
 export const highlightDeserializer = (
   highlight: Partial<Highlights>
-): AdvancedElementEntity => {
-  return defaultEntityDeserializer(
+): AdvancedElements => {
+  return defaultEntityDeserializer<Highlights, AdvancedElements>(
     {
-      id: highlight.entityId,
-      data: {
-        content: highlight.properties.saveableRange['text'],
-        elementType: 'highlight',
-        elementMetadata: { ...highlight.properties },
-        createdAt: highlight.createdAt ?? new Date(highlight._ct).getTime(),
-        createdBy: highlight.userId,
-      },
+      properties: highlight.properties,
+      createdAt: highlight.createdAt,
     },
     {
-      callback(data) {
-        delete data.data.elementMetadata.saveableRange['text'];
-        return data;
+      callback: (data) => {
+        return { ...data, entityRefID: highlight.entityId };
       },
     }
   );

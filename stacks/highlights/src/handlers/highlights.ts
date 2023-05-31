@@ -1,9 +1,8 @@
-import { entityFilter } from '@mex/entity-utils';
+import { AdvancedElementEntity, HierarchyOps } from '@mex/entity-utils';
 import {
   extractUserId,
   extractWorkspaceId,
   generateHighlightId,
-  InternalError,
 } from '@mex/gen-utils';
 import { createError } from '@middy/util';
 import {
@@ -14,47 +13,118 @@ import {
 } from '@workduck-io/lambda-routing';
 import { highlightsTable } from '../../service/DynamoDB';
 import { HighlightsEntity } from '../entities';
-import { HighlightData, Highlights } from '../interface';
+import { Highlights } from '../interface';
 import {
   deserializeMultipleHighlights,
   highlightDeserializer,
   highlightSerializer,
 } from '../serializers';
 
-@InternalError()
+const HighlightHierarchyOps = new HierarchyOps(HighlightsEntity);
+
 export class HighlightsHandler {
   @Route({
     method: HTTPMethod.POST,
     path: '/',
   })
-  async createHandler(event: ValidatedAPIGatewayProxyEvent<HighlightData>) {
+  async createHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
+    const parentHighlightId = event.queryStringParameters?.parentID;
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserId(event);
-    const highlights =
+    const highlightBody =
       typeof event.body === 'string'
-        ? (JSON.parse(event.body) as HighlightData)
-        : (event.body as HighlightData);
-    const highlightId = highlights.id ?? generateHighlightId();
-    const serializedHighlight = highlightSerializer(highlights);
+        ? (JSON.parse(event.body) as AdvancedElementEntity)
+        : (event.body as AdvancedElementEntity);
+    let highlightId = generateHighlightId();
 
-    const res = (
-      await HighlightsEntity.update(
+    if (parentHighlightId) {
+      let highlight: Highlights;
+      if (highlightBody) {
+        highlight = highlightSerializer(highlightBody.data) as Highlights;
+      } else
+        highlight = (
+          await HighlightsEntity.get({
+            workspaceId,
+            entityId: parentHighlightId,
+          })
+        ).Item as unknown as Highlights;
+
+      await HighlightHierarchyOps.addItem<Highlights>(
         {
-          ...serializedHighlight,
+          entityId: highlightId,
+          workspaceId,
+          parent: parentHighlightId,
+        },
+        {
+          ...highlight,
+          entityId: highlightId,
           workspaceId,
           userId,
           _source: 'EXTERNAL',
-          entityId: highlightId,
-        },
-        {
-          returnValues: 'ALL_NEW',
         }
-      )
-    ).Attributes as Partial<Highlights>;
+      );
+    } else {
+      const serializedHighlight = highlightSerializer(
+        highlightBody.data
+      ) as Highlights;
+      highlightId = highlightBody.id ?? highlightId;
+      if (highlightBody.id) {
+        await HighlightsEntity.update(
+          {
+            ...serializedHighlight,
+            workspaceId,
+            userId,
+            entityId: highlightId,
+            _source: 'EXTERNAL',
+          },
+          {
+            returnValues: 'ALL_NEW',
+          }
+        );
+      } else {
+        await HighlightHierarchyOps.addItem<Highlights>(
+          {
+            entityId: highlightId,
+            workspaceId,
+          },
+          {
+            ...serializedHighlight,
+            workspaceId,
+            userId,
+            _source: 'EXTERNAL',
+            entityId: highlightId,
+          }
+        );
+      }
+    }
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ id: res.entityId }),
+      body: JSON.stringify({ id: highlightId }),
+    };
+  }
+
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/instances/all/{id}',
+  })
+  async getAllInstancesForHighlightHandler(
+    event: ValidatedAPIGatewayProxyEvent<undefined>
+  ) {
+    const workspaceId = extractWorkspaceId(event);
+    const parentId = event.pathParameters.id;
+
+    const allInstances = await HighlightHierarchyOps.getItemChildren(
+      parentId,
+      workspaceId,
+      false
+    );
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        Items: deserializeMultipleHighlights(allInstances),
+      }),
     };
   }
 
@@ -72,7 +142,14 @@ export class HighlightsHandler {
       })
     ).Item as Partial<Highlights>;
 
-    if (!res) throw createError(404, 'Item not found');
+    if (!res)
+      throw createError(
+        404,
+        JSON.stringify({
+          statusCode: 404,
+          message: 'Item not found',
+        })
+      );
     return {
       statusCode: 200,
       body: JSON.stringify(highlightDeserializer(res)),
@@ -84,6 +161,7 @@ export class HighlightsHandler {
     path: '/multiple',
   })
   async getMultipleHandler(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const workspaceId = extractWorkspaceId(event);
     const highlightIds =
       typeof event.body === 'string'
         ? (JSON.parse(event.body).ids as any)
@@ -92,19 +170,16 @@ export class HighlightsHandler {
     const highlightList = (
       await Promise.allSettled(
         highlightIds.map(async (id: string) => {
-          const res = await HighlightsEntity.query(id, {
-            index: 'sk-ak-index',
-            beginsWith: 'URL_',
-          });
-          return res.Items.find(Boolean); // Safely return the first element of array;
+          const res = await HighlightsEntity.get({ entityId: id, workspaceId });
+          return res.Item;
         })
       )
     )
       .map((result) => {
         return result.status === 'fulfilled' && result.value
           ? HighlightsEntity.getBatch({
-              workspaceId: result.value.pk,
-              entityId: result.value.sk,
+              workspaceId: result.value.workspaceId,
+              entityId: result.value.entityId,
             })
           : undefined;
       })
@@ -113,14 +188,23 @@ export class HighlightsHandler {
       ? await highlightsTable.batchGet(highlightList)
       : {};
 
-    if (!res) throw createError(404, 'Item not found');
+    if (!res)
+      throw createError(
+        404,
+        JSON.stringify({
+          statusCode: 404,
+          message: 'Item not found',
+        })
+      );
 
     return {
       statusCode: 200,
-      body: JSON.stringify(
-        deserializeMultipleHighlights(res?.Responses?.[highlightsTable.name]) ??
-          []
-      ),
+      body: JSON.stringify({
+        Items:
+          deserializeMultipleHighlights(
+            res?.Responses?.[highlightsTable.name]
+          ) ?? [],
+      }),
     };
   }
 
@@ -129,12 +213,8 @@ export class HighlightsHandler {
     path: '/{id}',
   })
   async deleteHandler(event: ValidatedAPIGatewayProxyEvent<undefined>) {
-    const workspaceId = extractWorkspaceId(event);
     const entityId = event.pathParameters.id;
-    await HighlightsEntity.delete({
-      workspaceId,
-      entityId,
-    });
+    await HighlightHierarchyOps.deleteItem(entityId);
 
     return {
       statusCode: 204,
@@ -149,21 +229,12 @@ export class HighlightsHandler {
   async getAllEntitiesOfWorkspaceHandler(
     event: ValidatedAPIGatewayProxyEvent<undefined>
   ) {
-    const lastKey = event.queryStringParameters?.lastKey;
     const workspaceId = extractWorkspaceId(event);
-    const res = await HighlightsEntity.query(workspaceId, {
-      startKey: lastKey && {
-        pk: workspaceId,
-        sk: lastKey,
-      },
-      beginsWith: 'HIGHLIGHT_',
-      filters: [entityFilter('highlights')],
-    });
+    const res = await HighlightHierarchyOps.getAllByTree(workspaceId);
     return {
       statusCode: 200,
       body: JSON.stringify({
-        Items: deserializeMultipleHighlights(res.Items),
-        lastKey: res.LastEvaluatedKey?.sk ?? undefined,
+        Items: deserializeMultipleHighlights(res),
       }),
     };
   }

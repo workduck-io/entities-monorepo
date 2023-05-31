@@ -267,6 +267,29 @@ export class HierarchyOps {
       })
     ).Items;
   };
+
+  getAllByTree = async (workspaceId: string) => {
+    const result = [];
+    result.push(
+      ...(
+        await HierarchyEntity.query(workspaceId, {
+          eq: combineKeys(this.entity.name),
+          index: 'tree-path-index',
+          parseAsEntity: 'hierarchy',
+        })
+      ).Items
+    );
+
+    const keys = result.map((item) => {
+      return this.entity.getBatch({
+        entityId: item.entityId,
+        workspaceId: item.workspaceId,
+      });
+    });
+
+    const res = await this.entity.table.batchGet(keys);
+    return res.Responses[this.entity.table.name];
+  };
 }
 
 export const getPathForEntity = async (

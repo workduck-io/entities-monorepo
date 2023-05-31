@@ -1,4 +1,8 @@
-import { getPathForEntity, HierarchyOps } from '@mex/entity-utils';
+import {
+  AdvancedElements,
+  getPathForEntity,
+  HierarchyOps,
+} from '@mex/entity-utils';
 import {
   extractUserId,
   extractWorkspaceId,
@@ -117,7 +121,10 @@ export class CaptureHandler {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ data: response.data, id: entityId }),
+      body: JSON.stringify({
+        ...response.data,
+        entityRefID: entityId,
+      } as AdvancedElements),
     };
   }
 
@@ -206,7 +213,7 @@ export class CaptureHandler {
               CAPTURE_PARENT_ENTITY
             )
           ).map((item: Capture) => {
-            return { id: item.entityId, data: item.data };
+            return { ...item.data, entityRefID: item.entityId };
           }),
         ],
         lastKey: response.LastEvaluatedKey?.sk ?? undefined,
