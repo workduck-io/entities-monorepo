@@ -287,8 +287,10 @@ export class HierarchyOps {
       });
     });
 
-    const res = await this.entity.table.batchGet(keys);
-    return res.Responses[this.entity.table.name];
+    if (keys.length) {
+      const res = await this.entity.table.batchGet(keys);
+      return res.Responses[this.entity.table.name];
+    } else return [];
   };
 }
 
