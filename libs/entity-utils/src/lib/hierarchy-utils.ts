@@ -269,28 +269,45 @@ export class HierarchyOps {
   };
 
   getAllByTree = async (workspaceId: string) => {
-    const result = [];
-    result.push(
-      ...(
-        await HierarchyEntity.query(workspaceId, {
-          eq: combineKeys(this.entity.name),
-          index: 'tree-path-index',
-          parseAsEntity: 'hierarchy',
-        })
-      ).Items
-    );
+    const pageSize = 100;
+    let lastKey = null;
+    const hierarchyResults = [];
+    const highlightResults = [];
 
-    const keys = result.map((item) => {
-      return this.entity.getBatch({
-        entityId: item.entityId,
-        workspaceId: item.workspaceId,
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      hierarchyResults.length = 0;
+      const queryResult = await HierarchyEntity.query(workspaceId, {
+        startKey: lastKey && {
+          pk: lastKey,
+          tree: workspaceId,
+          path: combineKeys(this.entity.name),
+        },
+        limit: pageSize,
+        index: 'tree-path-index',
+        parseAsEntity: 'hierarchy',
       });
-    });
+      hierarchyResults.push(...queryResult.Items);
+      lastKey = queryResult?.LastEvaluatedKey?.pk;
 
-    if (keys.length) {
-      const res = await this.entity.table.batchGet(keys);
-      return res.Responses[this.entity.table.name];
-    } else return [];
+      const keys = hierarchyResults.map((item) => {
+        return this.entity.getBatch({
+          entityId: item.entityId,
+          workspaceId: item.workspaceId,
+        });
+      });
+
+      highlightResults.push(
+        ...(await this.entity.table.batchGet(keys)).Responses[
+          this.entity.table.name
+        ]
+      );
+      if (!lastKey) break;
+    }
+    console.log(highlightResults.length);
+
+    if (highlightResults.length) return highlightResults;
+    else return [];
   };
 }
 
