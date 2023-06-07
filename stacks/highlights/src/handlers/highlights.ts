@@ -7,6 +7,7 @@ import {
 import { createError } from '@middy/util';
 import {
   HTTPMethod,
+  Query,
   Route,
   RouteAndExec,
   ValidatedAPIGatewayProxyEvent,
@@ -227,14 +228,20 @@ export class HighlightsHandler {
     path: '/all',
   })
   async getAllEntitiesOfWorkspaceHandler(
-    event: ValidatedAPIGatewayProxyEvent<undefined>
+    event: ValidatedAPIGatewayProxyEvent<undefined>,
+    @Query() query?
   ) {
     const workspaceId = extractWorkspaceId(event);
-    const res = await HighlightHierarchyOps.getAllByTree(workspaceId);
+    const lastKeyQueryParam = query?.lastKey;
+    const { Items, lastKey } = await HighlightHierarchyOps.getAllByTree(
+      workspaceId,
+      lastKeyQueryParam
+    );
     return {
       statusCode: 200,
       body: JSON.stringify({
-        Items: deserializeMultipleHighlights(res),
+        Items: deserializeMultipleHighlights(Items),
+        lastKey,
       }),
     };
   }

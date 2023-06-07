@@ -268,14 +268,14 @@ export class HierarchyOps {
     ).Items;
   };
 
-  getAllByTree = async (workspaceId: string) => {
+  getAllByTree = async (workspaceId: string, lastKeyQueryParam?: string) => {
     const pageSize = 100;
-    let lastKey = null;
+    let lastKey: string | undefined = lastKeyQueryParam;
     const hierarchyResults = [];
     const highlightResults = [];
+    let counter = 10;
 
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
+    while (counter) {
       hierarchyResults.length = 0;
       const queryResult = await HierarchyEntity.query(workspaceId, {
         startKey: lastKey && {
@@ -303,11 +303,14 @@ export class HierarchyOps {
         ]
       );
       if (!lastKey) break;
+      counter--;
     }
-    console.log(highlightResults.length);
 
-    if (highlightResults.length) return highlightResults;
-    else return [];
+    if (highlightResults.length)
+      return lastKey
+        ? { Items: highlightResults, lastKey }
+        : { Items: highlightResults };
+    else return { Items: [] };
   };
 }
 
