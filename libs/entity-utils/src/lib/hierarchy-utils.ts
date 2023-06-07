@@ -268,29 +268,51 @@ export class HierarchyOps {
     ).Items;
   };
 
-  getAllByTree = async (workspaceId: string) => {
-    const result = [];
-    result.push(
-      ...(
-        await HierarchyEntity.query(workspaceId, {
-          eq: combineKeys(this.entity.name),
-          index: 'tree-path-index',
-          parseAsEntity: 'hierarchy',
-        })
-      ).Items
-    );
+  getAllByTree = async (workspaceId: string, lastKeyQueryParam?: string) => {
+    const pageSize = 100;
+    let lastKey: string | undefined = lastKeyQueryParam;
+    const hierarchyResults = [];
+    const highlightResults = [];
+    let counter = 10;
 
-    const keys = result.map((item) => {
-      return this.entity.getBatch({
-        entityId: item.entityId,
-        workspaceId: item.workspaceId,
+    while (counter) {
+      hierarchyResults.length = 0;
+      const queryResult = await HierarchyEntity.query(workspaceId, {
+        startKey: lastKey && {
+          pk: lastKey,
+          tree: workspaceId,
+          path: combineKeys(this.entity.name),
+        },
+        limit: pageSize,
+        index: 'tree-path-index',
+        parseAsEntity: 'hierarchy',
       });
-    });
+      hierarchyResults.push(...queryResult.Items);
+      lastKey = queryResult?.LastEvaluatedKey?.pk;
 
-    if (keys.length) {
-      const res = await this.entity.table.batchGet(keys);
-      return res.Responses[this.entity.table.name];
-    } else return [];
+      if (!hierarchyResults.length) break;
+
+      const keys = hierarchyResults.map((item) => {
+        return this.entity.getBatch({
+          entityId: item.entityId,
+          workspaceId: item.workspaceId,
+        });
+      });
+
+      highlightResults.push(
+        ...(await this.entity.table.batchGet(keys)).Responses[
+          this.entity.table.name
+        ]
+      );
+      if (!lastKey) break;
+      counter--;
+    }
+
+    if (highlightResults.length)
+      return lastKey
+        ? { Items: highlightResults, lastKey }
+        : { Items: highlightResults };
+    else return { Items: [] };
   };
 }
 
