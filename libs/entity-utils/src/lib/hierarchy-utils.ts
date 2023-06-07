@@ -290,6 +290,8 @@ export class HierarchyOps {
       hierarchyResults.push(...queryResult.Items);
       lastKey = queryResult?.LastEvaluatedKey?.pk;
 
+      if (!hierarchyResults.length) break;
+
       const keys = hierarchyResults.map((item) => {
         return this.entity.getBatch({
           entityId: item.entityId,
