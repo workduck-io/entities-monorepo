@@ -1,11 +1,6 @@
 import { createError } from '@middy/util';
 import merge from 'deepmerge';
-import {
-  Configuration,
-  CreateChatCompletionResponse,
-  CreateCompletionResponse,
-  OpenAIApi,
-} from 'openai';
+import { Configuration, CreateChatCompletionResponse, OpenAIApi } from 'openai';
 import { lambda } from '../libs/lambda-lib';
 import { Gpt3PromptUserEntity } from '../src/entities';
 import { ChatGPTCreationRequest, UserApiInfo } from '../src/interface';
@@ -202,9 +197,7 @@ export const getOrSetUserOpenAiInfo = async (
 export const validateUsageAndExecutePrompt = async (
   workspaceId: string,
   userId: string,
-  callback?: (
-    openai: OpenAIApi
-  ) => Promise<CreateCompletionResponse | CreateChatCompletionResponse>
+  callback?: (openai: OpenAIApi) => Promise<CreateChatCompletionResponse>
 ) => {
   const userAuthInfo = await getOrSetUserOpenAiInfo(workspaceId, userId);
   let apikey = '';
@@ -249,13 +242,10 @@ export const validateUsageAndExecutePrompt = async (
           },
         },
       });
+
       return {
         statusCode: 200,
-        body: JSON.stringify(
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          //@ts-ignore
-          completions.choices[0].text ?? completions.choices[0].message
-        ),
+        body: JSON.stringify(completions.choices[0].message),
       };
     }
     return {
@@ -263,6 +253,7 @@ export const validateUsageAndExecutePrompt = async (
       body: JSON.stringify([]),
     };
   } catch (err) {
+    console.error(err.response.data);
     throw createError(400, 'Error fetching results');
   }
 };

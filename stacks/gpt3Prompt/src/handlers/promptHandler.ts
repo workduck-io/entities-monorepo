@@ -26,6 +26,7 @@ import {
 import { Gpt3PromptAnalyticsEntity, Gpt3PromptEntity } from '../entities';
 import { Gpt3Prompt, UserApiInfo } from '../interface';
 
+import type { CreateChatCompletionRequest } from 'openai';
 import { chatGPTPrompt } from './chatGpt';
 
 @InternalError()
@@ -460,9 +461,10 @@ export class PromptsHandler {
       promptRes = (
         await Gpt3PromptEntity.get({
           entityId: id,
-          workspaceId,
+          workspaceId: process.env.DEFAULT_WORKSPACE_ID,
         })
       ).Item;
+
       const { prompt, variables } = promptRes;
       properties = promptRes.properties;
 
@@ -475,9 +477,9 @@ export class PromptsHandler {
       userId,
       async (openai) => {
         if (transformedPrompt) {
-          const resultPayload = {
-            prompt: transformedPrompt,
-            model: properties ? properties.model : defaultGPT3Props.model,
+          const resultPayload: CreateChatCompletionRequest = {
+            messages: [{ role: 'user', content: transformedPrompt }],
+            model: defaultGPT3Props.model,
             max_tokens: options
               ? options.max_tokens
               : properties
@@ -501,11 +503,9 @@ export class PromptsHandler {
           };
 
           try {
-            return (
-              await openai.createCompletion({
-                ...resultPayload,
-              })
-            ).data;
+            const result = (await openai.createChatCompletion(resultPayload))
+              .data;
+            return result;
           } catch (error) {
             throw createError(400, error.response.statusText);
           }

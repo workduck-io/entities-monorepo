@@ -14,6 +14,13 @@ export const chatGPTPrompt: ValidatedAPIGatewayProxyHandler<
   const workspaceId = extractWorkspaceId(event);
   const userId = extractUserIdFromToken(event);
   try {
+    console.log({
+      messages: [
+        SystemPrompt,
+        ...context.map(convertToChatCompletionRequest(input, output)),
+      ],
+    });
+
     const result = await validateUsageAndExecutePrompt(
       workspaceId,
       userId,

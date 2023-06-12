@@ -55,10 +55,10 @@ export const PromptProviders = [
 ];
 
 export const defaultGPT3Props = {
-  model: 'text-davinci-003',
+  model: 'gpt-3.5-turbo',
   max_tokens: 1000,
-  temperature: 0.7,
-  iterations: 3,
+  temperature: 0.8,
+  iterations: 1,
   top_p: 1,
 };
 

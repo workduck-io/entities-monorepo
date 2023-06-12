@@ -2,7 +2,7 @@ import { handlerPath } from '../utils/handlerResolver';
 
 const main = {
   handler: `${handlerPath(__dirname)}/handler.main`,
-  timeout: 15,
+  timeout: 20,
   events: [
     {
       httpApi: {
