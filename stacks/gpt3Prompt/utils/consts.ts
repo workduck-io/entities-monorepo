@@ -62,4 +62,4 @@ export const defaultGPT3Props = {
   top_p: 1,
 };
 
-export const DEFAULT_USAGE_LIMIT = 25;
+export const DEFAULT_USAGE_LIMIT = 50;
