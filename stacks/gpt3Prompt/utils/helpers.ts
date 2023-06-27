@@ -194,37 +194,48 @@ export const getOrSetUserOpenAiInfo = async (
   return userAuthInfo;
 };
 
-export const validateUsageAndExecutePrompt = async (
+export const validateUserAuth = async (
   workspaceId: string,
   userId: string,
-  callback?: (openai: OpenAIApi) => Promise<CreateChatCompletionResponse>
+  returnConfig = false
 ) => {
   const userAuthInfo = await getOrSetUserOpenAiInfo(workspaceId, userId);
-  let apikey = '';
+  let apiKey = '';
   let userFlag = false;
   const userToken = userAuthInfo.auth?.authData?.accessToken;
 
   if (userToken) {
-    apikey = userAuthInfo.auth?.authData?.accessToken;
+    apiKey = userAuthInfo.auth?.authData?.accessToken;
     userFlag = true;
   } else {
     // If the user has not set the access token, then use the default one with check for the limit
     if (userAuthInfo.auth?.authMetadata.limit > 0) {
-      apikey = process.env.OPENAI_API_KEY;
+      apiKey = process.env.OPENAI_API_KEY;
     } else if (userAuthInfo.auth?.authMetadata.limit <= 0) {
-      return {
-        statusCode: 402,
-        body: JSON.stringify("You've reached your limit for the month"),
-      };
+      throw createError(402, "You've reached your limit for the month");
     } else {
-      return {
-        statusCode: 402,
-        body: JSON.stringify('You need to set up your OpenAI API key'),
-      };
+      throw createError(402, 'You need to set up your OpenAI API key');
     }
   }
+  return {
+    apiKey,
+    userFlag,
+    userAuthInfo: returnConfig ? userAuthInfo : undefined,
+  };
+};
+
+export const validateUsageAndExecutePrompt = async (
+  workspaceId: string,
+  userId: string,
+  callback: (openai: OpenAIApi) => Promise<CreateChatCompletionResponse>
+) => {
   try {
-    const completions = await callback(openaiInstance(apikey));
+    const { apiKey, userFlag, userAuthInfo } = await validateUserAuth(
+      workspaceId,
+      userId,
+      true
+    );
+    const completions = await callback(openaiInstance(apiKey));
     if (completions && completions && completions.choices.length > 0) {
       await Gpt3PromptUserEntity.update({
         userId,
@@ -254,6 +265,9 @@ export const validateUsageAndExecutePrompt = async (
     };
   } catch (err) {
     console.error(err.response.data);
-    throw createError(400, 'Error fetching results');
+    throw createError(
+      err?.statusCode ?? 400,
+      err?.message ?? 'Error fetching results'
+    );
   }
 };

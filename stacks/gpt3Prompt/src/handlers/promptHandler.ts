@@ -22,8 +22,13 @@ import {
   replaceVarWithVal,
   replaceVarWithValForPreview,
   validateUsageAndExecutePrompt,
+  validateUserAuth,
 } from '../../utils/helpers';
-import { Gpt3PromptAnalyticsEntity, Gpt3PromptEntity } from '../entities';
+import {
+  Gpt3PromptAnalyticsEntity,
+  Gpt3PromptEntity,
+  Gpt3PromptUserEntity,
+} from '../entities';
 import { Gpt3Prompt, UserApiInfo } from '../interface';
 
 import type { CreateChatCompletionRequest } from 'openai';
@@ -1091,6 +1096,49 @@ export class PromptsHandler {
   })
   async executeCommand(event, context, callback) {
     return chatGPTPrompt(event, context, callback);
+  }
+
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/details',
+  })
+  async fetchUserPromptDetails(event: ValidatedAPIGatewayProxyEvent<never>) {
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserIdFromToken(event);
+    return validateUserAuth(workspaceId, userId);
+  }
+
+  @Route({
+    method: HTTPMethod.PUT,
+    path: '/count',
+  })
+  async updateUserLimitDetails(event: ValidatedAPIGatewayProxyEvent<never>) {
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserIdFromToken(event);
+    const userFlag = false;
+    const userAuthInfo = await getOrSetUserOpenAiInfo(workspaceId, userId);
+    await Gpt3PromptUserEntity.update({
+      userId,
+      workspaceId,
+      auth: {
+        authData: userAuthInfo.auth?.authData,
+        authMetadata: {
+          ...userAuthInfo.auth?.authMetadata,
+          limit: userFlag
+            ? userAuthInfo.auth?.authMetadata.limit
+            : userAuthInfo.auth?.authMetadata.limit === 0
+            ? 0
+            : userAuthInfo.auth?.authMetadata.limit - 1,
+          usage: userAuthInfo.auth?.authMetadata.usage + 1,
+        },
+      },
+    });
+    return {
+      statusCode: 200,
+      bosy: JSON.stringify({
+        success: true,
+      }),
+    };
   }
 
   @RouteAndExec()

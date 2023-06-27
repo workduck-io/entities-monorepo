@@ -15,7 +15,20 @@ const main = {
       httpApi: {
         method: 'POST',
         path: '/chat',
-
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/details',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'PUT',
+        path: '/count',
         authorizer: 'workduckAuthorizer',
       },
     },
