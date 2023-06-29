@@ -1,3 +1,4 @@
+import { getPathForEntity, HierarchyOps } from '@mex/entity-utils';
 import {
   extractUserIdFromToken,
   extractWorkspaceId,
@@ -9,8 +10,8 @@ import {
   RouteAndExec,
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
-import { ENTITYSOURCE } from '../../utils/consts';
 import { smartcaptureTable } from '../../service/DynamoDB';
+import { ENTITYSOURCE } from '../../utils/consts';
 import {
   serializeConfig,
   serializeConfigDelete,
@@ -18,7 +19,6 @@ import {
 } from '../../utils/helpers';
 import { CaptureConfigEntity, CaptureVariableLabelEntity } from '../entities';
 import { Config, Label } from '../interface';
-import { getPathForEntity, HierarchyOps } from '@mex/entity-utils';
 
 const CaptureConfigHierarchyOps = new HierarchyOps(CaptureConfigEntity);
 
@@ -189,13 +189,7 @@ export class CaptureConfigHandler {
     ).Items;
     return {
       statusCode: 200,
-      body: JSON.stringify(
-        await getPathForEntity(
-          CaptureConfigHierarchyOps,
-          'WORKSPACE_INTERNAL',
-          res
-        )
-      ),
+      body: JSON.stringify(res),
     };
   }
 
