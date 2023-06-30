@@ -2,10 +2,20 @@ import { createError } from '@middy/util';
 import merge from 'deepmerge';
 import { Configuration, CreateChatCompletionResponse, OpenAIApi } from 'openai';
 import { lambda } from '../libs/lambda-lib';
-import { Gpt3PromptUserEntity } from '../src/entities';
-import { ChatGPTCreationRequest, UserApiInfo } from '../src/interface';
-import { DEFAULT_USAGE_LIMIT } from './consts';
-import { PromptInputFormat, PromptOutputFormat, Prompts } from './prompts';
+import { Gpt3PromptEntity, Gpt3PromptUserEntity } from '../src/entities';
+import {
+  ChatGPTCreationContext,
+  ChatGPTCreationRequest,
+  Gpt3Prompt,
+  UserApiInfo,
+} from '../src/interface';
+import { DEFAULT_USAGE_LIMIT, defaultGPT3Props } from './consts';
+import {
+  PromptInputFormat,
+  PromptOutputFormat,
+  Prompts,
+  SystemPrompt,
+} from './prompts';
 
 export const combineMerge = (target, source, options) => {
   const destination = target.slice();
@@ -200,7 +210,7 @@ export const validateUserAuth = async (
   returnConfig = false
 ) => {
   const userAuthInfo = await getOrSetUserOpenAiInfo(workspaceId, userId);
-  let apiKey = '';
+  let apiKey;
   let userFlag = false;
   const userToken = userAuthInfo.auth?.authData?.accessToken;
 
@@ -210,7 +220,6 @@ export const validateUserAuth = async (
   } else {
     // If the user has not set the access token, then use the default one with check for the limit
     if (userAuthInfo.auth?.authMetadata.limit > 0) {
-      apiKey = process.env.OPENAI_API_KEY;
     } else if (userAuthInfo.auth?.authMetadata.limit <= 0) {
       throw createError(402, "You've reached your limit for the month");
     } else {
@@ -270,4 +279,68 @@ export const validateUsageAndExecutePrompt = async (
       err?.message ?? 'Error fetching results'
     );
   }
+};
+
+export const preparePromptRequestFromId = async (
+  promptId: string,
+  variablesValues?: Record<string, string>,
+  options?: Gpt3Prompt['properties']
+) => {
+  let promptRes, transformedPrompt;
+  let properties = null;
+  promptRes = (
+    await Gpt3PromptEntity.get({
+      entityId: promptId,
+      workspaceId: process.env.DEFAULT_WORKSPACE_ID,
+    })
+  ).Item;
+
+  const { prompt, variables } = promptRes;
+  properties = promptRes.properties;
+
+  // Replace the variables with the values
+  transformedPrompt = replaceVarWithVal(prompt, variables, variablesValues);
+  return {
+    messages: [
+      SystemPrompt,
+      ...[{ role: 'user', content: transformedPrompt }].map(
+        convertToChatCompletionRequest()
+      ),
+    ],
+    model: defaultGPT3Props.model,
+    max_tokens: options
+      ? options.max_tokens
+      : properties
+      ? properties.max_tokens
+      : defaultGPT3Props.max_tokens,
+    temperature: options
+      ? options.temperature
+      : properties
+      ? properties.temperature
+      : defaultGPT3Props.temperature,
+    top_p: options
+      ? options.weight
+      : properties
+      ? properties.top_p
+      : defaultGPT3Props.top_p,
+    n: options
+      ? options.iterations
+      : properties
+      ? properties.iterations
+      : defaultGPT3Props.iterations,
+  };
+};
+
+export const preparePromptRequestFromContext = (
+  context: ChatGPTCreationContext,
+  input?: keyof typeof PromptInputFormat,
+  output?: keyof typeof PromptOutputFormat
+) => {
+  return {
+    model: 'gpt-3.5-turbo',
+    messages: [
+      SystemPrompt,
+      ...context.map(convertToChatCompletionRequest(input, output)),
+    ],
+  };
 };

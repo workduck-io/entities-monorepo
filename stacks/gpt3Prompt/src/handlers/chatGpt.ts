@@ -1,10 +1,9 @@
 import { extractUserIdFromToken, extractWorkspaceId } from '@mex/gen-utils';
 import { ValidatedAPIGatewayProxyHandler } from '@workduck-io/lambda-routing';
 import {
-  convertToChatCompletionRequest,
+  preparePromptRequestFromContext,
   validateUsageAndExecutePrompt,
 } from '../../utils/helpers';
-import { SystemPrompt } from '../../utils/prompts';
 import { ChatGPTPromptCreationRequest } from '../interface';
 
 export const chatGPTPrompt: ValidatedAPIGatewayProxyHandler<
@@ -14,25 +13,14 @@ export const chatGPTPrompt: ValidatedAPIGatewayProxyHandler<
   const workspaceId = extractWorkspaceId(event);
   const userId = extractUserIdFromToken(event);
   try {
-    console.log({
-      messages: [
-        SystemPrompt,
-        ...context.map(convertToChatCompletionRequest(input, output)),
-      ],
-    });
-
     const result = await validateUsageAndExecutePrompt(
       workspaceId,
       userId,
       async (openai) => {
         return (
-          await openai.createChatCompletion({
-            model: 'gpt-3.5-turbo',
-            messages: [
-              SystemPrompt,
-              ...context.map(convertToChatCompletionRequest(input, output)),
-            ],
-          })
+          await openai.createChatCompletion(
+            preparePromptRequestFromContext(context, input, output)
+          )
         ).data;
       }
     );

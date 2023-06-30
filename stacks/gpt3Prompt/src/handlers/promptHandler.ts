@@ -11,16 +11,12 @@ import {
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
 import { InferEntityItem } from 'dynamodb-toolbox';
-import {
-  Categories,
-  defaultGPT3Props,
-  PromptProviders,
-} from '../../utils/consts';
+import { Categories, PromptProviders } from '../../utils/consts';
 import {
   getOrSetUserOpenAiInfo,
+  preparePromptRequestFromContext,
+  preparePromptRequestFromId,
   removeAtrributes,
-  replaceVarWithVal,
-  replaceVarWithValForPreview,
   validateUsageAndExecutePrompt,
   validateUserAuth,
 } from '../../utils/helpers';
@@ -31,7 +27,6 @@ import {
 } from '../entities';
 import { Gpt3Prompt, UserApiInfo } from '../interface';
 
-import type { CreateChatCompletionRequest } from 'openai';
 import { chatGPTPrompt } from './chatGpt';
 
 @InternalError()
@@ -445,76 +440,28 @@ export class PromptsHandler {
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserIdFromToken(event);
     const { id } = event.pathParameters;
-    let options: Gpt3Prompt['properties'],
-      variablesValues: Record<string, string>,
-      promptRes,
-      transformedPrompt;
-    let properties = null;
+    const options: Gpt3Prompt['properties'] = event.body.options;
+    const variablesValues: Record<string, string> = event.body.variablesValues;
 
-    if (id === 'preview') {
-      const body = event.body as any;
-      const { prompt, variables } = event.body;
-      options = body.options;
-      transformedPrompt = replaceVarWithValForPreview(prompt, variables);
-    } else {
-      options = event.body.options;
-      variablesValues = event.body.variablesValues as unknown as Record<
-        string,
-        string
-      >;
-
-      promptRes = (
-        await Gpt3PromptEntity.get({
-          entityId: id,
-          workspaceId: process.env.DEFAULT_WORKSPACE_ID,
-        })
-      ).Item;
-
-      const { prompt, variables } = promptRes;
-      properties = promptRes.properties;
-
-      // Replace the variables with the values
-      transformedPrompt = replaceVarWithVal(prompt, variables, variablesValues);
-    }
+    const payload = await preparePromptRequestFromId(
+      id,
+      variablesValues,
+      options
+    );
 
     const result = await validateUsageAndExecutePrompt(
       workspaceId,
       userId,
       async (openai) => {
-        if (transformedPrompt) {
-          const resultPayload: CreateChatCompletionRequest = {
-            messages: [{ role: 'user', content: transformedPrompt }],
-            model: defaultGPT3Props.model,
-            max_tokens: options
-              ? options.max_tokens
-              : properties
-              ? properties.max_tokens
-              : defaultGPT3Props.max_tokens,
-            temperature: options
-              ? options.temperature
-              : properties
-              ? properties.temperature
-              : defaultGPT3Props.temperature,
-            top_p: options
-              ? options.weight
-              : properties
-              ? properties.top_p
-              : defaultGPT3Props.top_p,
-            n: options
-              ? options.iterations
-              : properties
-              ? properties.iterations
-              : defaultGPT3Props.iterations,
-          };
-
+        if (payload) {
           try {
-            const result = (await openai.createChatCompletion(resultPayload))
-              .data;
+            const result = (await openai.createChatCompletion(payload)).data;
             return result;
           } catch (error) {
             throw createError(400, error.response.statusText);
           }
         }
+        throw createError(400, 'Error constructing payload');
       }
     );
 
@@ -1109,8 +1056,48 @@ export class PromptsHandler {
   }
 
   @Route({
+    method: HTTPMethod.POST,
+    path: '/prepare',
+  })
+  async getPromptFromRequest(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserIdFromToken(event);
+
+    const userAuthInfo = validateUserAuth(workspaceId, userId);
+    if (event.body?.promptId) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          ...userAuthInfo,
+          request: await preparePromptRequestFromId(
+            event.body.promptId,
+            event.body.variableValues,
+            event.body.options
+          ),
+        }),
+      };
+    }
+    if (event.body?.context) {
+      {
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            ...userAuthInfo,
+            request: preparePromptRequestFromContext(
+              event.body.context,
+              event.body.input,
+              event.body.output
+            ),
+          }),
+        };
+      }
+    }
+    throw createError(404, 'Resource not found');
+  }
+
+  @Route({
     method: HTTPMethod.PUT,
-    path: '/count',
+    path: '/details/limit',
   })
   async updateUserLimitDetails(event: ValidatedAPIGatewayProxyEvent<never>) {
     const workspaceId = extractWorkspaceId(event);
