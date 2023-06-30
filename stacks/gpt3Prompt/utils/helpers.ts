@@ -227,7 +227,7 @@ export const validateUserAuth = async (
     }
   }
   return {
-    apiKey,
+    apiKey: returnConfig ? apiKey ?? process.env.OPENAI_API_KEY : apiKey,
     userFlag,
     userAuthInfo: returnConfig ? userAuthInfo : undefined,
   };
