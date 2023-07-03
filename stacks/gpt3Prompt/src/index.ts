@@ -20,6 +20,13 @@ const main = {
     },
     {
       httpApi: {
+        method: 'POST',
+        path: '/prepare',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
         method: 'GET',
         path: '/details',
         authorizer: 'workduckAuthorizer',

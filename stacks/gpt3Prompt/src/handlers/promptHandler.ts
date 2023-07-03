@@ -1063,7 +1063,7 @@ export class PromptsHandler {
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserIdFromToken(event);
 
-    const userAuthInfo = validateUserAuth(workspaceId, userId);
+    const userAuthInfo = await validateUserAuth(workspaceId, userId);
     if (event.body?.promptId) {
       return {
         statusCode: 200,
