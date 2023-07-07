@@ -3,6 +3,7 @@
   "projects": {
     "access-checker": "libs/access-checker",
     "comment": "stacks/comment",
+    "crud": "stacks/crud",
     "entity-utils": "libs/entity-utils",
     "entityInfra": "stacks/entityInfra",
     "gen-utils": "libs/gen-utils",
@@ -12,6 +13,7 @@
     "reaction": "stacks/reaction",
     "reminder": "stacks/reminder",
     "smartcapture": "stacks/smartcapture",
+    "superblock": "stacks/superblock",
     "task": "stacks/task"
   }
 }
