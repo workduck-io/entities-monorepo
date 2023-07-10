@@ -14,24 +14,18 @@ export class SuperblockPropertyHandler {
     method: HTTPMethod.POST,
     path: '/',
   })
-  async createProperty(event: ValidatedAPIGatewayProxyEvent<any>) {
-    const { name, status } = event.body;
-    if (!name) {
-      throw createError(400,
-        JSON.stringify({ message: 'Name is required.' })
-      );
-    }
-    if (!['todo', 'inprogress', 'done'].includes(status)) {
-      throw createError(400,
-        JSON.stringify({ statusCode: 400, message: 'Invalid feature value.' })
-      );
-    }
+  async createProperty(event: ValidatedAPIGatewayProxyEvent<SuperblockProperty>) {
+    console.log(event);
+    const { body } = event;
+
+    console.log("ok");
     const propertyId = uuidv4();
     const item: SuperblockProperty = {
-      name,
-      status,
-      propertyId,
+      propertyId: propertyId,
+      name: "create ui",
+      status: "todo",
     }
+    console.log(item);
     await SuperblockPropertyEntity.update(item);
     return {
       statusCode: 200,
@@ -44,7 +38,7 @@ export class SuperblockPropertyHandler {
   })
   async getProperty(event: ValidatedAPIGatewayProxyEvent<any>) {
     const propertyId = event.pathParameters.id;
-    const property = await SuperblockPropertyEntity.get(propertyId);
+    const property = await SuperblockPropertyEntity.get({ propertyId, name: 'Create UI' });
     return {
       statusCode: 200,
       body: JSON.stringify(property),
@@ -63,7 +57,7 @@ export class SuperblockPropertyHandler {
       throw createError(400, JSON.stringify({ statusCode: 400, message: 'Invalid status value.' }));
     }
 
-    const existingProperty = await SuperblockPropertyEntity.get(propertyId);
+    const existingProperty = await SuperblockPropertyEntity.get({ propertyId, name: 'Create UI'});
     if (!existingProperty) {
       throw createError(
         404,
@@ -93,7 +87,7 @@ export class SuperblockPropertyHandler {
   })
   async deleteProperty(event: ValidatedAPIGatewayProxyEvent<any>) {
     const propertyId = event.pathParameters.id;
-    await SuperblockPropertyEntity.delete(propertyId);
+    await SuperblockPropertyEntity.delete({ propertyId, name: 'Create UI'});
 
     return {
       statusCode: 200,
@@ -106,8 +100,3 @@ export class SuperblockPropertyHandler {
     return event;
   }
 }
-
-
-
-
-

@@ -25,18 +25,18 @@ export const SuperblockEntity = new Entity({
 export const SuperblockPropertyEntity = new Entity({
   name: 'superblockProperty',
   attributes: {
+    propertyId: {
+      type: 'string',
+      partitionKey: true,
+    },
     name: {
       type: 'string',
-      required: true,
+      sortKey: true,
     },
     status: {
       type: 'string',
       enum: ['todo', 'inprogress', 'done'],
       default: 'none',
-    },
-    propertyId: {
-      type: 'string',
-      required: true,
     },
   },
   table: superblockTable,

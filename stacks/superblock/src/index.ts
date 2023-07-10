@@ -1,13 +1,12 @@
 import { handlerPath } from '../utils/handlerResolver';
 
-const property = {
-  handler: `${handlerPath(__dirname)}/handler.create`,
+const main = {
+  handler: `${handlerPath(__dirname)}/handler.main`,
   events: [
     {
       httpApi: {
         method: 'POST',
         path: '/',
-        authorizer: 'workduckAuthorizer',
       },
     },
     {
@@ -36,5 +35,5 @@ const property = {
 };
 
 export default {
-  property,
+  main,
 };
