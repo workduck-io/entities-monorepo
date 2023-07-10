@@ -6,11 +6,11 @@ export const SuperblockEntity = new Entity({
   attributes: {
     name: {
       type: 'string',
-      required: true,
+      sortKey: true,
     },
     superblockId: {
       type: 'string',
-      required: true,
+      partitionKey: true,
     },
     config: {
       type: 'map',
@@ -35,11 +35,9 @@ export const SuperblockPropertyEntity = new Entity({
     },
     status: {
       type: 'string',
-      enum: ['todo', 'inprogress', 'done'],
       default: 'none',
     },
   },
   table: superblockTable,
   timestamps: false,
 } as const);
-
