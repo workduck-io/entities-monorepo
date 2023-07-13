@@ -12,21 +12,21 @@ const main = {
     {
       httpApi: {
         method: 'GET',
-        path: '/{id}',
+        path: '/{propertyId}',
         authorizer: 'workduckAuthorizer',
       },
     },
     {
       httpApi: {
-        method: 'PATCH',
-        path: '/{id}',
+        method: 'PUT',
+        path: '/{propertyId}',
         authorizer: 'workduckAuthorizer',
       },
     },
     {
       httpApi: {
         method: 'DELETE',
-        path: '/{id}',
+        path: '/{propertyId}',
         authorizer: 'workduckAuthorizer',
       },
     },
@@ -34,6 +34,40 @@ const main = {
   ],
 };
 
+const superblock = {
+  handler: `${handlerPath(__dirname)}/handler.superblock`,
+  events: [
+    {
+      httpApi: {
+        method: 'POST',
+        path: '/superblock',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/superblock/{superblockId}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'PUT',
+        path: '/superblock/{superblockId}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'DELETE',
+        path: '/superblock/{superblockId}',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+  ],
+}
+
 export default {
   main,
+  superblock,
 };

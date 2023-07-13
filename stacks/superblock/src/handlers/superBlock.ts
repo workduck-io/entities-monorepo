@@ -12,7 +12,7 @@ import { Superblock } from '../interface';
 export class SuperblockHandler {
   @Route({
     method: HTTPMethod.POST,
-    path: '/',
+    path: '/superblock',
   })
   async createSuperblock(event: ValidatedAPIGatewayProxyEvent<any>) {
     const { name } = event.body;
@@ -38,30 +38,42 @@ export class SuperblockHandler {
 
   @Route({
     method: HTTPMethod.GET,
-    path: '/{id}',
+    path: '/superblock/{superblockId}',
   })
   async getSuperblock(event: ValidatedAPIGatewayProxyEvent<any>) {
-    const superblockId = event.pathParameters.id;
-    const superblock = await SuperblockEntity.get({ superblockId });
+    const { pathParameters } = event;
+    const { superblockId } = pathParameters;
+
+    const superblock = await SuperblockEntity.get({ superblockId, name: "Superblock-1" });
 
     if (!superblock) {
       throw createError(404, JSON.stringify({ message: 'Superblock not found.' }));
     }
     return {
       statusCode: 200,
-      body: JSON.stringify(superblock.Item),
+      body: JSON.stringify(superblock),
     };
   }
 
   @Route({
     method: HTTPMethod.DELETE,
-    path: '/{id}',
+    path: '/superblock/{superblockId}',
   })
   async deleteSuperblock(event: ValidatedAPIGatewayProxyEvent<any>) {
-    const superblockId = event.pathParameters.id;
+    const { pathParameters } = event;
+    const { superblockId } = pathParameters;
 
-    await SuperblockEntity.delete({ superblockId });
-
+    const superBlockResponse = await SuperblockEntity.get({ superblockId, name: "Superblock-1" });
+    if (!superBlockResponse.Item) {
+      throw createError(
+        404,
+        JSON.stringify({
+          statusCode: 404,
+          message: 'Note not found',
+        })
+      );
+    }
+    await SuperblockEntity.delete({ superblockId, name: "Superblock-1" });
     return {
       statusCode: 200,
       body: JSON.stringify({ message: 'Superblock deleted successfully.' }),
@@ -69,7 +81,7 @@ export class SuperblockHandler {
   }
 
   @RouteAndExec()
-  execute(event: any) {
+  execute(event) {
     return event;
   }
 }

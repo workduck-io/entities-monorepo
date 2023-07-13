@@ -22,23 +22,33 @@ export class SuperblockPropertyHandler {
     const propertyId = uuidv4();
     const item: SuperblockProperty = {
       propertyId: propertyId,
-      name: "create ui",
-      status: "todo",
+      name: body.name,
+      status: body.status,
     }
     console.log(item);
     await SuperblockPropertyEntity.update(item);
     return {
       statusCode: 200,
-      body: JSON.stringify({ id: propertyId }),
+      body: JSON.stringify({ id: propertyId, name: body.name }),
     };
   }
   @Route({
     method: HTTPMethod.GET,
-    path: '/{id}',
+    path: '/{propertyId}',
   })
-  async getProperty(event: ValidatedAPIGatewayProxyEvent<any>) {
-    const propertyId = event.pathParameters.id;
-    const property = await SuperblockPropertyEntity.get({ propertyId, name: 'Create UI' });
+  async getProperty(event: ValidatedAPIGatewayProxyEvent<SuperblockProperty>) {
+    const { pathParameters } = event;
+    const { propertyId } = pathParameters;
+    const property = await SuperblockPropertyEntity.get({ propertyId, name:"Create UI"});
+    if (!property) {
+      throw createError(
+        404,
+        JSON.stringify({
+          statusCode: 404,
+          message: 'Property not found',
+        })
+      );
+    }
     return {
       statusCode: 200,
       body: JSON.stringify(property),
@@ -46,19 +56,16 @@ export class SuperblockPropertyHandler {
   }
 
   @Route({
-    method: HTTPMethod.PATCH,
-    path: '/{id}',
+    method: HTTPMethod.PUT,
+    path: '/{propertyId}',
   })
-  async updateProperty(event: ValidatedAPIGatewayProxyEvent<any>) {
-    const { body } = event;
-    const propertyId = event.pathParameters.id;
+  async updateProperty(event: ValidatedAPIGatewayProxyEvent<SuperblockProperty>) {
+    const { body, pathParameters } = event;
 
-    if (!body || !body.status || !['todo', 'inprogress', 'done'].includes(body.status)) {
-      throw createError(400, JSON.stringify({ statusCode: 400, message: 'Invalid status value.' }));
-    }
+    const { propertyId } = pathParameters;
 
-    const existingProperty = await SuperblockPropertyEntity.get({ propertyId, name: 'Create UI'});
-    if (!existingProperty) {
+    const existingPropertyResponse = await SuperblockPropertyEntity.get({ propertyId, name: "Create UI"});
+    if (!existingPropertyResponse.Item) {
       throw createError(
         404,
         JSON.stringify({
@@ -68,27 +75,40 @@ export class SuperblockPropertyHandler {
       );
     }
 
+    const existingProperty = existingPropertyResponse.Item;
+
     const updatedProperty: SuperblockProperty = {
-      ...existingProperty.Item,
-      status: body.status,
+      ...existingProperty,
+      ...body,
     };
 
-    await SuperblockPropertyEntity.update(updatedProperty);
+    await SuperblockPropertyEntity.put(updatedProperty);
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ status: updatedProperty.status }),
+      body: JSON.stringify({ updatedProperty }),
     };
   }
 
   @Route({
     method: HTTPMethod.DELETE,
-    path: '/{id}',
+    path: '/{propertyId}',
   })
   async deleteProperty(event: ValidatedAPIGatewayProxyEvent<any>) {
-    const propertyId = event.pathParameters.id;
-    await SuperblockPropertyEntity.delete({ propertyId, name: 'Create UI'});
+    const { pathParameters } = event;
+    const { propertyId } = pathParameters;
 
+    const existingPropertyResponse = await SuperblockPropertyEntity.get({ propertyId, name: 'Create UI'});
+    if (!existingPropertyResponse.Item) {
+      throw createError(
+        404,
+        JSON.stringify({
+          statusCode: 404,
+          message: 'Note not found',
+        })
+      );
+    }
+    await SuperblockPropertyEntity.delete({ propertyId, name: 'Create UI'});
     return {
       statusCode: 200,
       body: JSON.stringify({ message: 'Property deleted successfully.' }),
@@ -96,7 +116,7 @@ export class SuperblockPropertyHandler {
   }
 
   @RouteAndExec()
-  execute(event: any) {
+  execute(event) {
     return event;
   }
 }
