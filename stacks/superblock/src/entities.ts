@@ -4,13 +4,16 @@ import { superblockTable } from '../service/DynamoDB';
 export const SuperblockEntity = new Entity({
   name: 'superblock',
   attributes: {
-    name: {
+    workspaceId: {
       type: 'string',
-      sortKey: true,
+      partitionKey: true,
     },
     superblockId: {
       type: 'string',
-      partitionKey: true,
+      sortKey: true,
+    },
+    name: {
+      type: 'string',
     },
     config: {
       type: 'map',
@@ -25,17 +28,23 @@ export const SuperblockEntity = new Entity({
 export const SuperblockPropertyEntity = new Entity({
   name: 'superblockProperty',
   attributes: {
-    propertyId: {
+    workspaceId: {
       type: 'string',
       partitionKey: true,
     },
-    name: {
+    propertyId: {
       type: 'string',
       sortKey: true,
+    },
+    name: {
+      type: 'string',
     },
     status: {
       type: 'string',
       default: 'none',
+    },
+    superblockId: {
+      type: 'string',
     },
   },
   table: superblockTable,

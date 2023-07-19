@@ -4,6 +4,7 @@ import {
   RouteAndExec,
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
+import { extractWorkspaceId } from '@mex/gen-utils';
 import { v4 as uuidv4 } from 'uuid';
 import { createError } from '@middy/util';
 import { SuperblockEntity } from '../entities';
@@ -21,10 +22,12 @@ export class SuperblockHandler {
         JSON.stringify({ message: 'Name is required.' })
       );
     }
+    const workspaceId = extractWorkspaceId(event);
     const superblockId = uuidv4();
     const item: Superblock = {
-      name,
+      workspaceId,
       superblockId,
+      name,
       config: {
         Bottom: [],
       }
@@ -32,7 +35,9 @@ export class SuperblockHandler {
     await SuperblockEntity.update(item);
     return {
       statusCode: 200,
-      body: JSON.stringify({ id: superblockId }),
+      body: JSON.stringify({
+        superblockId: superblockId,
+      }),
     };
   }
 
@@ -43,8 +48,8 @@ export class SuperblockHandler {
   async getSuperblock(event: ValidatedAPIGatewayProxyEvent<any>) {
     const { pathParameters } = event;
     const { superblockId } = pathParameters;
-
-    const superblock = await SuperblockEntity.get({ superblockId, name: "Superblock-1" });
+    const workspaceId = extractWorkspaceId(event);
+    const superblock = await SuperblockEntity.get({ workspaceId, superblockId });
 
     if (!superblock) {
       throw createError(404, JSON.stringify({ message: 'Superblock not found.' }));
@@ -62,18 +67,18 @@ export class SuperblockHandler {
   async deleteSuperblock(event: ValidatedAPIGatewayProxyEvent<any>) {
     const { pathParameters } = event;
     const { superblockId } = pathParameters;
-
-    const superBlockResponse = await SuperblockEntity.get({ superblockId, name: "Superblock-1" });
+    const workspaceId = extractWorkspaceId(event);
+    const superBlockResponse = await SuperblockEntity.get({ workspaceId, superblockId });
     if (!superBlockResponse.Item) {
       throw createError(
         404,
         JSON.stringify({
           statusCode: 404,
-          message: 'Note not found',
+          message: 'Superblock not found',
         })
       );
     }
-    await SuperblockEntity.delete({ superblockId, name: "Superblock-1" });
+    await SuperblockEntity.delete({ workspaceId, superblockId });
     return {
       statusCode: 200,
       body: JSON.stringify({ message: 'Superblock deleted successfully.' }),

@@ -4,6 +4,7 @@ import {
   RouteAndExec,
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
+import { extractWorkspaceId } from '@mex/gen-utils';
 import { v4 as uuidv4 } from 'uuid';
 import { createError } from '@middy/util';
 import { SuperblockPropertyEntity, SuperblockEntity } from '../entities';
@@ -14,17 +15,19 @@ export class SuperblockPropertyHandler {
     method: HTTPMethod.POST,
     path: '/',
   })
-  async createProperty(event: ValidatedAPIGatewayProxyEvent<SuperblockProperty>) {
+  async createProperty(event: ValidatedAPIGatewayProxyEvent<any>) {
     const { body } = event;
+    const workspaceId = extractWorkspaceId(event);
     const propertyId = uuidv4();
     const item: SuperblockProperty = {
+      workspaceId: workspaceId,
       propertyId: propertyId,
       name: body.name,
       status: body.status,
+      superblockId: body.superblockId,
     };
-    const superblockId = "e5e58017-495d-49d3-b3f4-69a5189d5b65";
-    const superblockName = 'Superblock-1';
-    const superblockResponse = await SuperblockEntity.get<Superblock>({ superblockId, name: superblockName });
+    const superblockId = body.superblockId;
+    const superblockResponse = await SuperblockEntity.get<Superblock>({ workspaceId, superblockId });
     const superblock = superblockResponse.Item;
     if (superblock) {
       const config = superblock.config || { Bottom: [] };
@@ -46,7 +49,8 @@ export class SuperblockPropertyHandler {
   async getProperty(event: ValidatedAPIGatewayProxyEvent<SuperblockProperty>) {
     const { pathParameters } = event;
     const { propertyId } = pathParameters;
-    const property = await SuperblockPropertyEntity.get({ propertyId, name: "Create UI" });
+    const workspaceId = extractWorkspaceId(event);
+    const property = await SuperblockPropertyEntity.get({ workspaceId, propertyId });
     if (!property) {
       throw createError(
         404,
@@ -69,13 +73,14 @@ export class SuperblockPropertyHandler {
   async updateProperty(event: ValidatedAPIGatewayProxyEvent<SuperblockProperty>) {
     const { body, pathParameters } = event;
     const { propertyId } = pathParameters;
-    const existingPropertyResponse = await SuperblockPropertyEntity.get({ propertyId, name: "Create UI" });
+    const workspaceId = extractWorkspaceId(event);
+    const existingPropertyResponse = await SuperblockPropertyEntity.get({ workspaceId, propertyId });
     if (!existingPropertyResponse.Item) {
       throw createError(
         404,
         JSON.stringify({
           statusCode: 404,
-          message: 'Property not found.',
+          message: 'Property not found',
         })
       );
     }
@@ -100,21 +105,21 @@ export class SuperblockPropertyHandler {
   async deleteProperty(event: ValidatedAPIGatewayProxyEvent<any>) {
     const { pathParameters } = event;
     const { propertyId } = pathParameters;
-
-    const existingPropertyResponse = await SuperblockPropertyEntity.get({ propertyId, name: 'Create UI' });
+    const workspaceId = extractWorkspaceId(event);
+    const existingPropertyResponse = await SuperblockPropertyEntity.get({ workspaceId, propertyId });
     if (!existingPropertyResponse.Item) {
       throw createError(
         404,
         JSON.stringify({
           statusCode: 404,
-          message: 'Note not found',
+          message: 'Property not found',
         })
       );
     }
-    await SuperblockPropertyEntity.delete({ propertyId, name: 'Create UI' });
+    await SuperblockPropertyEntity.delete({ workspaceId, propertyId });
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: 'Property deleted successfully.' }),
+      body: JSON.stringify({ message: 'Property deleted successfully' }),
     };
   }
 
