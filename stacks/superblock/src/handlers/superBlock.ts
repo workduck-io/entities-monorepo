@@ -84,7 +84,23 @@ export class SuperblockHandler {
       body: JSON.stringify({ message: 'Superblock deleted successfully.' }),
     };
   }
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/superblock/{superblockId}/all',
+  })
 
+  async getAllSuperblocks(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const { pathParameters } = event;
+    const { superblockId } = pathParameters;
+    const workspaceId = extractWorkspaceId(event);
+    const allSuperblockProperties = (await SuperblockEntity.get<Superblock>({ workspaceId, superblockId }));
+    return {
+      statusCode: 200,
+      body: JSON.stringify(
+        allSuperblockProperties.Item.config
+      ),
+    };
+  }
   @RouteAndExec()
   execute(event) {
     return event;

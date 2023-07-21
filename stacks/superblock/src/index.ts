@@ -64,6 +64,13 @@ const superblock = {
         authorizer: 'workduckAuthorizer',
       },
     },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/superblock/{superblockId}/all',
+        authorizer: 'workduckAuthorizer',
+      },
+    }
   ],
 }
 
