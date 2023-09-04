@@ -1076,8 +1076,7 @@ export class PromptsHandler {
           ),
         }),
       };
-    }
-    if (event.body?.context) {
+    } else if (event.body?.context) {
       {
         return {
           statusCode: 200,
@@ -1091,6 +1090,14 @@ export class PromptsHandler {
           }),
         };
       }
+    } else {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          ...userAuthInfo,
+          request: {},
+        }),
+      };
     }
     throw createError(404, 'Resource not found');
   }
