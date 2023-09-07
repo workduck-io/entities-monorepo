@@ -90,7 +90,7 @@ export const baseServerlessConfiguration: Partial<Serverless> = {
   },
   provider: {
     name: 'aws',
-    runtime: 'nodejs16.x',
+    runtime: 'nodejs18.x',
     memorySize: 512,
     logRetentionInDays: 7,
     apiGateway: {
