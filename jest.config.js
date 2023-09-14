@@ -12,5 +12,6 @@ module.exports = {
     '<rootDir>/stacks/smartcapture',
     '<rootDir>/stacks/highlights',
     '<rootDir>/stacks/gpt3Prompt',
+    '<rootDir>/stacks/superblock',
   ],
 };

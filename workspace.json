@@ -12,6 +12,7 @@
     "reaction": "stacks/reaction",
     "reminder": "stacks/reminder",
     "smartcapture": "stacks/smartcapture",
+    "superblock": "stacks/superblock",
     "task": "stacks/task"
   }
 }
