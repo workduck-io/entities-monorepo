@@ -4,7 +4,6 @@ import { createError } from '@middy/util';
 import { wdRequestIdParser } from '@workduck-io/wd-request-id-parser';
 
 // import some middlewares
-import httpCors from '@middy/http-cors';
 import httpErrorHandler from '@middy/http-error-handler';
 import jsonBodyParser from '@middy/http-json-body-parser';
 import { validate } from '@workduck-io/workspace-validator';
@@ -66,19 +65,21 @@ const userAccessValidatorMiddleware = () => {
 };
 
 export const middyfy = (handler) => {
-  return middy()
-    .use(httpCors())
-    .use(jsonBodyParser()) // parses the request body when it's a JSON and converts it to an object
-    .use(wdRequestIdParser())
-    .use(workduckWorkspaceValidatorMiddleware())
-    .use(userAccessValidatorMiddleware())
-    .use(
-      httpErrorHandler({
-        fallbackMessage: JSON.stringify({
-          statusCode: 500,
-          message: 'Server failed to respond',
-        }),
-      })
-    ) // handles common http errors and returns proper responses
-    .handler(handler);
+  return (
+    middy()
+      // .use(httpCors())
+      .use(jsonBodyParser()) // parses the request body when it's a JSON and converts it to an object
+      .use(wdRequestIdParser())
+      .use(workduckWorkspaceValidatorMiddleware())
+      .use(userAccessValidatorMiddleware())
+      .use(
+        httpErrorHandler({
+          fallbackMessage: JSON.stringify({
+            statusCode: 500,
+            message: 'Server failed to respond',
+          }),
+        })
+      ) // handles common http errors and returns proper responses
+      .handler(handler)
+  );
 };

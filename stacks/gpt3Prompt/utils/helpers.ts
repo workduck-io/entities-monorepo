@@ -1,16 +1,21 @@
 import { createError } from '@middy/util';
 import merge from 'deepmerge';
-import {
-  Configuration,
-  CreateChatCompletionResponse,
-  CreateCompletionResponse,
-  OpenAIApi,
-} from 'openai';
+import { Configuration, CreateChatCompletionResponse, OpenAIApi } from 'openai';
 import { lambda } from '../libs/lambda-lib';
-import { Gpt3PromptUserEntity } from '../src/entities';
-import { ChatGPTCreationRequest, UserApiInfo } from '../src/interface';
-import { DEFAULT_USAGE_LIMIT } from './consts';
-import { PromptInputFormat, PromptOutputFormat, Prompts } from './prompts';
+import { Gpt3PromptEntity, Gpt3PromptUserEntity } from '../src/entities';
+import {
+  ChatGPTCreationContext,
+  ChatGPTCreationRequest,
+  Gpt3Prompt,
+  UserApiInfo,
+} from '../src/interface';
+import { DEFAULT_USAGE_LIMIT, defaultGPT3Props } from './consts';
+import {
+  PromptInputFormat,
+  PromptOutputFormat,
+  Prompts,
+  SystemPrompt,
+} from './prompts';
 
 export const combineMerge = (target, source, options) => {
   const destination = target.slice();
@@ -199,39 +204,47 @@ export const getOrSetUserOpenAiInfo = async (
   return userAuthInfo;
 };
 
-export const validateUsageAndExecutePrompt = async (
+export const validateUserAuth = async (
   workspaceId: string,
   userId: string,
-  callback?: (
-    openai: OpenAIApi
-  ) => Promise<CreateCompletionResponse | CreateChatCompletionResponse>
+  returnConfig = false
 ) => {
   const userAuthInfo = await getOrSetUserOpenAiInfo(workspaceId, userId);
-  let apikey = '';
+  let apiKey;
   let userFlag = false;
   const userToken = userAuthInfo.auth?.authData?.accessToken;
 
   if (userToken) {
-    apikey = userAuthInfo.auth?.authData?.accessToken;
+    apiKey = userAuthInfo.auth?.authData?.accessToken;
     userFlag = true;
   } else {
     // If the user has not set the access token, then use the default one with check for the limit
     if (userAuthInfo.auth?.authMetadata.limit > 0) {
-      apikey = process.env.OPENAI_API_KEY;
     } else if (userAuthInfo.auth?.authMetadata.limit <= 0) {
-      return {
-        statusCode: 402,
-        body: JSON.stringify("You've reached your limit for the month"),
-      };
+      throw createError(402, "You've reached your limit for the month");
     } else {
-      return {
-        statusCode: 402,
-        body: JSON.stringify('You need to set up your OpenAI API key'),
-      };
+      throw createError(402, 'You need to set up your OpenAI API key');
     }
   }
+  return {
+    apiKey: returnConfig ? apiKey ?? process.env.OPENAI_API_KEY : apiKey,
+    userFlag,
+    userAuthInfo: returnConfig ? userAuthInfo : undefined,
+  };
+};
+
+export const validateUsageAndExecutePrompt = async (
+  workspaceId: string,
+  userId: string,
+  callback: (openai: OpenAIApi) => Promise<CreateChatCompletionResponse>
+) => {
   try {
-    const completions = await callback(openaiInstance(apikey));
+    const { apiKey, userFlag, userAuthInfo } = await validateUserAuth(
+      workspaceId,
+      userId,
+      true
+    );
+    const completions = await callback(openaiInstance(apiKey));
     if (completions && completions && completions.choices.length > 0) {
       await Gpt3PromptUserEntity.update({
         userId,
@@ -249,13 +262,10 @@ export const validateUsageAndExecutePrompt = async (
           },
         },
       });
+
       return {
         statusCode: 200,
-        body: JSON.stringify(
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          //@ts-ignore
-          completions.choices[0].text ?? completions.choices[0].message
-        ),
+        body: JSON.stringify(completions.choices[0].message),
       };
     }
     return {
@@ -263,6 +273,74 @@ export const validateUsageAndExecutePrompt = async (
       body: JSON.stringify([]),
     };
   } catch (err) {
-    throw createError(400, 'Error fetching results');
+    console.error(err.response.data);
+    throw createError(
+      err?.statusCode ?? 400,
+      err?.message ?? 'Error fetching results'
+    );
   }
+};
+
+export const preparePromptRequestFromId = async (
+  promptId: string,
+  variablesValues?: Record<string, string>,
+  options?: Gpt3Prompt['properties']
+) => {
+  let promptRes, transformedPrompt;
+  let properties = null;
+  promptRes = (
+    await Gpt3PromptEntity.get({
+      entityId: promptId,
+      workspaceId: process.env.DEFAULT_WORKSPACE_ID,
+    })
+  ).Item;
+
+  const { prompt, variables } = promptRes;
+  properties = promptRes.properties;
+
+  // Replace the variables with the values
+  transformedPrompt = replaceVarWithVal(prompt, variables, variablesValues);
+  return {
+    messages: [
+      SystemPrompt,
+      ...[{ role: 'user', content: transformedPrompt }].map(
+        convertToChatCompletionRequest()
+      ),
+    ],
+    model: defaultGPT3Props.model,
+    max_tokens: options
+      ? options.max_tokens
+      : properties
+      ? properties.max_tokens
+      : defaultGPT3Props.max_tokens,
+    temperature: options
+      ? options.temperature
+      : properties
+      ? properties.temperature
+      : defaultGPT3Props.temperature,
+    top_p: options
+      ? options.weight
+      : properties
+      ? properties.top_p
+      : defaultGPT3Props.top_p,
+    n: options
+      ? options.iterations
+      : properties
+      ? properties.iterations
+      : defaultGPT3Props.iterations,
+  };
+};
+
+export const preparePromptRequestFromContext = (
+  context: ChatGPTCreationContext,
+  input?: keyof typeof PromptInputFormat,
+  output?: keyof typeof PromptOutputFormat
+) => {
+  return {
+    model: 'gpt-3.5-turbo',
+    messages: [
+      SystemPrompt,
+      ...context.map(convertToChatCompletionRequest(input, output)),
+    ],
+  };
 };

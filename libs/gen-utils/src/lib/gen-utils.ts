@@ -1,8 +1,8 @@
 import { createError, HttpError } from '@middy/util';
-import { Catch, WDError } from '@workduck-io/wderror';
+import { CatchAll, WDError } from '@workduck-io/wderror';
 import jwt_decode from 'jwt-decode';
-import { WDTokenDecode } from './interfaces';
 import { customAlphabet } from 'nanoid';
+import { WDTokenDecode } from './interfaces';
 
 const nanoid = customAlphabet(
   '346789ABCDEFGHJKLMNPQRTUVWXYabcdefghijkmnpqrtwxyz',
@@ -42,15 +42,9 @@ export const extractUserIdFromToken = (event): string => {
 };
 
 export const InternalError = (): any =>
-  Catch(Error, (err: HttpError) => {
-    throw createError(
-      err.statusCode ?? 500,
-      JSON.stringify({
-        statusCode: err.statusCode ?? 500,
-        message: err.message,
-      }),
-      { cause: err.cause }
-    );
+  CatchAll((err: HttpError) => {
+    console.error(err);
+    throw createError(err.statusCode ?? 500, err.message, { cause: err.cause });
   });
 
 export const generateCaptureId = () => {

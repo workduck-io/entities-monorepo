@@ -2,7 +2,7 @@ import { handlerPath } from '../utils/handlerResolver';
 
 const main = {
   handler: `${handlerPath(__dirname)}/handler.main`,
-  timeout: 15,
+  timeout: 20,
   events: [
     {
       httpApi: {
@@ -15,7 +15,27 @@ const main = {
       httpApi: {
         method: 'POST',
         path: '/chat',
-
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'POST',
+        path: '/prepare',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'GET',
+        path: '/details',
+        authorizer: 'workduckAuthorizer',
+      },
+    },
+    {
+      httpApi: {
+        method: 'PUT',
+        path: '/count',
         authorizer: 'workduckAuthorizer',
       },
     },

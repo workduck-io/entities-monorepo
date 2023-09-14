@@ -11,19 +11,20 @@ import {
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
 import { InferEntityItem } from 'dynamodb-toolbox';
-import {
-  Categories,
-  defaultGPT3Props,
-  PromptProviders,
-} from '../../utils/consts';
+import { Categories, PromptProviders } from '../../utils/consts';
 import {
   getOrSetUserOpenAiInfo,
+  preparePromptRequestFromContext,
+  preparePromptRequestFromId,
   removeAtrributes,
-  replaceVarWithVal,
-  replaceVarWithValForPreview,
   validateUsageAndExecutePrompt,
+  validateUserAuth,
 } from '../../utils/helpers';
-import { Gpt3PromptAnalyticsEntity, Gpt3PromptEntity } from '../entities';
+import {
+  Gpt3PromptAnalyticsEntity,
+  Gpt3PromptEntity,
+  Gpt3PromptUserEntity,
+} from '../entities';
 import { Gpt3Prompt, UserApiInfo } from '../interface';
 
 import { chatGPTPrompt } from './chatGpt';
@@ -439,77 +440,28 @@ export class PromptsHandler {
     const workspaceId = extractWorkspaceId(event);
     const userId = extractUserIdFromToken(event);
     const { id } = event.pathParameters;
-    let options: Gpt3Prompt['properties'],
-      variablesValues: Record<string, string>,
-      promptRes,
-      transformedPrompt;
-    let properties = null;
+    const options: Gpt3Prompt['properties'] = event.body.options;
+    const variablesValues: Record<string, string> = event.body.variablesValues;
 
-    if (id === 'preview') {
-      const body = event.body as any;
-      const { prompt, variables } = event.body;
-      options = body.options;
-      transformedPrompt = replaceVarWithValForPreview(prompt, variables);
-    } else {
-      options = event.body.options;
-      variablesValues = event.body.variablesValues as unknown as Record<
-        string,
-        string
-      >;
-
-      promptRes = (
-        await Gpt3PromptEntity.get({
-          entityId: id,
-          workspaceId,
-        })
-      ).Item;
-      const { prompt, variables } = promptRes;
-      properties = promptRes.properties;
-
-      // Replace the variables with the values
-      transformedPrompt = replaceVarWithVal(prompt, variables, variablesValues);
-    }
+    const payload = await preparePromptRequestFromId(
+      id,
+      variablesValues,
+      options
+    );
 
     const result = await validateUsageAndExecutePrompt(
       workspaceId,
       userId,
       async (openai) => {
-        if (transformedPrompt) {
-          const resultPayload = {
-            prompt: transformedPrompt,
-            model: properties ? properties.model : defaultGPT3Props.model,
-            max_tokens: options
-              ? options.max_tokens
-              : properties
-              ? properties.max_tokens
-              : defaultGPT3Props.max_tokens,
-            temperature: options
-              ? options.temperature
-              : properties
-              ? properties.temperature
-              : defaultGPT3Props.temperature,
-            top_p: options
-              ? options.weight
-              : properties
-              ? properties.top_p
-              : defaultGPT3Props.top_p,
-            n: options
-              ? options.iterations
-              : properties
-              ? properties.iterations
-              : defaultGPT3Props.iterations,
-          };
-
+        if (payload) {
           try {
-            return (
-              await openai.createCompletion({
-                ...resultPayload,
-              })
-            ).data;
+            const result = (await openai.createChatCompletion(payload)).data;
+            return result;
           } catch (error) {
             throw createError(400, error.response.statusText);
           }
         }
+        throw createError(400, 'Error constructing payload');
       }
     );
 
@@ -1091,6 +1043,96 @@ export class PromptsHandler {
   })
   async executeCommand(event, context, callback) {
     return chatGPTPrompt(event, context, callback);
+  }
+
+  @Route({
+    method: HTTPMethod.GET,
+    path: '/details',
+  })
+  async fetchUserPromptDetails(event: ValidatedAPIGatewayProxyEvent<never>) {
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserIdFromToken(event);
+    return validateUserAuth(workspaceId, userId);
+  }
+
+  @Route({
+    method: HTTPMethod.POST,
+    path: '/prepare',
+  })
+  async getPromptFromRequest(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserIdFromToken(event);
+
+    const userAuthInfo = await validateUserAuth(workspaceId, userId);
+    if (event.body?.promptId) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          ...userAuthInfo,
+          request: await preparePromptRequestFromId(
+            event.body.promptId,
+            event.body.variableValues,
+            event.body.options
+          ),
+        }),
+      };
+    } else if (event.body?.context) {
+      {
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            ...userAuthInfo,
+            request: preparePromptRequestFromContext(
+              event.body.context,
+              event.body.input,
+              event.body.output
+            ),
+          }),
+        };
+      }
+    } else {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          ...userAuthInfo,
+          request: {},
+        }),
+      };
+    }
+    throw createError(404, 'Resource not found');
+  }
+
+  @Route({
+    method: HTTPMethod.PUT,
+    path: '/details/limit',
+  })
+  async updateUserLimitDetails(event: ValidatedAPIGatewayProxyEvent<never>) {
+    const workspaceId = extractWorkspaceId(event);
+    const userId = extractUserIdFromToken(event);
+    const userFlag = false;
+    const userAuthInfo = await getOrSetUserOpenAiInfo(workspaceId, userId);
+    await Gpt3PromptUserEntity.update({
+      userId,
+      workspaceId,
+      auth: {
+        authData: userAuthInfo.auth?.authData,
+        authMetadata: {
+          ...userAuthInfo.auth?.authMetadata,
+          limit: userFlag
+            ? userAuthInfo.auth?.authMetadata.limit
+            : userAuthInfo.auth?.authMetadata.limit === 0
+            ? 0
+            : userAuthInfo.auth?.authMetadata.limit - 1,
+          usage: userAuthInfo.auth?.authMetadata.usage + 1,
+        },
+      },
+    });
+    return {
+      statusCode: 200,
+      bosy: JSON.stringify({
+        success: true,
+      }),
+    };
   }
 
   @RouteAndExec()
