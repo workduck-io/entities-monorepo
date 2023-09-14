@@ -55,6 +55,10 @@ export const generateHighlightId = () => {
   return `HIGHLIGHT_${nanoid()}`;
 };
 
+export const generateEntityId = (suffix: string) => {
+  return `${suffix}_${nanoid()}`;
+};
+
 export function defaultEntitySerializer<T, K>(
   body: Partial<T>,
   params?: {

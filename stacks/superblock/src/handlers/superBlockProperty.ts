@@ -1,47 +1,39 @@
+import { extractWorkspaceId } from '@mex/gen-utils';
+import { createError } from '@middy/util';
 import {
   HTTPMethod,
   Route,
   RouteAndExec,
   ValidatedAPIGatewayProxyEvent,
 } from '@workduck-io/lambda-routing';
-import { extractWorkspaceId } from '@mex/gen-utils';
-import { v4 as uuidv4 } from 'uuid';
-import { createError } from '@middy/util';
-import { SuperblockPropertyEntity, SuperblockEntity } from '../entities';
-import { SuperblockProperty, Superblock } from '../interface';
+import { SuperblockPropertyEntity } from '../entities';
+import { SuperblockProperty } from '../interface';
 
 export class SuperblockPropertyHandler {
   @Route({
     method: HTTPMethod.POST,
     path: '/',
   })
-  async createProperty(event: ValidatedAPIGatewayProxyEvent<any>) {
+  async createProperty(
+    event: ValidatedAPIGatewayProxyEvent<SuperblockProperty>
+  ) {
     const { body } = event;
     const workspaceId = extractWorkspaceId(event);
-    const propertyId = uuidv4();
     const item: SuperblockProperty = {
       workspaceId: workspaceId,
-      propertyId: propertyId,
-      name: body.name,
-      status: body.status,
-      superblockId: body.superblockId,
+      ...body,
     };
-    const superblockId = body.superblockId;
-    const superblockResponse = await SuperblockEntity.get<Superblock>({ workspaceId, superblockId });
-    const superblock = superblockResponse.Item;
-    if (superblock) {
-      const config = superblock.config || { Bottom: [] };
-      config.Bottom.push(propertyId);
-      superblock.config = config;
-      await SuperblockEntity.update(superblock);
-    }
-
-    await SuperblockPropertyEntity.update(item);
+    const result = (
+      await SuperblockPropertyEntity.update(item, {
+        returnValues: 'ALL_NEW',
+      })
+    ).Attributes;
     return {
       statusCode: 200,
-      body: JSON.stringify({ id: propertyId, name: body.name }),
+      body: JSON.stringify(result),
     };
   }
+
   @Route({
     method: HTTPMethod.GET,
     path: '/{propertyId}',
@@ -50,7 +42,10 @@ export class SuperblockPropertyHandler {
     const { pathParameters } = event;
     const { propertyId } = pathParameters;
     const workspaceId = extractWorkspaceId(event);
-    const property = await SuperblockPropertyEntity.get({ workspaceId, propertyId });
+    const property = await SuperblockPropertyEntity.get({
+      workspaceId,
+      propertyId,
+    });
     if (!property) {
       throw createError(
         404,
@@ -62,19 +57,48 @@ export class SuperblockPropertyHandler {
     }
     return {
       statusCode: 200,
-      body: JSON.stringify(property),
+      body: JSON.stringify(property.Item),
     };
   }
 
   @Route({
-    method: HTTPMethod.PUT,
+    method: HTTPMethod.GET,
+    path: '/all',
+  })
+  async getAllProperties(
+    event: ValidatedAPIGatewayProxyEvent<SuperblockProperty>
+  ) {
+    const workspaceId = extractWorkspaceId(event);
+    const property = await SuperblockPropertyEntity.query(workspaceId);
+    if (!property.Items) {
+      throw createError(
+        404,
+        JSON.stringify({
+          statusCode: 404,
+          message: 'Property not found',
+        })
+      );
+    }
+    return {
+      statusCode: 200,
+      body: JSON.stringify(property.Items),
+    };
+  }
+
+  @Route({
+    method: HTTPMethod.POST,
     path: '/{propertyId}',
   })
-  async updateProperty(event: ValidatedAPIGatewayProxyEvent<SuperblockProperty>) {
+  async updateProperty(
+    event: ValidatedAPIGatewayProxyEvent<SuperblockProperty>
+  ) {
     const { body, pathParameters } = event;
     const { propertyId } = pathParameters;
     const workspaceId = extractWorkspaceId(event);
-    const existingPropertyResponse = await SuperblockPropertyEntity.get({ workspaceId, propertyId });
+    const existingPropertyResponse = await SuperblockPropertyEntity.get({
+      workspaceId,
+      propertyId,
+    });
     if (!existingPropertyResponse.Item) {
       throw createError(
         404,
@@ -85,7 +109,7 @@ export class SuperblockPropertyHandler {
       );
     }
     const existingProperty = existingPropertyResponse.Item;
-    const updatedProperty: SuperblockProperty = {
+    const updatedProperty = {
       ...existingProperty,
       ...body,
     };
@@ -99,6 +123,80 @@ export class SuperblockPropertyHandler {
   }
 
   @Route({
+    method: HTTPMethod.POST,
+    path: '/{propertyId}/value',
+  })
+  async updatePropertyValues(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const { body, pathParameters } = event;
+    const { propertyId } = pathParameters;
+    const workspaceId = extractWorkspaceId(event);
+    const existingPropertyResponse = await SuperblockPropertyEntity.get({
+      workspaceId,
+      propertyId,
+    });
+    if (!existingPropertyResponse.Item) {
+      throw createError(
+        404,
+        JSON.stringify({
+          statusCode: 404,
+          message: 'Property not found',
+        })
+      );
+    }
+    const existingProperty = existingPropertyResponse.Item;
+    const updatedProperty = {
+      ...existingProperty,
+      values: [
+        ...new Set([...(existingProperty.values as string[]), body.value]),
+      ],
+    };
+
+    await SuperblockPropertyEntity.put(updatedProperty);
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify(updatedProperty),
+    };
+  }
+
+  @Route({
+    method: HTTPMethod.DELETE,
+    path: '/{propertyId}/value',
+  })
+  async deletePropertyValues(event: ValidatedAPIGatewayProxyEvent<any>) {
+    const { body, pathParameters } = event;
+    const { propertyId } = pathParameters;
+    const workspaceId = extractWorkspaceId(event);
+    const existingPropertyResponse = await SuperblockPropertyEntity.get({
+      workspaceId,
+      propertyId,
+    });
+    if (!existingPropertyResponse.Item) {
+      throw createError(
+        404,
+        JSON.stringify({
+          statusCode: 404,
+          message: 'Property not found',
+        })
+      );
+    }
+    const existingProperty = existingPropertyResponse.Item;
+    const updatedProperty = {
+      ...existingProperty,
+      values: ((existingProperty?.values as string[]) ?? []).filter(
+        (item) => item !== body.value
+      ),
+    };
+
+    await SuperblockPropertyEntity.put(updatedProperty);
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify(updatedProperty),
+    };
+  }
+
+  @Route({
     method: HTTPMethod.DELETE,
     path: '/{propertyId}',
   })
@@ -106,7 +204,10 @@ export class SuperblockPropertyHandler {
     const { pathParameters } = event;
     const { propertyId } = pathParameters;
     const workspaceId = extractWorkspaceId(event);
-    const existingPropertyResponse = await SuperblockPropertyEntity.get({ workspaceId, propertyId });
+    const existingPropertyResponse = await SuperblockPropertyEntity.get({
+      workspaceId,
+      propertyId,
+    });
     if (!existingPropertyResponse.Item) {
       throw createError(
         404,

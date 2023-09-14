@@ -1,3 +1,4 @@
+import { generateEntityId } from '@mex/gen-utils';
 import { Entity } from 'dynamodb-toolbox';
 import { superblockTable } from '../service/DynamoDB';
 
@@ -33,6 +34,7 @@ export const SuperblockPropertyEntity = new Entity({
       partitionKey: true,
     },
     propertyId: {
+      default: generateEntityId('PROPERTY'),
       type: 'string',
       sortKey: true,
     },
@@ -43,8 +45,12 @@ export const SuperblockPropertyEntity = new Entity({
       type: 'string',
       default: 'none',
     },
-    superblockId: {
-      type: 'string',
+    values: {
+      type: 'list',
+      default: [],
+    },
+    properties: {
+      type: 'map',
     },
   },
   table: superblockTable,

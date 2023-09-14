@@ -10,5 +10,6 @@ export interface SuperblockProperty {
   propertyId: string;
   name: string;
   status: string;
-  superblockId: string;
+  values?: string[];
+  properties?: Record<string, any>;
 }

@@ -9,8 +9,8 @@ const superblockServerlessConfig = {
   custom: {
     ...baseServerlessConfiguration.custom,
     'serverless-offline': {
-      httpPort: 4000, //set different port for each service
-      lambdaPort: 4002,
+      httpPort: 4090, //set different port for each service
+      lambdaPort: 4092,
       ignoreJWTSignature: true,
       noAuth: true,
     },
